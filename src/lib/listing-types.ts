@@ -109,7 +109,13 @@ export interface ListingInput {
   virtualTourUrl?: string;
   viewCount?: number;
   viewEvents?: ListingViewEvent[];
-  address?: { formatted?: string };
+  address?: {
+    country?: string;
+    state?: string;
+    city?: string;
+    address?: string;
+    formatted?: string;
+  };
   city: string;
   primaryImage?: string;
   gallery?: ListingImage[];

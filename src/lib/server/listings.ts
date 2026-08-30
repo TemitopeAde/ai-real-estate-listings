@@ -50,11 +50,16 @@ function toDateValue(value: unknown): Date | undefined {
   return undefined;
 }
 
-function toAddress(value: unknown): { formatted?: string } | undefined {
+function toAddress(value: unknown): Listing["address"] {
   if (!isRecord(value)) return undefined;
 
+  const country = toStringValue(value.country);
+  const state = toStringValue(value.state);
+  const city = toStringValue(value.city);
+  const address = toStringValue(value.address);
   const formatted = toStringValue(value.formatted);
-  return formatted ? { formatted } : undefined;
+  if (!country && !state && !city && !address && !formatted) return undefined;
+  return { country, state, city, address, formatted };
 }
 
 function toStringArray(value: unknown): string[] {

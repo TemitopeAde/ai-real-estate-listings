@@ -99,6 +99,9 @@ function deserializeListing(listing: Listing): Listing {
     _updatedDate: listing._updatedDate
       ? new Date(listing._updatedDate)
       : undefined,
+    availabilityDate: listing.availabilityDate
+      ? new Date(listing.availabilityDate)
+      : undefined,
     aiGeneratedAt: listing.aiGeneratedAt
       ? new Date(listing.aiGeneratedAt)
       : undefined,

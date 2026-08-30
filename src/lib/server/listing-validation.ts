@@ -29,6 +29,8 @@ export function normalizeRichText(value: string): string {
     .replace(/<(iframe|object|embed|meta|link)(?:\s[^>]*)?\s*\/?\s*>/gi, "")
     .replace(/\s+on[a-z-]+=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
     .replace(/<span\s+class="ql-ui"[^>]*><\/span>/gi, "")
+    .replace(/<div\s+class="ql-code-block"[^>]*>([\s\S]*?)<\/div>/gi, '<p style="font-face:monospace">$1</p>')
+    .replace(/<div\s+class="ql-code-block-container"[^>]*>([\s\S]*?)<\/div>/gi, "$1")
     .replace(/\sclass="([^"]*)"/gi, (_match, className: string) => {
       const styles: string[] = [];
       const classes = className.split(/\s+/).filter(Boolean);
@@ -44,7 +46,7 @@ export function normalizeRichText(value: string): string {
       const indent = classes.find((className) => /^ql-indent-\d+$/.test(className));
 
       if (align) styles.push(`text-align:${align.replace("ql-align-", "")}`);
-      if (font) styles.push(`font-family:${font.replace("ql-font-", "")}`);
+      if (font) styles.push(`font-face:${font.replace("ql-font-", "")}`);
       if (size) {
         const sizeValue = size.replace("ql-size-", "");
         styles.push(
@@ -65,10 +67,20 @@ export function normalizeRichText(value: string): string {
       return styles.length > 0 ? ` style="${styles.join(";")}"` : "";
     })
     .replace(/\sdata-[a-z-]+="[^"]*"/gi, "")
+    .replace(/\s(?:href|src)\s*=\s*(["'])\s*javascript:[\s\S]*?\1/gi, "")
+    .replace(/<img\b[^>]*>/gi, (tag) => {
+      const src = tag.match(/\bsrc\s*=\s*(["'])(.*?)\1/i)?.[2];
+      if (!src || !/^https?:\/\//i.test(src)) return "";
+      const alt = tag.match(/\balt\s*=\s*(["'])(.*?)\1/i)?.[2];
+      const escapeAttribute = (attribute: string) =>
+        attribute.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+      return `<img src="${escapeAttribute(src)}"${alt ? ` alt="${escapeAttribute(alt)}"` : ""}>`;
+    })
     .replace(/<(?:s|strike)>([\s\S]*?)<\/(?:s|strike)>/gi, '<span style="text-decoration:line-through">$1</span>')
-    .replace(/<blockquote>([\s\S]*?)<\/blockquote>/gi, '<p style="border-left:3px solid currentColor;padding-left:1em">$1</p>')
-    .replace(/<pre>([\s\S]*?)<\/pre>/gi, '<p style="font-family:monospace;white-space:pre-wrap">$1</p>')
-    .replace(/<code>([\s\S]*?)<\/code>/gi, '<span style="font-family:monospace">$1</span>')
+    .replace(/<blockquote(?:\s[^>]*)?>([\s\S]*?)<\/blockquote>/gi, '<p style="margin-left:1em">$1</p>')
+    .replace(/<pre(?:\s[^>]*)?>([\s\S]*?)<\/pre>/gi, '<p style="font-face:monospace">$1</p>')
+    .replace(/<code(?:\s[^>]*)?>([\s\S]*?)<\/code>/gi, '<span style="font-face:monospace">$1</span>')
+    .replace(/<(?!\/?(?:p|h[1-6]|a|span|strong|em|u|ul|ol|li|br|img)\b)[^>]+>/gi, "")
     .trim();
 }
 
@@ -226,15 +238,20 @@ function parseViewEvents(
 function parseAddress(
   value: unknown,
   errors: string[],
-): { formatted?: string } | undefined {
+): ListingInput["address"] {
   if (value === undefined || value === null || value === "") return undefined;
   if (!isRecord(value)) {
     errors.push("Address must be an object.");
     return undefined;
   }
 
-  const formatted = optionalString(value.formatted, "Address", errors);
-  return formatted ? { formatted } : undefined;
+  const country = requiredString(value.country, "Country", errors);
+  const state = requiredString(value.state, "State", errors);
+  const city = requiredString(value.city, "City", errors);
+  const address = requiredString(value.address, "Street address", errors);
+  const formatted = optionalString(value.formatted, "Formatted address", errors);
+  if (!country || !state || !city || !address) return undefined;
+  return { country, state, city, address, formatted };
 }
 
 function parseGallery(

@@ -19,6 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CURRENCIES } from "@/lib/currencies";
+import { httpClient } from "@wix/essentials";
+import countries from "@/data/countries.json";
 import {
   AREA_UNITS,
   FURNISHING_STATUSES,
@@ -86,6 +89,8 @@ interface ListingFormState {
   parkingSpaces: string;
   furnished: boolean;
   amenities: string;
+  country: string;
+  state: string;
   address: string;
   city: string;
   primaryImage: string;
@@ -95,6 +100,12 @@ interface ListingFormState {
 type FormField = keyof ListingFormState;
 type FormErrors = Partial<Record<FormField, string>>;
 
+interface LocationOption {
+  iso2?: string;
+  name: string;
+  id?: number;
+}
+
 function createInitialState(
   listing: Listing | null,
   defaults: Pick<
@@ -103,49 +114,105 @@ function createInitialState(
   >,
 ): ListingFormState {
   const availabilityDate = listing?.availabilityDate;
+  const isNewListing = !listing;
   return {
-    title: listing?.title ?? "",
-    description: listing?.description ?? "",
+    title:
+      listing?.title ??
+      (isNewListing ? "Contemporary 3-bedroom apartment in Lekki" : ""),
+    description:
+      listing?.description ??
+      (isNewListing
+        ? "<p>Bright and spacious apartment with modern finishes, excellent natural light, and secure parking. Located close to shops, restaurants, and major commuter routes.</p><p>Ideal for professionals or a growing family looking for a comfortable home in a well-connected neighbourhood.</p>"
+        : ""),
     transactionType: listing?.transactionType ?? "sale",
     propertyType: listing?.propertyType ?? "house",
     status: listing?.status ?? defaults.defaultStatus,
-    price: listing ? String(listing.price) : "",
+    price: listing ? String(listing.price) : "85000000",
     currency: listing?.currency ?? defaults.defaultCurrency,
-    area: listing ? String(listing.area) : "",
+    area: listing ? String(listing.area) : "1850",
     areaUnit: listing?.areaUnit ?? defaults.defaultAreaUnit,
-    bedrooms: listing?.bedrooms === undefined ? "" : String(listing.bedrooms),
+    bedrooms:
+      listing?.bedrooms === undefined
+        ? isNewListing
+          ? "3"
+          : ""
+        : String(listing.bedrooms),
     bathrooms:
-      listing?.bathrooms === undefined ? "" : String(listing.bathrooms),
+      listing?.bathrooms === undefined
+        ? isNewListing
+          ? "3"
+          : ""
+        : String(listing.bathrooms),
     propertyCondition: listing?.propertyCondition ?? "good",
     furnishingStatus:
       listing?.furnishingStatus ??
-      (listing?.furnished ? "furnished" : "unfurnished"),
+      (listing?.furnished
+        ? "furnished"
+        : isNewListing
+          ? "furnished"
+          : "unfurnished"),
     tenure: listing?.tenure ?? "freehold",
     rentalFrequency: listing?.rentalFrequency ?? "monthly",
     availabilityDate: availabilityDate
       ? availabilityDate.toISOString().slice(0, 10)
-      : "",
+      : isNewListing
+        ? "2026-10-01"
+        : "",
     serviceCharge:
-      listing?.serviceCharge === undefined ? "" : String(listing.serviceCharge),
+      listing?.serviceCharge === undefined
+        ? isNewListing
+          ? "250000"
+          : ""
+        : String(listing.serviceCharge),
     securityDeposit:
       listing?.securityDeposit === undefined
-        ? ""
+        ? isNewListing
+          ? "5000000"
+          : ""
         : String(listing.securityDeposit),
-    agentName: listing?.agentName ?? "",
-    agentPhone: listing?.agentPhone ?? "",
-    agentEmail: listing?.agentEmail ?? "",
-    latitude: listing?.latitude === undefined ? "" : String(listing.latitude),
+    agentName: listing?.agentName ?? (isNewListing ? "Adebayo Properties" : ""),
+    agentPhone:
+      listing?.agentPhone ?? (isNewListing ? "+234 801 234 5678" : ""),
+    agentEmail:
+      listing?.agentEmail ??
+      (isNewListing ? "hello@adebayoproperties.example" : ""),
+    latitude:
+      listing?.latitude === undefined
+        ? isNewListing
+          ? "6.4341"
+          : ""
+        : String(listing.latitude),
     longitude:
-      listing?.longitude === undefined ? "" : String(listing.longitude),
+      listing?.longitude === undefined
+        ? isNewListing
+          ? "3.4703"
+          : ""
+        : String(listing.longitude),
     virtualTourUrl: listing?.virtualTourUrl ?? "",
     yearBuilt:
-      listing?.yearBuilt === undefined ? "" : String(listing.yearBuilt),
+      listing?.yearBuilt === undefined
+        ? isNewListing
+          ? "2022"
+          : ""
+        : String(listing.yearBuilt),
     parkingSpaces:
-      listing?.parkingSpaces === undefined ? "" : String(listing.parkingSpaces),
-    furnished: listing?.furnished ?? false,
-    amenities: listing?.amenities?.join(", ") ?? "",
-    address: listing?.address?.formatted ?? "",
-    city: listing?.city ?? "",
+      listing?.parkingSpaces === undefined
+        ? isNewListing
+          ? "2"
+          : ""
+        : String(listing.parkingSpaces),
+    furnished: listing?.furnished ?? isNewListing,
+    amenities:
+      listing?.amenities?.join(", ") ??
+      (isNewListing ? "Swimming pool, Gym, 24/7 security, BQ" : ""),
+    country: listing?.address?.country ?? (isNewListing ? "NG" : ""),
+    state: listing?.address?.state ?? (isNewListing ? "LA" : ""),
+    address:
+      listing?.address?.address ??
+      listing?.address?.formatted ??
+      (isNewListing ? "12 Admiralty Way" : ""),
+    city:
+      listing?.address?.city ?? listing?.city ?? (isNewListing ? "Lekki" : ""),
     primaryImage: listing?.primaryImage ?? "",
     gallery:
       listing?.gallery && listing.gallery.length > 0
@@ -191,6 +258,10 @@ export function ListingForm({
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [states, setStates] = useState<LocationOption[]>([]);
+  const [cities, setCities] = useState<LocationOption[]>([]);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState(false);
   const isEditing = Boolean(listing?._id);
 
   const editorLabel = isEditing
@@ -208,6 +279,77 @@ export function ListingForm({
     setErrors({});
     setSubmitError(null);
   }, [defaultAreaUnit, defaultCurrency, defaultStatus, listing]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStates([]);
+    setCities([]);
+    setLocationError(false);
+    if (!form.country) return;
+
+    const loadStates = async () => {
+      setLocationLoading(true);
+      try {
+        const response = await httpClient.fetchWithAuth(
+          `${window.location.origin}/api/locations?country=${encodeURIComponent(form.country)}`,
+        );
+        if (!response.ok) throw new Error("States could not be loaded.");
+        const data = (await response.json()) as unknown;
+        if (!cancelled && Array.isArray(data)) {
+          const nextStates = data.filter(isLocationOption);
+          setStates(nextStates);
+          setForm((current) => {
+            if (!current.state) return current;
+            const matchingState = nextStates.find(
+              (state) =>
+                state.iso2 === current.state ||
+                state.name.toLowerCase() === current.state.toLowerCase(),
+            );
+            return matchingState?.iso2 && matchingState.iso2 !== current.state
+              ? { ...current, state: matchingState.iso2 }
+              : current;
+          });
+        }
+      } catch (error) {
+        console.error("Unable to load states.", error);
+        if (!cancelled) setLocationError(true);
+      } finally {
+        if (!cancelled) setLocationLoading(false);
+      }
+    };
+    void loadStates();
+    return () => {
+      cancelled = true;
+    };
+  }, [form.country]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCities([]);
+    if (!form.country || !form.state) return;
+
+    const loadCities = async () => {
+      setLocationLoading(true);
+      try {
+        const response = await httpClient.fetchWithAuth(
+          `${window.location.origin}/api/locations?country=${encodeURIComponent(form.country)}&state=${encodeURIComponent(form.state)}`,
+        );
+        if (!response.ok) throw new Error("Cities could not be loaded.");
+        const data = (await response.json()) as unknown;
+        if (!cancelled && Array.isArray(data))
+          setCities(data.filter(isLocationOption));
+      } catch (error) {
+        console.error("Unable to load cities.", error);
+        if (!cancelled) setLocationError(true);
+      } finally {
+        if (!cancelled) setLocationLoading(false);
+      }
+    };
+    void loadCities();
+    return () => {
+      cancelled = true;
+    };
+  }, [form.country, form.state]);
 
   const chooseImages = async () => {
     try {
@@ -269,7 +411,10 @@ export function ListingForm({
     const area = Number(form.area);
     if (!form.area.trim() || !Number.isFinite(area) || area < 0)
       nextErrors.area = "Enter a valid area.";
+    if (!form.country.trim()) nextErrors.country = "Select a country.";
+    if (!form.state.trim()) nextErrors.state = "Select a state or region.";
     if (!form.city.trim()) nextErrors.city = "Enter the city or locality.";
+    if (!form.address.trim()) nextErrors.address = "Enter the street address.";
 
     for (const [key, value] of [
       ["bedrooms", form.bedrooms],
@@ -333,9 +478,20 @@ export function ListingForm({
       latitude: optionalNumber(form.latitude),
       longitude: optionalNumber(form.longitude),
       virtualTourUrl: form.virtualTourUrl.trim() || undefined,
-      address: form.address.trim()
-        ? { formatted: form.address.trim() }
-        : undefined,
+      address: {
+        country: form.country.trim(),
+        state: selectedStateName(states, form.state),
+        city: form.city.trim(),
+        address: form.address.trim(),
+        formatted: [
+          form.address.trim(),
+          form.city.trim(),
+          selectedStateName(states, form.state),
+          selectedCountryName(form.country),
+        ]
+          .filter(Boolean)
+          .join(", "),
+      },
       city: form.city.trim(),
       primaryImage:
         (form.gallery[0]?.url ?? form.primaryImage.trim()) || undefined,
@@ -447,20 +603,58 @@ export function ListingForm({
               </div>
               <p className="text-xs font-normal text-muted-foreground">
                 Full formatting includes fonts, sizes, headings, emphasis,
-                colors, alignment, lists, indentation, quotes, code, links,
-                and images.
+                colors, alignment, lists, indentation, quotes, code, and links.
+                Add images in the listing gallery below.
               </p>
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
+              <FieldSelect
+                label="Country"
+                value={form.country}
+                onValueChange={(value) => {
+                  update("country", value);
+                  update("state", "");
+                  update("city", "");
+                }}
+                options={countries.map((country) => ({
+                  value: country.code,
+                  label: country.name,
+                }))}
+                error={errors.country}
+              />
+              <FieldSelect
+                label="State / region"
+                value={form.state}
+                onValueChange={(value) => {
+                  update("state", value);
+                  update("city", "");
+                }}
+                options={states.flatMap((option) =>
+                  option.iso2
+                    ? [{ value: option.iso2, label: option.name }]
+                    : [],
+                )}
+                disabled={
+                  !form.country || locationLoading || states.length === 0
+                }
+                error={errors.state}
+              />
               <label className="space-y-2 text-sm font-medium">
-                <span>Address</span>
+                <span>
+                  Address <span className="text-destructive">*</span>
+                </span>
                 <Textarea
                   value={form.address}
                   onChange={(event) => update("address", event.target.value)}
                   placeholder="Street address or neighborhood"
                   rows={3}
                 />
+                {errors.address ? (
+                  <span className="block text-xs font-normal text-destructive">
+                    {errors.address}
+                  </span>
+                ) : null}
               </label>
               <label className="space-y-2 text-sm font-medium">
                 <span>
@@ -470,8 +664,20 @@ export function ListingForm({
                   value={form.city}
                   onChange={(event) => update("city", event.target.value)}
                   aria-invalid={Boolean(errors.city)}
-                  placeholder="Lagos"
+                  placeholder="Enter or select a city"
+                  list="listing-city-options"
                 />
+                <datalist id="listing-city-options">
+                  {cities.map((city) => (
+                    <option key={city.id ?? city.name} value={city.name} />
+                  ))}
+                </datalist>
+                {locationError ? (
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Location suggestions are unavailable. Enter the city
+                    manually.
+                  </span>
+                ) : null}
                 {errors.city ? (
                   <span className="block text-xs font-normal text-destructive">
                     {errors.city}
@@ -573,13 +779,25 @@ export function ListingForm({
                 <span>
                   Currency <span className="text-destructive">*</span>
                 </span>
-                <Input
+                <Select
                   value={form.currency}
-                  onChange={(event) => update("currency", event.target.value)}
-                  aria-invalid={Boolean(errors.currency)}
-                  placeholder="USD"
-                  maxLength={3}
-                />
+                  onValueChange={(value) => update("currency", value)}
+                >
+                  <SelectTrigger
+                    className="w-full"
+                    aria-label="Currency"
+                    aria-invalid={Boolean(errors.currency)}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.currency ? (
                   <span className="block text-xs font-normal text-destructive">
                     {errors.currency}
@@ -706,7 +924,7 @@ export function ListingForm({
                     onChange={(event) =>
                       update("agentPhone", event.target.value)
                     }
-                    placeholder="+234…"
+                    placeholder="International phone number"
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium sm:col-span-2">
@@ -743,7 +961,7 @@ export function ListingForm({
                     step="any"
                     value={form.latitude}
                     onChange={(event) => update("latitude", event.target.value)}
-                    placeholder="6.5244"
+                    placeholder="e.g. 40.7128"
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
@@ -757,7 +975,7 @@ export function ListingForm({
                     onChange={(event) =>
                       update("longitude", event.target.value)
                     }
-                    placeholder="3.3792"
+                    placeholder="e.g. -74.0060"
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium sm:col-span-2">
@@ -845,17 +1063,21 @@ function FieldSelect<T extends string>({
   value,
   onValueChange,
   options,
+  error,
+  disabled,
 }: {
   label: string;
   value: T;
   onValueChange: (value: string) => void;
   options: ReadonlyArray<{ value: T; label: string }>;
+  error?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className="block space-y-2 text-sm font-medium">
       <span>{label}</span>
-      <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger aria-label={label}>
+      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+        <SelectTrigger aria-label={label} aria-invalid={Boolean(error)}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -866,8 +1088,27 @@ function FieldSelect<T extends string>({
           ))}
         </SelectContent>
       </Select>
+      {error ? (
+        <span className="block text-xs font-normal text-destructive">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
+}
+
+function isLocationOption(value: unknown): value is LocationOption {
+  if (typeof value !== "object" || value === null) return false;
+  const option = value as Record<string, unknown>;
+  return typeof option.name === "string";
+}
+
+function selectedStateName(states: LocationOption[], value: string): string {
+  return states.find((state) => state.iso2 === value)?.name ?? value;
+}
+
+function selectedCountryName(value: string): string {
+  return countries.find((country) => country.code === value)?.name ?? value;
 }
 
 function OptionalNumberField({

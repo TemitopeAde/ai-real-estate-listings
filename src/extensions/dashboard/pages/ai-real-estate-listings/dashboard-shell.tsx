@@ -119,7 +119,7 @@ export function DashboardShell({
           </div>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="min-w-0 bg-background">
+      <SidebarInset className="h-svh min-w-0 overflow-hidden bg-background">
         <header className="flex h-[4.5rem] shrink-0 items-center gap-3 border-b border-border/70 bg-white/90 px-4 backdrop-blur sm:px-8">
           <SidebarTrigger className="-ml-1" aria-label="Toggle navigation" />
           <Separator orientation="vertical" className="mr-1 h-5" />
@@ -132,7 +132,7 @@ export function DashboardShell({
             </h1>
           </div>
         </header>
-        <main className="min-h-[calc(100vh-4.5rem)] bg-[radial-gradient(circle_at_top_right,_rgba(96,165,250,0.14),_transparent_34rem)] p-4 sm:p-8 lg:p-10">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,_rgba(96,165,250,0.14),_transparent_34rem)] p-4 sm:p-8 lg:p-10">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </SidebarInset>

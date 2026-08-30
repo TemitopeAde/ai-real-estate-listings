@@ -4,7 +4,6 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
   Pencil,
   Plus,
   RefreshCw,
@@ -38,12 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -358,43 +351,29 @@ export function ListingsView({
                             {formatDate(listing._updatedDate)}
                           </TableCell>
                           <TableCell className="px-6 py-4 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => setEditCandidate(listing)}
+                                aria-label={`Edit ${listing.title}`}
+                                title="Edit listing"
+                              >
+                                <Pencil className="size-4" aria-hidden="true" />
+                              </Button>
+                              {listing.status !== "archived" ? (
                                 <Button
                                   variant="ghost"
                                   size="icon-sm"
-                                  aria-label={`Actions for ${listing.title}`}
+                                  disabled={archivingId === listing._id}
+                                  onClick={() => setArchiveCandidate(listing)}
+                                  aria-label={`Archive ${listing.title}`}
+                                  title="Archive listing"
                                 >
-                                  <MoreHorizontal
-                                    className="size-4"
-                                    aria-hidden="true"
-                                  />
+                                  <Archive className="size-4" aria-hidden="true" />
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => setEditCandidate(listing)}
-                                >
-                                  <Pencil
-                                    className="size-4"
-                                    aria-hidden="true"
-                                  />{" "}
-                                  Edit listing
-                                </DropdownMenuItem>
-                                {listing.status !== "archived" ? (
-                                  <DropdownMenuItem
-                                    disabled={archivingId === listing._id}
-                                    onClick={() => setArchiveCandidate(listing)}
-                                  >
-                                    <Archive
-                                      className="size-4"
-                                      aria-hidden="true"
-                                    />{" "}
-                                    Archive listing
-                                  </DropdownMenuItem>
-                                ) : null}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              ) : null}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );

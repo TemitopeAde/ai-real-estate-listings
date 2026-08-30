@@ -160,7 +160,7 @@ export function DashboardApp() {
           if (!open) closeEditor();
         }}
       >
-        <DialogContent className="max-w-6xl">
+        <DialogContent className="h-[92vh] max-w-6xl">
           <DialogHeader>
             <DialogTitle>
               {editorMode === "edit" ? "Edit listing" : "Add listing"}
@@ -169,7 +169,7 @@ export function DashboardApp() {
               Keep your property information accurate and ready for publishing.
             </DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-6">
             {editorError ? (
               <div
                 role="alert"

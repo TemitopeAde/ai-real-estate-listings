@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -19,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AREA_UNITS, isListingStatus, LISTING_STATUSES } from '@/lib/listings';
+import { CURRENCIES } from '@/lib/currencies';
 import {
   DEFAULT_WORKSPACE_SETTINGS,
   writeWorkspaceSettings,
@@ -86,8 +86,11 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps) 
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="space-y-2 text-sm font-medium">
               <span>Default currency</span>
-              <Input value={draft.defaultCurrency} onChange={(event) => updateDraft('defaultCurrency', event.target.value)} placeholder="USD" maxLength={3} aria-label="Default currency" />
-              <span className="block text-xs font-normal text-muted-foreground">Use a three-letter ISO currency code.</span>
+              <Select value={draft.defaultCurrency} onValueChange={(value) => updateDraft('defaultCurrency', value)}>
+                <SelectTrigger className="w-full" aria-label="Default currency"><SelectValue /></SelectTrigger>
+                <SelectContent>{CURRENCIES.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+              </Select>
+              <span className="block text-xs font-normal text-muted-foreground">Choose from the full ISO 4217 currency list.</span>
             </label>
             <label className="space-y-2 text-sm font-medium">
               <span>Default area unit</span>

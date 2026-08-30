@@ -76,6 +76,13 @@
   color: var(--foreground);
 }
 
+.listing-rich-editor .ql-editor img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.75rem 0;
+}
+
 .listing-rich-editor .ql-editor.ql-blank::before {
   color: var(--muted-foreground);
   font-style: normal;
