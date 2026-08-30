@@ -1,0 +1,94 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif
+  }
+  :root {
+    --background: #FAFAFA;
+    --foreground: #000000;
+    --card: #FFFFFF;
+    --card-foreground: #000000;
+    --popover: #FFFFFF;
+    --popover-foreground: #000000;
+    --primary: #000000;
+    --primary-foreground: #FAFAFA;
+    --secondary: #F1ECE4;
+    --secondary-foreground: #0C3B2E;
+    --muted: #F2F2F0;
+    --muted-foreground: #626562;
+    --accent: #F1ECE4;
+    --accent-foreground: #0C3B2E;
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: #E4E1DB;
+    --input: #D8D5CF;
+    --ring: #C5A880;
+    --chart-1: #0C3B2E;
+    --chart-2: #C5A880;
+    --chart-3: #6B8F80;
+    --chart-4: #8D7655;
+    --chart-5: #3D5B50;
+    --radius: 0.75rem;
+    --sidebar: oklch(1 0 0);
+    --sidebar-foreground: #000000;
+    --sidebar-primary: #000000;
+    --sidebar-primary-foreground: #FAFAFA;
+    --sidebar-accent: #F1ECE4;
+    --sidebar-accent-foreground: #0C3B2E;
+    --sidebar-border: #E4E1DB;
+    --sidebar-ring: #C5A880
+  }
+  * {
+    @apply border-border;
+    outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+.listing-rich-editor .ql-toolbar.ql-snow {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklch, var(--muted) 25%, transparent);
+  padding: 0.65rem 0.75rem;
+}
+
+.listing-rich-editor .ql-container.ql-snow {
+  border: 0;
+  min-height: 12rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+.listing-rich-editor .ql-editor {
+  min-height: 12rem;
+  color: var(--foreground);
+}
+
+.listing-rich-editor .ql-editor.ql-blank::before {
+  color: var(--muted-foreground);
+  font-style: normal;
+}
+
+.listing-rich-editor .ql-snow .ql-stroke {
+  stroke: var(--muted-foreground);
+}
+
+.listing-rich-editor .ql-snow .ql-fill {
+  fill: var(--muted-foreground);
+}
+
+.listing-rich-editor .ql-snow .ql-picker {
+  color: var(--muted-foreground);
+}
