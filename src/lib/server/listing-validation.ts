@@ -29,14 +29,41 @@ export function normalizeRichText(value: string): string {
     .replace(/<(iframe|object|embed|meta|link)(?:\s[^>]*)?\s*\/?\s*>/gi, "")
     .replace(/\s+on[a-z-]+=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
     .replace(/<span\s+class="ql-ui"[^>]*><\/span>/gi, "")
-    .replace(/\sclass="[^"]*\bql-align-(left|center|right|justify)\b[^"]*"/gi, ' style="text-align:$1"')
-    .replace(/\sclass="[^"]*\bql-font-serif\b[^"]*"/gi, ' style="font-family:serif"')
-    .replace(/\sclass="[^"]*\bql-font-monospace\b[^"]*"/gi, ' style="font-family:monospace"')
-    .replace(/\sclass="[^"]*\bql-size-small\b[^"]*"/gi, ' style="font-size:0.75em"')
-    .replace(/\sclass="[^"]*\bql-size-large\b[^"]*"/gi, ' style="font-size:1.5em"')
-    .replace(/\sclass="[^"]*\bql-size-huge\b[^"]*"/gi, ' style="font-size:2.5em"')
-    .replace(/\sclass="[^"]*\bql-indent-(\d+)\b[^"]*"/gi, (_match, level: string) => ` style="margin-left:${Number(level) * 3}em"`)
-    .replace(/\sclass="[^"]*"/gi, "")
+    .replace(/\sclass="([^"]*)"/gi, (_match, className: string) => {
+      const styles: string[] = [];
+      const classes = className.split(/\s+/).filter(Boolean);
+      const align = classes.find((className) =>
+        /^ql-align-(left|center|right|justify)$/.test(className),
+      );
+      const font = classes.find((className) =>
+        /^ql-font-(serif|monospace)$/.test(className),
+      );
+      const size = classes.find((className) =>
+        /^ql-size-(small|large|huge)$/.test(className),
+      );
+      const indent = classes.find((className) => /^ql-indent-\d+$/.test(className));
+
+      if (align) styles.push(`text-align:${align.replace("ql-align-", "")}`);
+      if (font) styles.push(`font-family:${font.replace("ql-font-", "")}`);
+      if (size) {
+        const sizeValue = size.replace("ql-size-", "");
+        styles.push(
+          `font-size:${
+            sizeValue === "small"
+              ? "0.75em"
+              : sizeValue === "large"
+                ? "1.5em"
+                : "2.5em"
+          }`,
+        );
+      }
+      if (indent) {
+        const level = Number(indent.replace("ql-indent-", ""));
+        styles.push(`margin-left:${level * 3}em`);
+      }
+
+      return styles.length > 0 ? ` style="${styles.join(";")}"` : "";
+    })
     .replace(/\sdata-[a-z-]+="[^"]*"/gi, "")
     .replace(/<(?:s|strike)>([\s\S]*?)<\/(?:s|strike)>/gi, '<span style="text-decoration:line-through">$1</span>')
     .replace(/<blockquote>([\s\S]*?)<\/blockquote>/gi, '<p style="border-left:3px solid currentColor;padding-left:1em">$1</p>')
