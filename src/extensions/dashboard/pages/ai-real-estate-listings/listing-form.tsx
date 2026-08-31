@@ -19,6 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { CURRENCIES } from "@/lib/currencies";
 import { httpClient } from "@wix/essentials";
 import countries from "@/data/countries.json";
@@ -84,7 +90,7 @@ interface ListingFormState {
   agentEmail: string;
   latitude: string;
   longitude: string;
-  virtualTourUrl: string;
+  panoramaImage: string;
   yearBuilt: string;
   parkingSpaces: string;
   furnished: boolean;
@@ -188,7 +194,7 @@ function createInitialState(
           ? "3.4703"
           : ""
         : String(listing.longitude),
-    virtualTourUrl: listing?.virtualTourUrl ?? "",
+    panoramaImage: listing?.panoramaImage ?? "",
     yearBuilt:
       listing?.yearBuilt === undefined
         ? isNewListing
@@ -382,6 +388,23 @@ export function ListingForm({
     }
   };
 
+  const choosePanoramaImage = async () => {
+    try {
+      const response = await dashboard.openMediaManager({
+        category: "IMAGE",
+        multiSelect: false,
+      });
+      const item = response?.items[0];
+      if (item?.url?.trim()) update("panoramaImage", item.url.trim());
+    } catch (error) {
+      console.error("Unable to open the Wix Media Manager for panorama image.", error);
+      dashboard.showToast({
+        type: "error",
+        message: "The Media Manager could not be opened.",
+      });
+    }
+  };
+
   const removeImage = (index: number) => {
     const nextGallery = form.gallery.filter(
       (_, imageIndex) => imageIndex !== index,
@@ -477,12 +500,14 @@ export function ListingForm({
       agentEmail: form.agentEmail.trim() || undefined,
       latitude: optionalNumber(form.latitude),
       longitude: optionalNumber(form.longitude),
-      virtualTourUrl: form.virtualTourUrl.trim() || undefined,
+      panoramaImage: form.panoramaImage.trim() || undefined,
       address: {
         country: form.country.trim(),
         state: selectedStateName(states, form.state),
+        subdivision: selectedStateName(states, form.state),
         city: form.city.trim(),
         address: form.address.trim(),
+        streetAddress: form.address.trim(),
         formatted: [
           form.address.trim(),
           form.city.trim(),
@@ -522,8 +547,9 @@ export function ListingForm({
   }
 
   return (
+    <TooltipProvider>
     <form className="space-y-6" onSubmit={submit} noValidate>
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="sticky top-0 z-20 -mx-6 -mt-6 flex flex-col justify-between gap-4 border-b border-border/70 bg-background/95 px-6 py-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:flex-row sm:items-end">
         <div>
           <p className="text-sm font-medium text-primary">Listing editor</p>
           <h2 className="mt-1 text-2xl font-semibold tracking-tight">
@@ -569,9 +595,7 @@ export function ListingForm({
           </CardHeader>
           <CardContent className="space-y-5">
             <label className="space-y-2 text-sm font-medium">
-              <span>
-                Title <span className="text-destructive">*</span>
-              </span>
+              <FieldLabel text="Title" hint="A concise name that identifies this property." required />
               <Input
                 value={form.title}
                 onChange={(event) => update("title", event.target.value)}
@@ -586,7 +610,7 @@ export function ListingForm({
             </label>
 
             <div className="space-y-2 text-sm font-medium">
-              <span>Description</span>
+              <FieldLabel text="Description" hint="Describe the property, layout, finishes, and selling points." />
               <div className="listing-rich-editor overflow-hidden rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/30">
                 <Suspense
                   fallback={
@@ -641,9 +665,7 @@ export function ListingForm({
                 error={errors.state}
               />
               <label className="space-y-2 text-sm font-medium">
-                <span>
-                  Address <span className="text-destructive">*</span>
-                </span>
+                <FieldLabel text="Address" hint="Enter the street address or property location details." required />
                 <Textarea
                   value={form.address}
                   onChange={(event) => update("address", event.target.value)}
@@ -657,9 +679,7 @@ export function ListingForm({
                 ) : null}
               </label>
               <label className="space-y-2 text-sm font-medium">
-                <span>
-                  City <span className="text-destructive">*</span>
-                </span>
+                <FieldLabel text="City" hint="Choose a suggested city or enter one manually." required />
                 <Input
                   value={form.city}
                   onChange={(event) => update("city", event.target.value)}
@@ -757,9 +777,7 @@ export function ListingForm({
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
               <label className="space-y-2 text-sm font-medium">
-                <span>
-                  Price <span className="text-destructive">*</span>
-                </span>
+                <FieldLabel text="Price" hint="The listing price in the selected currency." required />
                 <Input
                   type="number"
                   min="0"
@@ -776,9 +794,7 @@ export function ListingForm({
                 ) : null}
               </label>
               <label className="space-y-2 text-sm font-medium">
-                <span>
-                  Currency <span className="text-destructive">*</span>
-                </span>
+                <FieldLabel text="Currency" hint="The three-letter currency used for the listing price." required />
                 <Select
                   value={form.currency}
                   onValueChange={(value) => update("currency", value)}
@@ -805,9 +821,7 @@ export function ListingForm({
                 ) : null}
               </label>
               <label className="space-y-2 text-sm font-medium">
-                <span>
-                  Area <span className="text-destructive">*</span>
-                </span>
+                <FieldLabel text="Area" hint="The property size in the selected area unit." required />
                 <Input
                   type="number"
                   min="0"
@@ -862,7 +876,7 @@ export function ListingForm({
             </div>
 
             <label className="space-y-2 text-sm font-medium">
-              <span>Amenities</span>
+              <FieldLabel text="Amenities" hint="List notable features separated by commas." />
               <Input
                 value={form.amenities}
                 onChange={(event) => update("amenities", event.target.value)}
@@ -875,7 +889,7 @@ export function ListingForm({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-2 text-sm font-medium">
-                <span>Availability date</span>
+                <FieldLabel text="Availability date" hint="The date when the property becomes available." />
                 <Input
                   type="date"
                   value={form.availabilityDate}
@@ -907,7 +921,7 @@ export function ListingForm({
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
-                  <span>Name</span>
+                  <FieldLabel text="Name" hint="The agent or owner responsible for this listing." />
                   <Input
                     value={form.agentName}
                     onChange={(event) =>
@@ -917,7 +931,7 @@ export function ListingForm({
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
-                  <span>Phone</span>
+                  <FieldLabel text="Phone" hint="A phone number for listing enquiries." />
                   <Input
                     type="tel"
                     value={form.agentPhone}
@@ -928,7 +942,7 @@ export function ListingForm({
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium sm:col-span-2">
-                  <span>Email</span>
+                  <FieldLabel text="Email" hint="An email address for listing enquiries." />
                   <Input
                     type="email"
                     value={form.agentEmail}
@@ -944,16 +958,16 @@ export function ListingForm({
             <div className="space-y-4 rounded-xl border border-border/70 p-4">
               <div>
                 <p className="text-sm font-medium">
-                  Map location and virtual tour
+                  Map location and 360° panorama
                 </p>
                 <p className="mt-1 text-xs font-normal text-muted-foreground">
-                  Add coordinates and a link to a virtual walkthrough when
-                  available.
+                  Add coordinates and an optional 360° image for an
+                  interactive walkthrough.
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
-                  <span>Latitude</span>
+                  <FieldLabel text="Latitude" hint="The property latitude used for map placement." />
                   <Input
                     type="number"
                     min="-90"
@@ -965,7 +979,7 @@ export function ListingForm({
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
-                  <span>Longitude</span>
+                  <FieldLabel text="Longitude" hint="The property longitude used for map placement." />
                   <Input
                     type="number"
                     min="-180"
@@ -978,24 +992,59 @@ export function ListingForm({
                     placeholder="e.g. -74.0060"
                   />
                 </label>
-                <label className="space-y-2 text-sm font-medium sm:col-span-2">
-                  <span>Virtual tour URL</span>
-                  <Input
-                    type="url"
-                    value={form.virtualTourUrl}
-                    onChange={(event) =>
-                      update("virtualTourUrl", event.target.value)
-                    }
-                    placeholder="https://…"
-                  />
-                </label>
               </div>
             </div>
 
             <div className="space-y-3 text-sm font-medium">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <span>Listing images</span>
+                  <FieldLabel
+                    text="360° panorama image"
+                    hint="Choose an equirectangular 360° image for the interactive Three.js viewer."
+                  />
+                  <p className="mt-1 text-xs font-normal text-muted-foreground">
+                    Optional. Visitors will be able to look around the image on the property detail page.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void choosePanoramaImage()}
+                >
+                  <ImagePlus className="size-4" aria-hidden="true" />
+                  {form.panoramaImage ? "Replace image" : "Choose image"}
+                </Button>
+              </div>
+              {form.panoramaImage ? (
+                <div className="relative max-w-md overflow-hidden rounded-xl border bg-muted/20">
+                  <img
+                    src={form.panoramaImage}
+                    alt="360° panorama preview"
+                    className="aspect-video w-full object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="absolute right-2 top-2 bg-black/65 text-white hover:bg-black/80 hover:text-white"
+                    onClick={() => update("panoramaImage", "")}
+                    aria-label="Remove panorama image"
+                  >
+                    <Trash2 className="size-3.5" aria-hidden="true" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs font-normal text-muted-foreground">
+                  No 360° panorama selected.
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 text-sm font-medium">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                <FieldLabel text="Listing images" hint="Choose images from Wix Media Manager; the first image is the cover." />
                   <p className="mt-1 text-xs font-normal text-muted-foreground">
                     Choose multiple images from your Wix Media Manager. The
                     first image is used as the cover.
@@ -1055,6 +1104,7 @@ export function ListingForm({
         fields are reserved for future generation workflows.
       </div>
     </form>
+    </TooltipProvider>
   );
 }
 
@@ -1073,9 +1123,10 @@ function FieldSelect<T extends string>({
   error?: string;
   disabled?: boolean;
 }) {
+  const hint = FIELD_HINTS[label] ?? `Choose the ${label.toLowerCase()} for this listing.`;
   return (
     <label className="block space-y-2 text-sm font-medium">
-      <span>{label}</span>
+      <FieldLabel text={label} hint={hint} />
       <Select value={value} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger aria-label={label} aria-invalid={Boolean(error)}>
           <SelectValue />
@@ -1124,7 +1175,7 @@ function OptionalNumberField({
 }) {
   return (
     <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
+      <FieldLabel text={label} hint={`Optional ${label.toLowerCase()} value for this listing.`} />
       <Input
         type="number"
         min="0"
@@ -1140,5 +1191,48 @@ function OptionalNumberField({
         </span>
       ) : null}
     </label>
+  );
+}
+
+const FIELD_HINTS: Record<string, string> = {
+  "Transaction type": "Whether the property is for sale, rent, or lease.",
+  "Property type": "The category that best describes the property.",
+  Status: "The current workflow stage for this listing.",
+  "Property condition": "The current physical condition of the property.",
+  "Furnishing status": "Whether the property is unfurnished, partly furnished, or furnished.",
+  Tenure: "The ownership or lease arrangement for the property.",
+  "Rental frequency": "How often rent is expected for rental or lease listings.",
+  Country: "The country where the property is located.",
+  "State / region": "The state, province, or region where the property is located.",
+  "Area unit": "The unit used to measure the property area.",
+};
+
+function FieldLabel({
+  text,
+  hint,
+  required = false,
+}: {
+  text: string;
+  hint: string;
+  required?: boolean;
+}) {
+  return (
+    <span className="flex items-center gap-1">
+      {text}
+      {required ? <span className="text-destructive">*</span> : null}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex size-4 items-center justify-center rounded-full text-xs text-muted-foreground hover:text-foreground"
+            aria-label={`Help: ${hint}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <span aria-hidden="true">?</span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>{hint}</TooltipContent>
+      </Tooltip>
+    </span>
   );
 }

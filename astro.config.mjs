@@ -10,5 +10,14 @@ export default defineConfig({
   integrations: [wix(), react()],
   image: { domains: ["static.wixstatic.com"] },
   security: { checkOrigin: false },
-  devToolbar: { enabled: false }
+  devToolbar: { enabled: false },
+  vite: {
+    server: {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+      },
+    },
+  },
 });

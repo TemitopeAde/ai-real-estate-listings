@@ -101,7 +101,7 @@ export default {
     { type: "TEXT", displayName: "Agent Email", key: "agentEmail" },
     { type: "NUMBER", displayName: "Latitude", key: "latitude" },
     { type: "NUMBER", displayName: "Longitude", key: "longitude" },
-    { type: "URL", displayName: "Virtual Tour URL", key: "virtualTourUrl" },
+    { type: "IMAGE", displayName: "360° Panorama Image", key: "panoramaImage" },
     { type: "NUMBER", displayName: "View Count", key: "viewCount" },
     { type: "ARRAY_DOCUMENT", displayName: "View Events", key: "viewEvents" },
     {
@@ -143,7 +143,7 @@ export default {
   displayField: "title",
   dataPermissions: {
     itemInsert: "CMS_EDITOR",
-    itemRead: "CMS_EDITOR",
+    itemRead: "ANYONE",
     itemRemove: "CMS_EDITOR",
     itemUpdate: "CMS_EDITOR",
   },

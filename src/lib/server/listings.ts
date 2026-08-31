@@ -1,4 +1,5 @@
 import { items } from "@wix/data";
+import { auth } from "@wix/essentials";
 
 import {
   getAreaUnit,
@@ -22,6 +23,7 @@ import {
   type ListingPage,
   type ListingQuery,
 } from "@/lib/listing-types";
+import { normalizeRichText } from "@/lib/server/listing-validation";
 
 type WixDataRecord = { _id?: string; [key: string]: unknown };
 
@@ -54,12 +56,13 @@ function toAddress(value: unknown): Listing["address"] {
   if (!isRecord(value)) return undefined;
 
   const country = toStringValue(value.country);
-  const state = toStringValue(value.state);
+  const state = toStringValue(value.state) ?? toStringValue(value.subdivision);
   const city = toStringValue(value.city);
-  const address = toStringValue(value.address);
+  const address =
+    toStringValue(value.address) ?? toStringValue(value.streetAddress);
   const formatted = toStringValue(value.formatted);
   if (!country && !state && !city && !address && !formatted) return undefined;
-  return { country, state, city, address, formatted };
+  return { country, state, subdivision: state, city, address, streetAddress: address, formatted };
 }
 
 function toStringArray(value: unknown): string[] {
@@ -112,10 +115,11 @@ function toViewEvents(value: unknown): ListingViewEvent[] {
 export function normalizeListing(item: WixDataRecord): Listing {
   return {
     _id: item._id ?? "",
+    _revision: typeof item._revision === "string" ? item._revision : undefined,
     _createdDate: toDateValue(item._createdDate),
     _updatedDate: toDateValue(item._updatedDate),
     title: toStringValue(item.title) ?? "Untitled listing",
-    description: toStringValue(item.description),
+    description: (() => { const value = toStringValue(item.description); return value ? normalizeRichText(value) : undefined; })(),
     transactionType: getTransactionType(item.transactionType),
     propertyType: getPropertyType(item.propertyType),
     status: getListingStatus(item.status),
@@ -147,7 +151,7 @@ export function normalizeListing(item: WixDataRecord): Listing {
     agentEmail: toStringValue(item.agentEmail),
     latitude: toNumberValue(item.latitude),
     longitude: toNumberValue(item.longitude),
-    virtualTourUrl: toStringValue(item.virtualTourUrl),
+    panoramaImage: toStringValue(item.panoramaImage),
     viewCount: toNumberValue(item.viewCount) ?? 0,
     viewEvents: toViewEvents(item.viewEvents),
     address: toAddress(item.address),
@@ -199,7 +203,7 @@ export function listingToInput(listing: Listing): ListingInput {
     agentEmail: listing.agentEmail,
     latitude: listing.latitude,
     longitude: listing.longitude,
-    virtualTourUrl: listing.virtualTourUrl,
+    panoramaImage: listing.panoramaImage,
     viewCount: listing.viewCount,
     viewEvents: listing.viewEvents,
     address: listing.address,
@@ -250,17 +254,19 @@ export async function queryListings(
 }
 
 export async function getListing(id: string): Promise<Listing | null> {
-  const item = await items.get(LISTINGS_COLLECTION_ID, id);
+  const item = await auth.elevate(items.get)(LISTINGS_COLLECTION_ID, id);
   return item ? normalizeListing(item) : null;
 }
 
 export async function saveListing(
   input: ListingInput,
   id?: string,
+  revision?: string,
 ): Promise<Listing> {
   const data = withoutEmptyValues(input);
+  if (revision) data._revision = revision;
   const result = id
-    ? await items.update(LISTINGS_COLLECTION_ID, { _id: id, ...data })
+    ? await auth.elevate(items.update)(LISTINGS_COLLECTION_ID, { _id: id, ...data })
     : await items.insert(LISTINGS_COLLECTION_ID, data);
 
   return normalizeListing(result);
@@ -273,7 +279,44 @@ export async function updateListing(
   const listing = await getListing(id);
   if (!listing) return null;
 
-  return saveListing({ ...listingToInput(listing), ...patch }, id);
+  return saveListing({ ...listingToInput(listing), ...patch }, id, listing._revision);
+}
+
+export async function queryPublicListings(): Promise<Listing[]> {
+  const result = await auth
+    .elevate(items.query)(LISTINGS_COLLECTION_ID)
+    .eq("status", "active")
+    .descending("_updatedDate")
+    .limit(100)
+    .find();
+  return result.items.map(normalizeListing);
+}
+
+export async function getPublicListing(id: string): Promise<Listing | null> {
+  const listing = await getListing(id);
+  return listing?.status === "active" ? listing : null;
+}
+
+export async function recordListingView(
+  id: string,
+  viewEvent: ListingViewEvent,
+): Promise<Listing | null> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const listing = await getPublicListing(id);
+    if (!listing) return null;
+
+    try {
+      return await updateListing(id, {
+        viewCount: (listing.viewCount ?? 0) + 1,
+        viewEvents: [...(listing.viewEvents ?? []), viewEvent],
+      });
+    } catch (error) {
+      if (attempt === 2) throw error;
+      console.warn("Retrying concurrent listing view update.", { id, attempt });
+    }
+  }
+
+  return null;
 }
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {

@@ -25,6 +25,14 @@ export function normalizeRichText(value: string): string {
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<iframe\b[^>]*class\s*=\s*(["'])[^"']*ql-video[^"']*\1[^>]*>[\s\S]*?<\/iframe>/gi, (tag) => {
+      const src = tag.match(/\bsrc\s*=\s*(["'])(.*?)\1/i)?.[2];
+      if (!src || !/^https?:\/\//i.test(src)) return "";
+      const escaped = src.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+      return /\.(mp4|webm|ogg)(?:$|[?#])/i.test(src) || /wixstatic\.com\/video\//i.test(src)
+        ? `<video controls preload="metadata" src="${escaped}"></video>`
+        : `<iframe src="${escaped}" title="Embedded video" loading="lazy" allowfullscreen></iframe>`;
+    })
     .replace(/<(iframe|object|embed|meta|link)(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi, "")
     .replace(/<(iframe|object|embed|meta|link)(?:\s[^>]*)?\s*\/?\s*>/gi, "")
     .replace(/\s+on[a-z-]+=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
@@ -76,11 +84,28 @@ export function normalizeRichText(value: string): string {
         attribute.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
       return `<img src="${escapeAttribute(src)}"${alt ? ` alt="${escapeAttribute(alt)}"` : ""}>`;
     })
+    .replace(/(^|[\s>])(https?:\/\/[^\s<]+)(?=$|[\s<])/gi, (_match, prefix: string, url: string) => {
+      if (!/\.(png|jpe?g|gif|webp|avif|svg)(?:$|[?#])/i.test(url) && !/static\.wixstatic\.com\//i.test(url)) return `${prefix}${url}`;
+      const escaped = url.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+      return `${prefix}<img src="${escaped}" alt="Property image">`;
+    })
+    .replace(/<video\b[^>]*>[\s\S]*?<\/video>/gi, (tag) => {
+      const src = tag.match(/\bsrc\s*=\s*(["'])(.*?)\1/i)?.[2];
+      if (!src || !/^https?:\/\//i.test(src)) return "";
+      const escaped = src.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+      return `<video controls preload="metadata" src="${escaped}"></video>`;
+    })
+    .replace(/(^|[\s>])(https?:\/\/[^\s<]+)(?=$|[\s<])/gi, (_match, prefix: string, url: string) => {
+      if (!/\.(mp4|webm|ogg)(?:$|[?#])/i.test(url) && !/wixstatic\.com\/video\//i.test(url)) return `${prefix}${url}`;
+      const escaped = url.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+      return `${prefix}<video controls preload="metadata" src="${escaped}"></video>`;
+    })
     .replace(/<(?:s|strike)>([\s\S]*?)<\/(?:s|strike)>/gi, '<span style="text-decoration:line-through">$1</span>')
     .replace(/<blockquote(?:\s[^>]*)?>([\s\S]*?)<\/blockquote>/gi, '<p style="margin-left:1em">$1</p>')
     .replace(/<pre(?:\s[^>]*)?>([\s\S]*?)<\/pre>/gi, '<p style="font-face:monospace">$1</p>')
     .replace(/<code(?:\s[^>]*)?>([\s\S]*?)<\/code>/gi, '<span style="font-face:monospace">$1</span>')
-    .replace(/<(?!\/?(?:p|h[1-6]|a|span|strong|em|u|ul|ol|li|br|img)\b)[^>]+>/gi, "")
+    .replace(/<iframe\b[^>]*src\s*=\s*(["'])https?:\/\/[^"']+\1[^>]*>[\s\S]*?<\/iframe>/gi, (tag) => tag.replace(/\s+on[a-z-]+=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, ""))
+    .replace(/<(?!\/?(?:p|h[1-6]|a|span|strong|em|u|ul|ol|li|br|img|video|iframe)\b)[^>]+>/gi, "")
     .trim();
 }
 
@@ -178,22 +203,6 @@ function optionalDate(
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-function optionalUrl(
-  value: unknown,
-  label: string,
-  errors: string[],
-): string | undefined {
-  const url = optionalString(value, label, errors);
-  if (!url) return undefined;
-  try {
-    new URL(url);
-    return url;
-  } catch {
-    errors.push(`${label} must be a valid URL.`);
-    return undefined;
-  }
-}
-
 function optionalEnum<T extends string>(
   value: unknown,
   label: string,
@@ -246,12 +255,28 @@ function parseAddress(
   }
 
   const country = requiredString(value.country, "Country", errors);
-  const state = requiredString(value.state, "State", errors);
+  const state = requiredString(
+    value.state ?? value.subdivision,
+    "State",
+    errors,
+  );
   const city = requiredString(value.city, "City", errors);
-  const address = requiredString(value.address, "Street address", errors);
+  const address = requiredString(
+    value.address ?? value.streetAddress,
+    "Street address",
+    errors,
+  );
   const formatted = optionalString(value.formatted, "Formatted address", errors);
   if (!country || !state || !city || !address) return undefined;
-  return { country, state, city, address, formatted };
+  return {
+    country,
+    state,
+    subdivision: state,
+    city,
+    address,
+    streetAddress: address,
+    formatted,
+  };
 }
 
 function parseGallery(
@@ -382,9 +407,9 @@ export function parseListingInput(
     errors.push("Latitude must be between -90 and 90.");
   if (longitude !== undefined && (longitude < -180 || longitude > 180))
     errors.push("Longitude must be between -180 and 180.");
-  const virtualTourUrl = optionalUrl(
-    body.virtualTourUrl,
-    "Virtual tour URL",
+  const panoramaImage = optionalString(
+    body.panoramaImage,
+    "360° panorama image",
     errors,
   );
   const address = parseAddress(body.address, errors);
@@ -463,7 +488,7 @@ export function parseListingInput(
       agentEmail,
       latitude,
       longitude,
-      virtualTourUrl,
+      panoramaImage,
       address,
       city,
       primaryImage,
@@ -503,7 +528,7 @@ const patchableKeys = new Set<string>([
   "agentEmail",
   "latitude",
   "longitude",
-  "virtualTourUrl",
+  "panoramaImage",
   "viewCount",
   "viewEvents",
   "address",
@@ -641,10 +666,10 @@ export function parseListingPatch(
     result.latitude = optionalNumber(body.latitude, "Latitude", errors);
   if ("longitude" in body)
     result.longitude = optionalNumber(body.longitude, "Longitude", errors);
-  if ("virtualTourUrl" in body)
-    result.virtualTourUrl = optionalUrl(
-      body.virtualTourUrl,
-      "Virtual tour URL",
+  if ("panoramaImage" in body)
+    result.panoramaImage = optionalString(
+      body.panoramaImage,
+      "360° panorama image",
       errors,
     );
   if ("viewCount" in body)

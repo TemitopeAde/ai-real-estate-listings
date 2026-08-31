@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { dashboard } from '@wix/dashboard';
+import { Box, Button as WdsButton, Text, WixDesignSystemProvider } from '@wix/design-system';
 import { Check, RotateCcw, Save, SlidersHorizontal } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { AREA_UNITS, isListingStatus, LISTING_STATUSES } from '@/lib/listings';
 import { CURRENCIES } from '@/lib/currencies';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DEFAULT_WORKSPACE_SETTINGS,
   writeWorkspaceSettings,
@@ -66,7 +68,21 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps) 
     setError(null);
   };
 
+  const [embedding, setEmbedding] = useState(false);
+  const embedSavedProperties = async () => {
+    setEmbedding(true);
+    try {
+      const response = await fetch('/api/saved-properties/embed', { method: 'POST', headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error('The launcher could not be embedded.');
+      dashboard.showToast({ type: 'success', message: 'Saved Properties launcher is active on the site.' });
+    } catch (embedError) {
+      console.error('Unable to embed Saved Properties launcher.', embedError);
+      dashboard.showToast({ type: 'error', message: embedError instanceof Error ? embedError.message : 'The launcher could not be embedded.' });
+    } finally { setEmbedding(false); }
+  };
+
   return (
+    <TooltipProvider>
     <div className="space-y-6">
       <div>
         <p className="text-sm font-medium text-primary">Workspace preferences</p>
@@ -85,7 +101,7 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps) 
         <CardContent className="space-y-6">
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="space-y-2 text-sm font-medium">
-              <span>Default currency</span>
+              <FieldLabel text="Default currency" hint="The currency preselected for new listing prices." />
               <Select value={draft.defaultCurrency} onValueChange={(value) => updateDraft('defaultCurrency', value)}>
                 <SelectTrigger className="w-full" aria-label="Default currency"><SelectValue /></SelectTrigger>
                 <SelectContent>{CURRENCIES.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
@@ -93,7 +109,7 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps) 
               <span className="block text-xs font-normal text-muted-foreground">Choose from the full ISO 4217 currency list.</span>
             </label>
             <label className="space-y-2 text-sm font-medium">
-              <span>Default area unit</span>
+              <FieldLabel text="Default area unit" hint="The measurement unit preselected for new listing areas." />
               <Select value={draft.defaultAreaUnit} onValueChange={(value) => updateDraft('defaultAreaUnit', value)}>
                 <SelectTrigger aria-label="Default area unit"><SelectValue /></SelectTrigger>
                 <SelectContent>{AREA_UNITS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
@@ -101,7 +117,7 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps) 
               <span className="block text-xs font-normal text-muted-foreground">Applied to the area field on new records.</span>
             </label>
             <label className="space-y-2 text-sm font-medium">
-              <span>Default listing status</span>
+              <FieldLabel text="Default listing status" hint="The workflow status assigned to new listings." />
               <Select value={draft.defaultStatus} onValueChange={(value) => { if (isListingStatus(value)) updateDraft('defaultStatus', value); }}>
                 <SelectTrigger aria-label="Default listing status"><SelectValue /></SelectTrigger>
                 <SelectContent>{LISTING_STATUSES.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
@@ -110,7 +126,7 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps) 
             </label>
             <label className="flex items-start gap-3 rounded-lg border border-border/70 p-3 text-sm">
               <input type="checkbox" checked={draft.showArchived} onChange={(event) => updateDraft('showArchived', event.target.checked)} className="mt-0.5 size-4 accent-primary" />
-              <span><span className="block font-medium">Include archived listings</span><span className="mt-1 block text-xs font-normal text-muted-foreground">Keep archived records visible in the Listings view by default.</span></span>
+              <span><span className="flex items-center gap-1 font-medium">Include archived listings <FieldLabel text="" hint="When enabled, archived listings appear in the Listings view by default." /></span><span className="mt-1 block text-xs font-normal text-muted-foreground">Keep archived records visible in the Listings view by default.</span></span>
             </label>
           </div>
 
@@ -123,6 +139,21 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps) 
           </div>
         </CardContent>
       </Card>
+      <WixDesignSystemProvider>
+        <Box direction="vertical" gap="SP3" padding="SP4" border="1px solid" borderColor="D80" maxWidth={768}>
+          <Text tagName="h3" size="medium" weight="bold">Saved Properties launcher</Text>
+          <Text secondary>Embed or restore the member saved-properties button and drawer on your live site.</Text>
+          <Box align="space-between" verticalAlign="middle" gap="SP3">
+            <Text size="small" secondary>Safe to run more than once.</Text>
+            <WdsButton priority="primary" size="small" disabled={embedding} onClick={() => void embedSavedProperties()}>{embedding ? 'Embedding…' : 'Embed launcher'}</WdsButton>
+          </Box>
+        </Box>
+      </WixDesignSystemProvider>
     </div>
+    </TooltipProvider>
   );
+}
+
+function FieldLabel({ text, hint }: { text: string; hint: string }) {
+  return <span className="flex items-center gap-1">{text}<Tooltip><TooltipTrigger asChild><button type="button" className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground" aria-label={`Help: ${hint}`} onClick={(event) => event.stopPropagation()}><span aria-hidden="true">?</span></button></TooltipTrigger><TooltipContent>{hint}</TooltipContent></Tooltip></span>;
 }

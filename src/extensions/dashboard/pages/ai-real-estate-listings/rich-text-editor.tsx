@@ -25,6 +25,7 @@ const formats = [
   'indent',
   'link',
   'image',
+  'video',
 ];
 
 export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
@@ -59,6 +60,35 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     }
   }, []);
 
+  const insertVideos = useCallback(async () => {
+    try {
+      const response = await dashboard.openMediaManager({
+        category: 'VIDEO',
+        multiSelect: true,
+      });
+      const editor = editorRef.current?.getEditor();
+      if (!response || !editor) return;
+
+      const range = editor.getSelection(true);
+      let insertAt = range?.index ?? editor.getLength();
+      for (const item of response.items) {
+        const url = item.url?.trim();
+        if (!url) continue;
+        editor.insertEmbed(insertAt, 'video', url, 'user');
+        insertAt += 1;
+        editor.insertText(insertAt, '\n', 'user');
+        insertAt += 1;
+      }
+      editor.setSelection(insertAt, 0, 'silent');
+    } catch (error) {
+      console.error('Unable to insert videos into the description.', error);
+      dashboard.showToast({
+        type: 'error',
+        message: 'Videos could not be added to the description.',
+      });
+    }
+  }, []);
+
   const modules = useMemo(
     () => ({
       toolbar: {
@@ -75,12 +105,12 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
             { indent: '-1' },
             { indent: '+1' },
           ],
-          ['link', 'image', 'clean'],
+          ['link', 'image', 'video', 'clean'],
         ],
-        handlers: { image: insertImages },
+        handlers: { image: insertImages, video: insertVideos },
       },
     }),
-    [insertImages],
+    [insertImages, insertVideos],
   );
 
   return (

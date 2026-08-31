@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import "@wix/design-system/styles.global.css";
 import { dashboard } from "@wix/dashboard";
 import { Button } from "@/components/ui/button";
 import {

@@ -1,5 +1,7 @@
 export const LISTINGS_COLLECTION_ID =
   "@admin14744/ai-real-estate-listings/listings";
+export const SAVED_PROPERTIES_COLLECTION_ID =
+  "@admin14744/ai-real-estate-listings/saved-properties";
 
 export const LISTING_STATUSES = [
   { value: "draft", label: "Draft" },
@@ -106,14 +108,16 @@ export interface ListingInput {
   agentEmail?: string;
   latitude?: number;
   longitude?: number;
-  virtualTourUrl?: string;
+  panoramaImage?: string;
   viewCount?: number;
   viewEvents?: ListingViewEvent[];
   address?: {
     country?: string;
     state?: string;
+    subdivision?: string;
     city?: string;
     address?: string;
+    streetAddress?: string;
     formatted?: string;
   };
   city: string;
@@ -126,6 +130,7 @@ export interface ListingInput {
 
 export interface Listing extends ListingInput {
   _id: string;
+  _revision?: string;
   _createdDate?: Date;
   _updatedDate?: Date;
 }

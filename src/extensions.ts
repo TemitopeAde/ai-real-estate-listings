@@ -17,6 +17,9 @@ import propertyListingsWidget from './extensions/site/widgets/property-listings-
 
 import propertyDetailWidget from './extensions/site/widgets/property-detail-widget/property-detail-widget.extension.ts';
 
+import savedProperties from './extensions/site/embedded-scripts/saved-properties/saved-properties.extension.ts';
+
+
 export default app()
   .use(aiRealEstateListings)
   .use(dataCollections)
@@ -24,4 +27,4 @@ export default app()
   .use(appPlanConvertedToPaid)
   .use(appPlanChanged)
   .use(appInstanceRemoved)
-  .use(myEvent).use(propertyListingsWidget).use(propertyDetailWidget);
+  .use(myEvent).use(propertyListingsWidget).use(propertyDetailWidget).use(savedProperties);

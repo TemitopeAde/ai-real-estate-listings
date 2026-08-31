@@ -4,14 +4,14 @@ export default extensions.customElement({
   id: '0da45731-397a-428d-808a-43e5d567f8c1',
   name: 'Property Detail Widget',
   width: {
-    defaultWidth: 450,
+    defaultWidth: 1200,
     allowStretch: true
   },
   height: {
     defaultHeight: 250
   },
   installation: {
-    autoAdd: true
+    autoAdd: false
   },
   presets: [
     {
