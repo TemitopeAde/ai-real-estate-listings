@@ -278,7 +278,8 @@ export function ListingForm({
   const [countries, setCountries] = useState<CountryOption[]>(fallbackCountries);
   const [states, setStates] = useState<LocationOption[]>([]);
   const [cities, setCities] = useState<LocationOption[]>([]);
-  const [locationLoading, setLocationLoading] = useState(false);
+  const [statesLoading, setStatesLoading] = useState(false);
+  const [citiesLoading, setCitiesLoading] = useState(false);
   const [locationError, setLocationError] = useState(false);
   const isEditing = Boolean(listing?._id);
 
@@ -333,11 +334,16 @@ export function ListingForm({
   useEffect(() => {
     let cancelled = false;
     setStates([]);
+    setCities([]);
     setLocationError(false);
-    if (!form.country) return;
+    if (!form.country) {
+      setStatesLoading(false);
+      setCitiesLoading(false);
+      return;
+    }
 
     const loadStates = async () => {
-      setLocationLoading(true);
+      setStatesLoading(true);
       try {
         const response = await httpClient.fetchWithAuth(
           `${window.location.origin}/api/locations?country=${encodeURIComponent(form.country)}`,
@@ -359,7 +365,7 @@ export function ListingForm({
         console.error("Unable to load states.", error);
         if (!cancelled) setLocationError(true);
       } finally {
-        if (!cancelled) setLocationLoading(false);
+        if (!cancelled) setStatesLoading(false);
       }
     };
     void loadStates();
@@ -383,9 +389,13 @@ export function ListingForm({
   useEffect(() => {
     let cancelled = false;
     setCities([]);
-    if (!form.country || !form.state) return;
+    if (!form.country || !form.state) {
+      setCitiesLoading(false);
+      return;
+    }
 
     const loadCities = async () => {
+      setCitiesLoading(true);
       try {
         const response = await httpClient.fetchWithAuth(
           `${window.location.origin}/api/locations?country=${encodeURIComponent(form.country)}&state=${encodeURIComponent(form.state)}`,
@@ -397,6 +407,8 @@ export function ListingForm({
       } catch (error) {
         console.error("Unable to load cities.", error);
         if (!cancelled) setLocationError(true);
+      } finally {
+        if (!cancelled) setCitiesLoading(false);
       }
     };
     void loadCities();
@@ -628,31 +640,15 @@ export function ListingForm({
   return (
     <TooltipProvider>
     <form className="space-y-6" onSubmit={submit} noValidate>
-      <div className="sticky top-0 z-20 -mx-6 -mt-6 flex flex-col justify-between gap-4 border-b border-border/70 bg-background/95 px-6 py-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-sm font-medium text-primary">Listing editor</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">
-            {editorLabel}
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Capture the facts once, then keep this record ready for future
-            AI-assisted publishing.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onBack}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={saving}>
-            {saving ? (
-              "Saving…"
-            ) : (
-              <>
-                <Save className="size-4" aria-hidden="true" /> Save listing
-              </>
-            )}
-          </Button>
-        </div>
+      <div>
+        <p className="text-sm font-medium text-primary">Listing editor</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-tight">
+          {editorLabel}
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          Capture the facts once, then keep this record ready for future
+          AI-assisted publishing.
+        </p>
       </div>
 
       {submitError ? (
@@ -665,6 +661,7 @@ export function ListingForm({
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <div className="min-w-0 space-y-6">
         <Card className="border-border/70 bg-card/90 shadow-sm">
           <CardHeader>
             <CardTitle>Property story</CardTitle>
@@ -734,7 +731,7 @@ export function ListingForm({
                   update("city", "");
                 }}
                 options={stateSelectOptions(states, form.state)}
-                disabled={!form.country || (locationLoading && states.length === 0)}
+                disabled={!form.country || statesLoading}
                 error={errors.state}
               />
               <label className="space-y-2 text-sm font-medium">
@@ -757,8 +754,13 @@ export function ListingForm({
                   value={form.city}
                   onChange={(event) => update("city", event.target.value)}
                   aria-invalid={Boolean(errors.city)}
-                  placeholder="Enter or select a city"
+                  placeholder={
+                    citiesLoading
+                      ? "Loading cities…"
+                      : "Enter or select a city"
+                  }
                   list="listing-city-options"
+                  disabled={!form.state || citiesLoading}
                 />
                 <datalist id="listing-city-options">
                   {cities.map((city) => (
@@ -780,6 +782,138 @@ export function ListingForm({
             </div>
           </CardContent>
         </Card>
+
+        <Card className="border-border/70 bg-card/90 shadow-sm">
+          <CardHeader>
+            <CardTitle>Listing images</CardTitle>
+            <CardDescription>
+              Choose photos from your Wix Media Manager. The first image is the cover.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3 text-sm font-medium">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                <FieldLabel text="Listing images" hint="Choose images from Wix Media Manager; the first image is the cover." />
+                  <p className="mt-1 text-xs font-normal text-muted-foreground">
+                    Choose multiple images from your Wix Media Manager. The
+                    first image is used as the cover.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void chooseImages()}
+                >
+                  <ImagePlus className="size-4" aria-hidden="true" /> Add images
+                </Button>
+              </div>
+              {form.gallery.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {form.gallery.map((image, index) => (
+                    <div
+                      key={`${image.url}-${index}`}
+                      className="group relative overflow-hidden rounded-xl border bg-muted/20"
+                    >
+                      <img
+                        src={image.url}
+                        alt={image.title ?? `Listing image ${index + 1}`}
+                        className="aspect-square w-full object-cover"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/65 p-1.5 text-white">
+                        <span className="truncate text-[11px]">
+                          {index === 0 ? "Cover image" : `Image ${index + 1}`}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="text-white hover:bg-white/20 hover:text-white"
+                          onClick={() => removeImage(index)}
+                          aria-label={`Remove image ${index + 1}`}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs font-normal text-muted-foreground">
+                  No images selected yet.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70 bg-card/90 shadow-sm">
+          <CardHeader>
+            <CardTitle>360° virtual tour</CardTitle>
+            <CardDescription>
+              Add equirectangular 360° photos for the interactive Three.js viewer. Visitors can switch between rooms and viewpoints.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm font-medium">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <FieldLabel
+                  text="360° panorama images"
+                  hint="Choose equirectangular 360° images for the interactive Three.js viewer. Visitors can switch between scenes."
+                />
+                <p className="mt-1 text-xs font-normal text-muted-foreground">
+                  Optional. Each image should be an equirectangular 360° photo.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void choosePanoramaImages()}
+              >
+                <ImagePlus className="size-4" aria-hidden="true" />
+                {form.panoramaImages.length > 0 ? "Add images" : "Choose images"}
+              </Button>
+            </div>
+            {form.panoramaImages.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {form.panoramaImages.map((image, index) => (
+                  <div
+                    key={`${image.url}-${index}`}
+                    className="group relative overflow-hidden rounded-xl border bg-muted/20"
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.title ?? `360° panorama ${index + 1}`}
+                      className="aspect-square w-full object-cover"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/65 p-1.5 text-white">
+                      <span className="truncate text-[11px]">
+                        {image.title ?? `Scene ${index + 1}`}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-white hover:bg-white/20 hover:text-white"
+                        onClick={() => removePanoramaImage(index)}
+                        aria-label={`Remove panorama ${index + 1}`}
+                      >
+                        <Trash2 className="size-3.5" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs font-normal text-muted-foreground">
+                No 360° panoramas selected.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        </div>
 
         <Card className="border-border/70 bg-card/90 shadow-sm">
           <CardHeader>
@@ -1030,12 +1164,9 @@ export function ListingForm({
 
             <div className="space-y-4 rounded-xl border border-border/70 p-4">
               <div>
-                <p className="text-sm font-medium">
-                  Map location and 360° panorama
-                </p>
+                <p className="text-sm font-medium">Map location</p>
                 <p className="mt-1 text-xs font-normal text-muted-foreground">
-                  Add coordinates and optional 360° images for an interactive
-                  walkthrough with multiple rooms or viewpoints.
+                  Add coordinates so the property can be placed on the map.
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1067,120 +1198,6 @@ export function ListingForm({
                 </label>
               </div>
             </div>
-
-            <div className="space-y-3 text-sm font-medium">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <FieldLabel
-                    text="360° panorama images"
-                    hint="Choose equirectangular 360° images for the interactive Three.js viewer. Visitors can switch between scenes."
-                  />
-                  <p className="mt-1 text-xs font-normal text-muted-foreground">
-                    Optional. Add multiple rooms or viewpoints. Each image should
-                    be an equirectangular 360° photo.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void choosePanoramaImages()}
-                >
-                  <ImagePlus className="size-4" aria-hidden="true" />
-                  {form.panoramaImages.length > 0 ? "Add images" : "Choose images"}
-                </Button>
-              </div>
-              {form.panoramaImages.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {form.panoramaImages.map((image, index) => (
-                    <div
-                      key={`${image.url}-${index}`}
-                      className="group relative overflow-hidden rounded-xl border bg-muted/20"
-                    >
-                      <img
-                        src={image.url}
-                        alt={image.title ?? `360° panorama ${index + 1}`}
-                        className="aspect-video w-full object-cover"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/65 p-1.5 text-white">
-                        <span className="truncate text-[11px]">
-                          {image.title ?? `Scene ${index + 1}`}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          className="text-white hover:bg-white/20 hover:text-white"
-                          onClick={() => removePanoramaImage(index)}
-                          aria-label={`Remove panorama ${index + 1}`}
-                        >
-                          <Trash2 className="size-3.5" aria-hidden="true" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs font-normal text-muted-foreground">
-                  No 360° panoramas selected.
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3 text-sm font-medium">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                <FieldLabel text="Listing images" hint="Choose images from Wix Media Manager; the first image is the cover." />
-                  <p className="mt-1 text-xs font-normal text-muted-foreground">
-                    Choose multiple images from your Wix Media Manager. The
-                    first image is used as the cover.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void chooseImages()}
-                >
-                  <ImagePlus className="size-4" aria-hidden="true" /> Add images
-                </Button>
-              </div>
-              {form.gallery.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {form.gallery.map((image, index) => (
-                    <div
-                      key={`${image.url}-${index}`}
-                      className="group relative overflow-hidden rounded-xl border bg-muted/20"
-                    >
-                      <img
-                        src={image.url}
-                        alt={image.title ?? `Listing image ${index + 1}`}
-                        className="aspect-square w-full object-cover"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/65 p-1.5 text-white">
-                        <span className="truncate text-[11px]">
-                          {index === 0 ? "Cover image" : `Image ${index + 1}`}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          className="text-white hover:bg-white/20 hover:text-white"
-                          onClick={() => removeImage(index)}
-                          aria-label={`Remove image ${index + 1}`}
-                        >
-                          <Trash2 className="size-3.5" aria-hidden="true" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs font-normal text-muted-foreground">
-                  No images selected yet.
-                </div>
-              )}
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -1188,6 +1205,21 @@ export function ListingForm({
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Check className="size-3.5 text-emerald-600" aria-hidden="true" /> AI
         fields are reserved for future generation workflows.
+      </div>
+
+      <div className="sticky bottom-0 z-20 -mx-6 -mb-6 flex flex-wrap justify-end gap-2 border-t border-border/70 bg-background/95 px-6 py-4 shadow-[0_-4px_12px_rgba(0,0,0,.04)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <Button type="button" variant="outline" onClick={onBack}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? (
+            "Saving…"
+          ) : (
+            <>
+              <Save className="size-4" aria-hidden="true" /> Save listing
+            </>
+          )}
+        </Button>
       </div>
     </form>
     </TooltipProvider>

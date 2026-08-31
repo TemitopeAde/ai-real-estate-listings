@@ -95,24 +95,7 @@ export const PanoramaViewer: FC<{ images: ListingImage[]; title: string }> = ({ 
   };
 
   return (
-    <div>
-      <div className={styles.panoramaWrap}>
-        <div
-          ref={containerRef}
-          className={styles.panorama}
-          aria-label={`Interactive 360° panorama of ${current.title ?? title}`}
-        />
-        {images.length > 1 ? (
-          <>
-            <button className={`${styles.iconButton} ${styles.previous}`} type="button" onClick={() => move(-1)} aria-label="Previous 360° scene">
-              <ChevronLeft />
-            </button>
-            <button className={`${styles.iconButton} ${styles.next}`} type="button" onClick={() => move(1)} aria-label="Next 360° scene">
-              <ChevronRight />
-            </button>
-          </>
-        ) : null}
-      </div>
+    <div className={styles.panoramaLayout}>
       {images.length > 1 ? (
         <div className={styles.panoramaScenes} role="list" aria-label="360° scenes">
           {images.map((image, imageIndex) => (
@@ -131,6 +114,23 @@ export const PanoramaViewer: FC<{ images: ListingImage[]; title: string }> = ({ 
           ))}
         </div>
       ) : null}
+      <div className={styles.panoramaWrap}>
+        <div
+          ref={containerRef}
+          className={styles.panorama}
+          aria-label={`Interactive 360° panorama of ${current.title ?? title}`}
+        />
+        {images.length > 1 ? (
+          <>
+            <button className={`${styles.iconButton} ${styles.previous}`} type="button" onClick={() => move(-1)} aria-label="Previous 360° scene">
+              <ChevronLeft />
+            </button>
+            <button className={`${styles.iconButton} ${styles.next}`} type="button" onClick={() => move(1)} aria-label="Next 360° scene">
+              <ChevronRight />
+            </button>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 };
