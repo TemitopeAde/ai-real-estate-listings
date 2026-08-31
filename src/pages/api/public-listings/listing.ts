@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
-import type { ListingViewEvent } from "@/lib/listing-types";
-import { getPublicListing, queryPublicListings, recordListingView } from "@/lib/server/listings";
+import { isPropertyType, isTransactionType, type ListingViewEvent } from "@/lib/listing-types";
+import { getPublicListing, getPublicPriceRange, queryPublicListings, recordListingView } from "@/lib/server/listings";
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
@@ -11,6 +11,18 @@ function optionalText(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, 256) : undefined;
 }
 
+function optionalNumber(value: string | null): number | undefined {
+  if (!value?.trim()) return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : undefined;
+}
+
+function pageParam(value: string | null, fallback: number, max: number): number {
+  if (!value?.trim()) return fallback;
+  const number = Number(value);
+  return Number.isInteger(number) ? Math.min(max, Math.max(0, number)) : fallback;
+}
+
 export const GET: APIRoute = async ({ url }) => {
   try {
     const id = url.searchParams.get("id")?.trim();
@@ -18,7 +30,22 @@ export const GET: APIRoute = async ({ url }) => {
       const listing = await getPublicListing(id);
       return listing ? json(listing) : json({ message: "Listing not found." }, 404);
     }
-    return json(await queryPublicListings(), 200);
+    if (url.searchParams.get("priceRange") === "1") return json(await getPublicPriceRange());
+    const transactionTypeParam = url.searchParams.get("transactionType") ?? "";
+    const propertyTypeParam = url.searchParams.get("propertyType") ?? "";
+    const page = pageParam(url.searchParams.get("page"), 0, 1000000);
+    const pageSize = pageParam(url.searchParams.get("pageSize"), 12, 100);
+    const result = await queryPublicListings({
+      search: optionalText(url.searchParams.get("search")),
+      transactionType: isTransactionType(transactionTypeParam) ? transactionTypeParam : undefined,
+      propertyType: isPropertyType(propertyTypeParam) ? propertyTypeParam : undefined,
+      minPrice: optionalNumber(url.searchParams.get("minPrice")),
+      maxPrice: optionalNumber(url.searchParams.get("maxPrice")),
+      minBedrooms: optionalNumber(url.searchParams.get("bedrooms")),
+      page,
+      pageSize,
+    });
+    return json({ ...result, page, pageSize }, 200);
   } catch (error) {
     console.error("Unable to load public listings.", error);
     return json({ message: "Listings are temporarily unavailable." }, 500);

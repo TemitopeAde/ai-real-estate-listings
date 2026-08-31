@@ -2,6 +2,39 @@ export const LISTINGS_COLLECTION_ID =
   "@admin14744/ai-real-estate-listings/listings";
 export const SAVED_PROPERTIES_COLLECTION_ID =
   "@admin14744/ai-real-estate-listings/saved-properties";
+export const QUOTE_REQUESTS_COLLECTION_ID =
+  "@admin14744/ai-real-estate-listings/quote-requests";
+
+export const QUOTE_REQUEST_STATUSES = [
+  { value: "new", label: "New" },
+  { value: "contacted", label: "Contacted" },
+  { value: "quoted", label: "Quoted" },
+  { value: "closed", label: "Closed" },
+] as const;
+
+export type QuoteRequestStatus = (typeof QUOTE_REQUEST_STATUSES)[number]["value"];
+
+export interface QuoteRequest {
+  _id: string;
+  listingId: string;
+  listingTitle: string;
+  listingPrice: number;
+  listingCurrency: string;
+  listingCity: string;
+  listingAddress?: string;
+  listingPrimaryImage?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  message?: string;
+  memberId?: string;
+  status: QuoteRequestStatus;
+  notes?: string;
+  archived: boolean;
+  _createdDate?: Date;
+  _updatedDate?: Date;
+}
 
 export const LISTING_STATUSES = [
   { value: "draft", label: "Draft" },
@@ -109,6 +142,7 @@ export interface ListingInput {
   latitude?: number;
   longitude?: number;
   panoramaImage?: string;
+  panoramaImages?: ListingImage[];
   viewCount?: number;
   viewEvents?: ListingViewEvent[];
   address?: {
@@ -135,10 +169,25 @@ export interface Listing extends ListingInput {
   _updatedDate?: Date;
 }
 
+export function getPanoramaImages(
+  listing: Pick<ListingInput, "panoramaImage" | "panoramaImages">,
+): ListingImage[] {
+  const images = listing.panoramaImages?.filter((image) => image.url.trim()) ?? [];
+  const fallback = listing.panoramaImage?.trim();
+  if (fallback && !images.some((image) => image.url === fallback)) {
+    return [{ url: fallback }, ...images];
+  }
+  return images;
+}
+
 export interface ListingQuery {
   search?: string;
   status?: ListingStatus;
+  transactionType?: TransactionType | string;
   propertyType?: PropertyType;
+  minPrice?: number;
+  maxPrice?: number;
+  minBedrooms?: number;
   includeArchived?: boolean;
   page?: number;
   pageSize?: number;
@@ -148,6 +197,12 @@ export interface ListingPage {
   items: Listing[];
   totalCount: number;
   hasNext: boolean;
+}
+
+export interface ListingPriceRange {
+  minPrice: number;
+  maxPrice: number;
+  currency: string;
 }
 
 export interface DashboardSnapshot {

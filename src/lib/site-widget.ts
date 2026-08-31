@@ -21,9 +21,26 @@ export interface WidgetSpacing {
   left: number;
 }
 
+export type ListingLoadingMode = "load-more" | "infinite" | "pagination";
+export type ListingControlAlignment = "left" | "center" | "right";
+
 export interface ListingWidgetConfig {
   layout: "grid" | "carousel";
+  loadingMode: ListingLoadingMode;
+  pageSize: number;
+  loadMoreLabel: string;
+  previousLabel: string;
+  nextLabel: string;
+  controlAlignment: ListingControlAlignment;
+  controlSpacing: number;
+  controlBackgroundColor: string;
+  controlTextColor: string;
+  controlBorderColor: string;
+  controlBorderRadius: number;
+  showPaginationIcons: boolean;
   columns: number;
+  tabletColumns: number;
+  mobileColumns: number;
   gap: number;
   cardRadius: number;
   imageRatio: "landscape" | "square" | "portrait";
@@ -32,6 +49,15 @@ export interface ListingWidgetConfig {
   showPrice: boolean;
   showStatus: boolean;
   showMetadata: boolean;
+  showSearch: boolean;
+  showTransactionFilter: boolean;
+  showPropertyTypeFilter: boolean;
+  showPriceFilter: boolean;
+  showBedroomsFilter: boolean;
+  filterBackgroundColor: string;
+  filterBorderColor: string;
+  filterTextColor: string;
+  filterRadius: number;
   title: string;
   subtitle: string;
   backgroundColor: string;
@@ -53,6 +79,15 @@ export interface ListingWidgetConfig {
 }
 
 export interface DetailWidgetConfig {
+  showFeaturedListings: boolean;
+  featuredTitle: string;
+  featuredSubtitle: string;
+  featuredCount: number;
+  featuredShowLocation: boolean;
+  featuredShowPrice: boolean;
+  featuredShowStatus: boolean;
+  featuredShowMetadata: boolean;
+  featuredGap: number;
   cardRadius: number;
   imageRatio: "landscape" | "square" | "portrait";
   showLocation: boolean;
@@ -60,6 +95,13 @@ export interface DetailWidgetConfig {
   showAmenities: boolean;
   showAgent: boolean;
   showViewCount: boolean;
+  showAiAssistant: boolean;
+  showSocialShare: boolean;
+  shareFacebookColor: string;
+  shareInstagramColor: string;
+  shareWhatsappColor: string;
+  shareXColor: string;
+  shareLinkedinColor: string;
   titleFont: WidgetFont;
   bodyFont: WidgetFont;
   backgroundColor: string;
@@ -81,7 +123,21 @@ export interface DetailWidgetConfig {
 
 export const DEFAULT_LISTING_WIDGET_CONFIG: ListingWidgetConfig = {
   layout: "grid",
+  loadingMode: "load-more",
+  pageSize: 12,
+  loadMoreLabel: "Load more properties",
+  previousLabel: "Previous",
+  nextLabel: "Next",
+  controlAlignment: "center",
+  controlSpacing: 16,
+  controlBackgroundColor: "var(--wst-color-action, #0c3b2e)",
+  controlTextColor: "#ffffff",
+  controlBorderColor: "var(--wst-color-action, #0c3b2e)",
+  controlBorderRadius: 10,
+  showPaginationIcons: true,
   columns: 3,
+  tabletColumns: 2,
+  mobileColumns: 1,
   gap: 24,
   cardRadius: 18,
   imageRatio: "landscape",
@@ -90,6 +146,15 @@ export const DEFAULT_LISTING_WIDGET_CONFIG: ListingWidgetConfig = {
   showPrice: true,
   showStatus: true,
   showMetadata: true,
+  showSearch: true,
+  showTransactionFilter: true,
+  showPropertyTypeFilter: true,
+  showPriceFilter: true,
+  showBedroomsFilter: true,
+  filterBackgroundColor: "transparent",
+  filterBorderColor: "var(--wst-color-border, #dfe5e0)",
+  filterTextColor: "var(--wst-color-text-primary, #17211b)",
+  filterRadius: 14,
   title: "Featured properties",
   subtitle: "Explore available homes and spaces.",
   backgroundColor: "transparent",
@@ -111,6 +176,15 @@ export const DEFAULT_LISTING_WIDGET_CONFIG: ListingWidgetConfig = {
 };
 
 export const DEFAULT_DETAIL_WIDGET_CONFIG: DetailWidgetConfig = {
+  showFeaturedListings: true,
+  featuredTitle: "You may also like",
+  featuredSubtitle: "Explore similar properties in the same area.",
+  featuredCount: 4,
+  featuredShowLocation: true,
+  featuredShowPrice: true,
+  featuredShowStatus: true,
+  featuredShowMetadata: true,
+  featuredGap: 20,
   cardRadius: 20,
   imageRatio: "landscape",
   showLocation: true,
@@ -118,6 +192,13 @@ export const DEFAULT_DETAIL_WIDGET_CONFIG: DetailWidgetConfig = {
   showAmenities: true,
   showAgent: true,
   showViewCount: true,
+  showAiAssistant: true,
+  showSocialShare: true,
+  shareFacebookColor: "#1877F2",
+  shareInstagramColor: "#E4405F",
+  shareWhatsappColor: "#25D366",
+  shareXColor: "#17211B",
+  shareLinkedinColor: "#0A66C2",
   titleFont: DEFAULT_LISTING_WIDGET_CONFIG.titleFont,
   bodyFont: DEFAULT_LISTING_WIDGET_CONFIG.bodyFont,
   backgroundColor: DEFAULT_LISTING_WIDGET_CONFIG.backgroundColor,
@@ -137,14 +218,51 @@ export const DEFAULT_DETAIL_WIDGET_CONFIG: DetailWidgetConfig = {
   showImageDots: true,
 };
 
-export function parseWidgetJson<T>(value: string | null, fallback: T): T {
+const PREVIOUS_DEFAULT_FILL = "var(--wst-color-fill-background-secondary, #ffffff)";
+
+function withTransparentDefaultSurfaces<T extends object>(config: T): T {
+  const record = config as T & { backgroundColor?: string; filterBackgroundColor?: string };
+  return {
+    ...record,
+    ...(record.backgroundColor === PREVIOUS_DEFAULT_FILL ? { backgroundColor: "transparent" } : {}),
+    ...(record.filterBackgroundColor === PREVIOUS_DEFAULT_FILL ? { filterBackgroundColor: "transparent" } : {}),
+  };
+}
+
+export function parseWidgetJson<T extends object>(value: string | null, fallback: T): T {
   if (!value) return fallback;
   try {
     const parsed: unknown = JSON.parse(value);
-    return parsed && typeof parsed === "object" ? { ...fallback, ...parsed } as T : fallback;
+    return parsed && typeof parsed === "object" ? withTransparentDefaultSurfaces({ ...fallback, ...parsed } as T) : fallback;
   } catch {
     return fallback;
   }
+}
+
+export function normalizeListingWidgetConfig(config: Partial<ListingWidgetConfig>): ListingWidgetConfig {
+  const merged = { ...DEFAULT_LISTING_WIDGET_CONFIG, ...config };
+  const loadingMode: ListingLoadingMode = merged.loadingMode === "infinite" || merged.loadingMode === "pagination" ? merged.loadingMode : "load-more";
+  const controlAlignment: ListingControlAlignment = merged.controlAlignment === "left" || merged.controlAlignment === "right" ? merged.controlAlignment : "center";
+  const spacing = (value: unknown, fallback: number, max: number) => Math.min(max, Math.max(0, Math.round(Number(value) || fallback)));
+  const columns = Math.min(6, Math.max(1, spacing(merged.columns, DEFAULT_LISTING_WIDGET_CONFIG.columns, 6) || DEFAULT_LISTING_WIDGET_CONFIG.columns));
+  const tabletColumns = Math.min(columns, Math.max(1, spacing(merged.tabletColumns, Math.min(2, columns), 4) || Math.min(2, columns)));
+  const mobileColumns = Math.min(tabletColumns, Math.max(1, spacing(merged.mobileColumns, 1, 2) || 1));
+  const label = (value: unknown, fallback: string) => typeof value === "string" && value.trim() ? value.trim().slice(0, 80) : fallback;
+  return {
+    ...merged,
+    columns,
+    tabletColumns,
+    mobileColumns,
+    loadingMode,
+    pageSize: spacing(merged.pageSize, DEFAULT_LISTING_WIDGET_CONFIG.pageSize, 50) || DEFAULT_LISTING_WIDGET_CONFIG.pageSize,
+    loadMoreLabel: label(merged.loadMoreLabel, DEFAULT_LISTING_WIDGET_CONFIG.loadMoreLabel),
+    previousLabel: label(merged.previousLabel, DEFAULT_LISTING_WIDGET_CONFIG.previousLabel),
+    nextLabel: label(merged.nextLabel, DEFAULT_LISTING_WIDGET_CONFIG.nextLabel),
+    controlAlignment,
+    controlSpacing: spacing(merged.controlSpacing, DEFAULT_LISTING_WIDGET_CONFIG.controlSpacing, 48),
+    controlBorderRadius: spacing(merged.controlBorderRadius, DEFAULT_LISTING_WIDGET_CONFIG.controlBorderRadius, 40),
+    showPaginationIcons: merged.showPaginationIcons !== false,
+  };
 }
 
 export function getImageUrls(listing: Listing): string[] {

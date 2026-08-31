@@ -261,8 +261,16 @@ function parseAddress(
     errors,
   );
   const city = requiredString(value.city, "City", errors);
+  const street =
+    typeof value.streetAddress === "string"
+      ? value.streetAddress
+      : isRecord(value.streetAddress)
+        ? [value.streetAddress.number, value.streetAddress.name ?? value.streetAddress.formattedAddressLine]
+            .filter((part) => part !== undefined && part !== "")
+            .join(" ")
+        : undefined;
   const address = requiredString(
-    value.address ?? value.streetAddress,
+    value.address ?? street,
     "Street address",
     errors,
   );
@@ -282,10 +290,11 @@ function parseAddress(
 function parseGallery(
   value: unknown,
   errors: string[],
+  label = "Gallery",
 ): ListingInput["gallery"] | undefined {
   if (value === undefined || value === null) return undefined;
   if (!Array.isArray(value)) {
-    errors.push("Gallery must be an array.");
+    errors.push(`${label} must be an array.`);
     return undefined;
   }
 
@@ -296,7 +305,7 @@ function parseGallery(
         typeof image.url !== "string" ||
         !image.url.trim()
       ) {
-        errors.push("Each gallery image must include a URL.");
+        errors.push(`Each ${label.toLowerCase()} image must include a URL.`);
         return [];
       }
 
@@ -412,6 +421,11 @@ export function parseListingInput(
     "360° panorama image",
     errors,
   );
+  const panoramaImages = parseGallery(
+    body.panoramaImages,
+    errors,
+    "360° panorama images",
+  );
   const address = parseAddress(body.address, errors);
   const primaryImage = optionalString(
     body.primaryImage,
@@ -489,6 +503,7 @@ export function parseListingInput(
       latitude,
       longitude,
       panoramaImage,
+      panoramaImages,
       address,
       city,
       primaryImage,
@@ -529,6 +544,7 @@ const patchableKeys = new Set<string>([
   "latitude",
   "longitude",
   "panoramaImage",
+  "panoramaImages",
   "viewCount",
   "viewEvents",
   "address",
@@ -671,6 +687,12 @@ export function parseListingPatch(
       body.panoramaImage,
       "360° panorama image",
       errors,
+    );
+  if ("panoramaImages" in body)
+    result.panoramaImages = parseGallery(
+      body.panoramaImages,
+      errors,
+      "360° panorama images",
     );
   if ("viewCount" in body)
     result.viewCount = optionalNumber(body.viewCount, "View count", errors);

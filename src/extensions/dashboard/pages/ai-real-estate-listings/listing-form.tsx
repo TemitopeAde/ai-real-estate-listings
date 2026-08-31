@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CURRENCIES } from "@/lib/currencies";
 import { httpClient } from "@wix/essentials";
-import countries from "@/data/countries.json";
+import fallbackCountries from "@/data/countries.json";
 import {
   AREA_UNITS,
   FURNISHING_STATUSES,
@@ -44,6 +44,7 @@ import {
   isRentalFrequency,
   isPropertyType,
   isTransactionType,
+  getPanoramaImages,
   type Listing,
   type ListingImage,
   type ListingInput,
@@ -90,7 +91,7 @@ interface ListingFormState {
   agentEmail: string;
   latitude: string;
   longitude: string;
-  panoramaImage: string;
+  panoramaImages: ListingImage[];
   yearBuilt: string;
   parkingSpaces: string;
   furnished: boolean;
@@ -112,15 +113,21 @@ interface LocationOption {
   id?: number;
 }
 
+interface CountryOption {
+  code: string;
+  name: string;
+}
+
 function createInitialState(
   listing: Listing | null,
   defaults: Pick<
     ListingFormProps,
     "defaultCurrency" | "defaultAreaUnit" | "defaultStatus"
   >,
+  loading = false,
 ): ListingFormState {
   const availabilityDate = listing?.availabilityDate;
-  const isNewListing = !listing;
+  const isNewListing = !listing?._id && !loading;
   return {
     title:
       listing?.title ??
@@ -194,7 +201,7 @@ function createInitialState(
           ? "3.4703"
           : ""
         : String(listing.longitude),
-    panoramaImage: listing?.panoramaImage ?? "",
+    panoramaImages: getPanoramaImages(listing ?? {}),
     yearBuilt:
       listing?.yearBuilt === undefined
         ? isNewListing
@@ -212,9 +219,13 @@ function createInitialState(
       listing?.amenities?.join(", ") ??
       (isNewListing ? "Swimming pool, Gym, 24/7 security, BQ" : ""),
     country: listing?.address?.country ?? (isNewListing ? "NG" : ""),
-    state: listing?.address?.state ?? (isNewListing ? "LA" : ""),
+    state:
+      listing?.address?.state ??
+      listing?.address?.subdivision ??
+      (isNewListing ? "LA" : ""),
     address:
       listing?.address?.address ??
+      listing?.address?.streetAddress ??
       listing?.address?.formatted ??
       (isNewListing ? "12 Admiralty Way" : ""),
     city:
@@ -259,11 +270,12 @@ export function ListingForm({
       defaultCurrency,
       defaultAreaUnit,
       defaultStatus,
-    }),
+    }, loading),
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [countries, setCountries] = useState<CountryOption[]>(fallbackCountries);
   const [states, setStates] = useState<LocationOption[]>([]);
   const [cities, setCities] = useState<LocationOption[]>([]);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -280,16 +292,47 @@ export function ListingForm({
         defaultCurrency,
         defaultAreaUnit,
         defaultStatus,
-      }),
+      }, loading),
     );
     setErrors({});
     setSubmitError(null);
-  }, [defaultAreaUnit, defaultCurrency, defaultStatus, listing]);
+  }, [defaultAreaUnit, defaultCurrency, defaultStatus, listing, loading]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCountries = async () => {
+      try {
+        const response = await httpClient.fetchWithAuth(
+          `${window.location.origin}/api/locations`,
+        );
+        if (!response.ok) throw new Error("Countries could not be loaded.");
+        const data = (await response.json()) as unknown;
+        if (!cancelled && Array.isArray(data)) {
+          const nextCountries = data.filter(isCountryOption);
+          if (nextCountries.length > 0) {
+            setCountries(nextCountries);
+            setForm((current) => {
+              const matched = matchCountryCode(nextCountries, current.country);
+              return matched && matched !== current.country
+                ? { ...current, country: matched }
+                : current;
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Unable to load countries.", error);
+        if (!cancelled) setLocationError(true);
+      }
+    };
+    void loadCountries();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     setStates([]);
-    setCities([]);
     setLocationError(false);
     if (!form.country) return;
 
@@ -306,11 +349,7 @@ export function ListingForm({
           setStates(nextStates);
           setForm((current) => {
             if (!current.state) return current;
-            const matchingState = nextStates.find(
-              (state) =>
-                state.iso2 === current.state ||
-                state.name.toLowerCase() === current.state.toLowerCase(),
-            );
+            const matchingState = matchStateOption(nextStates, current.state);
             return matchingState?.iso2 && matchingState.iso2 !== current.state
               ? { ...current, state: matchingState.iso2 }
               : current;
@@ -330,12 +369,23 @@ export function ListingForm({
   }, [form.country]);
 
   useEffect(() => {
+    if (states.length === 0 || !form.state) return;
+    const matchingState = matchStateOption(states, form.state);
+    if (matchingState?.iso2 && matchingState.iso2 !== form.state) {
+      setForm((current) =>
+        current.state === form.state
+          ? { ...current, state: matchingState.iso2 ?? current.state }
+          : current,
+      );
+    }
+  }, [form.state, states]);
+
+  useEffect(() => {
     let cancelled = false;
     setCities([]);
     if (!form.country || !form.state) return;
 
     const loadCities = async () => {
-      setLocationLoading(true);
       try {
         const response = await httpClient.fetchWithAuth(
           `${window.location.origin}/api/locations?country=${encodeURIComponent(form.country)}&state=${encodeURIComponent(form.state)}`,
@@ -347,8 +397,6 @@ export function ListingForm({
       } catch (error) {
         console.error("Unable to load cities.", error);
         if (!cancelled) setLocationError(true);
-      } finally {
-        if (!cancelled) setLocationLoading(false);
       }
     };
     void loadCities();
@@ -388,21 +436,40 @@ export function ListingForm({
     }
   };
 
-  const choosePanoramaImage = async () => {
+  const choosePanoramaImages = async () => {
     try {
       const response = await dashboard.openMediaManager({
         category: "IMAGE",
-        multiSelect: false,
+        multiSelect: true,
       });
-      const item = response?.items[0];
-      if (item?.url?.trim()) update("panoramaImage", item.url.trim());
+      if (!response) return;
+
+      const selectedImages: ListingImage[] = response.items.flatMap((item) => {
+        if (!item.url?.trim()) return [];
+        const image: ListingImage = { url: item.url.trim() };
+        if (item._id?.trim()) image.id = item._id.trim();
+        if (item.displayName?.trim()) image.title = item.displayName.trim();
+        return [image];
+      });
+      const existingUrls = new Set(form.panoramaImages.map((image) => image.url));
+      update("panoramaImages", [
+        ...form.panoramaImages,
+        ...selectedImages.filter((image) => !existingUrls.has(image.url)),
+      ]);
     } catch (error) {
-      console.error("Unable to open the Wix Media Manager for panorama image.", error);
+      console.error("Unable to open the Wix Media Manager for panorama images.", error);
       dashboard.showToast({
         type: "error",
         message: "The Media Manager could not be opened.",
       });
     }
+  };
+
+  const removePanoramaImage = (index: number) => {
+    update(
+      "panoramaImages",
+      form.panoramaImages.filter((_, imageIndex) => imageIndex !== index),
+    );
   };
 
   const removeImage = (index: number) => {
@@ -465,7 +532,18 @@ export function ListingForm({
     const nextErrors = validate();
     setErrors(nextErrors);
     setSubmitError(null);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      const messages = Object.values(nextErrors).filter((message): message is string => Boolean(message));
+      const first = messages[0] ?? "Fix the highlighted fields before saving.";
+      const extraCount = messages.length - 1;
+      dashboard.showToast({
+        type: "error",
+        message: extraCount > 0
+          ? `${first} ${extraCount} more ${extraCount === 1 ? "issue needs" : "issues need"} attention.`
+          : first,
+      });
+      return;
+    }
 
     const input: ListingInput = {
       title: form.title.trim(),
@@ -500,11 +578,12 @@ export function ListingForm({
       agentEmail: form.agentEmail.trim() || undefined,
       latitude: optionalNumber(form.latitude),
       longitude: optionalNumber(form.longitude),
-      panoramaImage: form.panoramaImage.trim() || undefined,
+      panoramaImage: form.panoramaImages[0]?.url,
+      panoramaImages: form.panoramaImages.length > 0 ? form.panoramaImages : undefined,
       address: {
         country: form.country.trim(),
-        state: selectedStateName(states, form.state),
-        subdivision: selectedStateName(states, form.state),
+        state: form.state.trim(),
+        subdivision: form.state.trim(),
         city: form.city.trim(),
         address: form.address.trim(),
         streetAddress: form.address.trim(),
@@ -512,7 +591,7 @@ export function ListingForm({
           form.address.trim(),
           form.city.trim(),
           selectedStateName(states, form.state),
-          selectedCountryName(form.country),
+          selectedCountryName(countries, form.country),
         ]
           .filter(Boolean)
           .join(", "),
@@ -654,14 +733,8 @@ export function ListingForm({
                   update("state", value);
                   update("city", "");
                 }}
-                options={states.flatMap((option) =>
-                  option.iso2
-                    ? [{ value: option.iso2, label: option.name }]
-                    : [],
-                )}
-                disabled={
-                  !form.country || locationLoading || states.length === 0
-                }
+                options={stateSelectOptions(states, form.state)}
+                disabled={!form.country || (locationLoading && states.length === 0)}
                 error={errors.state}
               />
               <label className="space-y-2 text-sm font-medium">
@@ -961,8 +1034,8 @@ export function ListingForm({
                   Map location and 360° panorama
                 </p>
                 <p className="mt-1 text-xs font-normal text-muted-foreground">
-                  Add coordinates and an optional 360° image for an
-                  interactive walkthrough.
+                  Add coordinates and optional 360° images for an interactive
+                  walkthrough with multiple rooms or viewpoints.
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -999,44 +1072,57 @@ export function ListingForm({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <FieldLabel
-                    text="360° panorama image"
-                    hint="Choose an equirectangular 360° image for the interactive Three.js viewer."
+                    text="360° panorama images"
+                    hint="Choose equirectangular 360° images for the interactive Three.js viewer. Visitors can switch between scenes."
                   />
                   <p className="mt-1 text-xs font-normal text-muted-foreground">
-                    Optional. Visitors will be able to look around the image on the property detail page.
+                    Optional. Add multiple rooms or viewpoints. Each image should
+                    be an equirectangular 360° photo.
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => void choosePanoramaImage()}
+                  onClick={() => void choosePanoramaImages()}
                 >
                   <ImagePlus className="size-4" aria-hidden="true" />
-                  {form.panoramaImage ? "Replace image" : "Choose image"}
+                  {form.panoramaImages.length > 0 ? "Add images" : "Choose images"}
                 </Button>
               </div>
-              {form.panoramaImage ? (
-                <div className="relative max-w-md overflow-hidden rounded-xl border bg-muted/20">
-                  <img
-                    src={form.panoramaImage}
-                    alt="360° panorama preview"
-                    className="aspect-video w-full object-cover"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    className="absolute right-2 top-2 bg-black/65 text-white hover:bg-black/80 hover:text-white"
-                    onClick={() => update("panoramaImage", "")}
-                    aria-label="Remove panorama image"
-                  >
-                    <Trash2 className="size-3.5" aria-hidden="true" />
-                  </Button>
+              {form.panoramaImages.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {form.panoramaImages.map((image, index) => (
+                    <div
+                      key={`${image.url}-${index}`}
+                      className="group relative overflow-hidden rounded-xl border bg-muted/20"
+                    >
+                      <img
+                        src={image.url}
+                        alt={image.title ?? `360° panorama ${index + 1}`}
+                        className="aspect-video w-full object-cover"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/65 p-1.5 text-white">
+                        <span className="truncate text-[11px]">
+                          {image.title ?? `Scene ${index + 1}`}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="text-white hover:bg-white/20 hover:text-white"
+                          onClick={() => removePanoramaImage(index)}
+                          aria-label={`Remove panorama ${index + 1}`}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs font-normal text-muted-foreground">
-                  No 360° panorama selected.
+                  No 360° panoramas selected.
                 </div>
               )}
             </div>
@@ -1127,9 +1213,9 @@ function FieldSelect<T extends string>({
   return (
     <label className="block space-y-2 text-sm font-medium">
       <FieldLabel text={label} hint={hint} />
-      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <Select value={value || undefined} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger aria-label={label} aria-invalid={Boolean(error)}>
-          <SelectValue />
+          <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
@@ -1154,12 +1240,76 @@ function isLocationOption(value: unknown): value is LocationOption {
   return typeof option.name === "string";
 }
 
+function isCountryOption(value: unknown): value is CountryOption {
+  if (typeof value !== "object" || value === null) return false;
+  const option = value as Record<string, unknown>;
+  return typeof option.code === "string" && typeof option.name === "string";
+}
+
+function matchCountryCode(countries: CountryOption[], value: string): string | undefined {
+  const selected = value.trim().toLowerCase();
+  if (!selected) return undefined;
+  const match = countries.find(
+    (country) =>
+      country.code.toLowerCase() === selected ||
+      country.name.toLowerCase() === selected,
+  );
+  return match?.code;
+}
+
+function matchStateOption(
+  states: LocationOption[],
+  value: string,
+): LocationOption | undefined {
+  const selected = value.trim().toLowerCase();
+  if (!selected) return undefined;
+  const withoutState = selected.replace(/\s+state$/, "");
+  const suffix = selected.includes("-") ? selected.split("-").at(-1) : selected;
+  return states.find((state) => {
+    const code = state.iso2?.toLowerCase();
+    const name = state.name.toLowerCase();
+    const nameBare = name.replace(/\s+state$/, "");
+    return (
+      code === selected ||
+      code === suffix ||
+      code === withoutState ||
+      name === selected ||
+      nameBare === withoutState ||
+      name === withoutState
+    );
+  });
+}
+
+function stateSelectOptions(
+  states: LocationOption[],
+  selected: string,
+): Array<{ value: string; label: string }> {
+  const options = states.flatMap((option) =>
+    option.iso2 ? [{ value: option.iso2, label: option.name }] : [],
+  );
+  if (selected && !options.some((option) => option.value === selected)) {
+    const matched = matchStateOption(states, selected);
+    options.unshift({
+      value: selected,
+      label: matched?.name ?? selected,
+    });
+  }
+  return options;
+}
+
 function selectedStateName(states: LocationOption[], value: string): string {
   return states.find((state) => state.iso2 === value)?.name ?? value;
 }
 
-function selectedCountryName(value: string): string {
-  return countries.find((country) => country.code === value)?.name ?? value;
+function selectedCountryName(
+  countryOptions: CountryOption[],
+  value: string,
+): string {
+  return (
+    countryOptions.find((country) => country.code === value)?.name ??
+    fallbackCountries.find((country) => country.code === value)?.name ??
+    value
+  );
 }
 
 function OptionalNumberField({

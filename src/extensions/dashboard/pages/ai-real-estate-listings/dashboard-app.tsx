@@ -28,6 +28,8 @@ import { ListingsView } from "./listings-view";
 import { OverviewView } from "./overview-view";
 import { AnalyticsView } from "./analytics-view";
 import { SettingsView } from "./settings-view";
+import { RequestsView } from "./requests-view";
+import { AIWriterView } from "./ai-writer-view";
 
 type EditorMode = "new" | "edit" | null;
 
@@ -130,6 +132,7 @@ export function DashboardApp() {
         refreshToken={refreshToken}
         onAddListing={() => void openEditor()}
         onViewListings={() => setSection("listings")}
+        onOpenWriter={() => setSection("writer")}
       />
     );
   } else if (section === "listings") {
@@ -144,6 +147,10 @@ export function DashboardApp() {
     );
   } else if (section === "analytics") {
     content = <AnalyticsView refreshToken={refreshToken} />;
+  } else if (section === "requests") {
+    content = <RequestsView refreshToken={refreshToken} />;
+  } else if (section === "writer") {
+    content = <AIWriterView />;
   } else {
     content = (
       <SettingsView settings={settings} onSettingsChange={setSettings} />

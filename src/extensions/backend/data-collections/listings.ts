@@ -102,6 +102,7 @@ export default {
     { type: "NUMBER", displayName: "Latitude", key: "latitude" },
     { type: "NUMBER", displayName: "Longitude", key: "longitude" },
     { type: "IMAGE", displayName: "360° Panorama Image", key: "panoramaImage" },
+    { type: "MEDIA_GALLERY", displayName: "360° Panorama Images", key: "panoramaImages" },
     { type: "NUMBER", displayName: "View Count", key: "viewCount" },
     { type: "ARRAY_DOCUMENT", displayName: "View Events", key: "viewEvents" },
     {

@@ -21,6 +21,7 @@ import {
   type ListingImage,
   type ListingViewEvent,
   type ListingPage,
+  type ListingPriceRange,
   type ListingQuery,
 } from "@/lib/listing-types";
 import { normalizeRichText } from "@/lib/server/listing-validation";
@@ -52,15 +53,50 @@ function toDateValue(value: unknown): Date | undefined {
   return undefined;
 }
 
+function streetAddressLine(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (!isRecord(value)) return undefined;
+  const name =
+    toStringValue(value.name) ?? toStringValue(value.formattedAddressLine);
+  const rawNumber = value.number;
+  const number =
+    typeof rawNumber === "number" && Number.isFinite(rawNumber)
+      ? String(rawNumber)
+      : toStringValue(rawNumber);
+  const combined = [number, name].filter(Boolean).join(" ").trim();
+  return combined || toStringValue(value.formatted);
+}
+
+function cityFromFormatted(formatted: string | undefined, state?: string, country?: string): string | undefined {
+  if (!formatted) return undefined;
+  const ignored = new Set(
+    [state, country].flatMap((value) =>
+      value ? [value.trim().toLowerCase(), value.trim().toLowerCase().replace(/\s+state$/, "")] : [],
+    ),
+  );
+  const parts = formatted
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length < 2) return undefined;
+  const candidate = parts.find((part, index) => {
+    if (index === 0) return false;
+    const normalized = part.toLowerCase().replace(/\s+state$/, "");
+    return !ignored.has(part.toLowerCase()) && !ignored.has(normalized);
+  });
+  return candidate;
+}
+
 function toAddress(value: unknown): Listing["address"] {
   if (!isRecord(value)) return undefined;
 
   const country = toStringValue(value.country);
   const state = toStringValue(value.state) ?? toStringValue(value.subdivision);
-  const city = toStringValue(value.city);
+  const formatted = toStringValue(value.formatted) ?? toStringValue(value.formattedAddress);
   const address =
-    toStringValue(value.address) ?? toStringValue(value.streetAddress);
-  const formatted = toStringValue(value.formatted);
+    toStringValue(value.address) ?? streetAddressLine(value.streetAddress);
+  const city =
+    toStringValue(value.city) ?? cityFromFormatted(formatted, state, country);
   if (!country && !state && !city && !address && !formatted) return undefined;
   return { country, state, subdivision: state, city, address, streetAddress: address, formatted };
 }
@@ -93,6 +129,17 @@ function toGallery(value: unknown): ListingImage[] | undefined {
   });
 
   return gallery.length > 0 ? gallery : undefined;
+}
+
+function mergePanoramas(
+  images: ListingImage[] | undefined,
+  fallback?: string,
+): ListingImage[] | undefined {
+  const list = [...(images ?? [])];
+  if (fallback && !list.some((image) => image.url === fallback)) {
+    list.unshift({ url: fallback });
+  }
+  return list.length > 0 ? list : undefined;
 }
 
 function toViewEvents(value: unknown): ListingViewEvent[] {
@@ -152,6 +199,10 @@ export function normalizeListing(item: WixDataRecord): Listing {
     latitude: toNumberValue(item.latitude),
     longitude: toNumberValue(item.longitude),
     panoramaImage: toStringValue(item.panoramaImage),
+    panoramaImages: mergePanoramas(
+      toGallery(item.panoramaImages),
+      toStringValue(item.panoramaImage),
+    ),
     viewCount: toNumberValue(item.viewCount) ?? 0,
     viewEvents: toViewEvents(item.viewEvents),
     address: toAddress(item.address),
@@ -164,10 +215,43 @@ export function normalizeListing(item: WixDataRecord): Listing {
   };
 }
 
+function toWixStreetAddress(
+  line: string | undefined,
+): { name: string; number?: number } | undefined {
+  const trimmed = line?.trim() ?? "";
+  if (!trimmed) return undefined;
+  const match = trimmed.match(/^(\d+)\s+(.+)$/);
+  const numberPart = match?.[1];
+  const namePart = match?.[2];
+  if (numberPart && namePart) {
+    return { number: Number(numberPart), name: namePart };
+  }
+  return { name: trimmed };
+}
+
+function toWixAddress(
+  address: NonNullable<Listing["address"]>,
+): Record<string, unknown> {
+  const street = toWixStreetAddress(address.address ?? address.streetAddress);
+  return {
+    ...(address.country ? { country: address.country } : {}),
+    ...(address.state ?? address.subdivision
+      ? { subdivision: address.state ?? address.subdivision }
+      : {}),
+    ...(address.city ? { city: address.city } : {}),
+    ...(address.formatted ? { formatted: address.formatted } : {}),
+    ...(street ? { streetAddress: street } : {}),
+  };
+}
+
 function withoutEmptyValues(input: ListingInput): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(input)) {
+    if (key === "address" && value && typeof value === "object") {
+      result.address = toWixAddress(value as NonNullable<Listing["address"]>);
+      continue;
+    }
     if (value !== undefined && value !== "") result[key] = value;
   }
 
@@ -204,6 +288,7 @@ export function listingToInput(listing: Listing): ListingInput {
     latitude: listing.latitude,
     longitude: listing.longitude,
     panoramaImage: listing.panoramaImage,
+    panoramaImages: listing.panoramaImages,
     viewCount: listing.viewCount,
     viewEvents: listing.viewEvents,
     address: listing.address,
@@ -216,29 +301,35 @@ export function listingToInput(listing: Listing): ListingInput {
   };
 }
 
+function listingSearchFilter(search: string) {
+  return items
+    .filter()
+    .contains("title", search)
+    .or(items.filter().contains("city", search))
+    .or(items.filter().contains("description", search));
+}
+
 export async function queryListings(
   queryOptions: ListingQuery = {},
 ): Promise<ListingPage> {
   const page = Math.max(0, queryOptions.page ?? 0);
   const pageSize = Math.min(100, Math.max(1, queryOptions.pageSize ?? 10));
-  const query = items.query(LISTINGS_COLLECTION_ID);
+  let query = items.query(LISTINGS_COLLECTION_ID);
   const search = queryOptions.search?.trim();
 
-  if (search) {
-    const titleFilter = items.filter().contains("title", search);
-    const cityFilter = items.filter().contains("city", search);
-    query.or(titleFilter).or(cityFilter);
-  }
+  if (search) query = query.and(listingSearchFilter(search));
 
   if (queryOptions.status) {
-    query.eq("status", queryOptions.status);
+    query = query.eq("status", queryOptions.status);
   } else if (!queryOptions.includeArchived) {
-    query.ne("status", "archived");
+    query = query.ne("status", "archived");
   }
 
-  if (queryOptions.propertyType) {
-    query.eq("propertyType", queryOptions.propertyType);
-  }
+  if (queryOptions.propertyType) query = query.eq("propertyType", queryOptions.propertyType);
+  if (queryOptions.transactionType) query = query.eq("transactionType", queryOptions.transactionType);
+  if (queryOptions.minPrice !== undefined) query = query.ge("price", queryOptions.minPrice);
+  if (queryOptions.maxPrice !== undefined) query = query.le("price", queryOptions.maxPrice);
+  if (queryOptions.minBedrooms !== undefined) query = query.ge("bedrooms", queryOptions.minBedrooms);
 
   const result = await query
     .descending("_updatedDate")
@@ -282,14 +373,53 @@ export async function updateListing(
   return saveListing({ ...listingToInput(listing), ...patch }, id, listing._revision);
 }
 
-export async function queryPublicListings(): Promise<Listing[]> {
-  const result = await auth
-    .elevate(items.query)(LISTINGS_COLLECTION_ID)
-    .eq("status", "active")
+export async function getPublicPriceRange(): Promise<ListingPriceRange> {
+  try {
+    const baseQuery = () => auth.elevate(items.query)(LISTINGS_COLLECTION_ID).eq("status", "active");
+    const [lowest, highest] = await Promise.all([
+      baseQuery().ascending("price").limit(1).find(),
+      baseQuery().descending("price").limit(1).find(),
+    ]);
+    const cheapest = lowest.items[0] ? normalizeListing(lowest.items[0]) : undefined;
+    const priciest = highest.items[0] ? normalizeListing(highest.items[0]) : undefined;
+    const minPrice = cheapest?.price ?? 0;
+    const maxPrice = priciest?.price ?? 0;
+    return {
+      minPrice,
+      maxPrice: Math.max(minPrice, maxPrice),
+      currency: priciest?.currency ?? cheapest?.currency ?? "USD",
+    };
+  } catch (error) {
+    console.error("Unable to load public listing price range.", error);
+    return { minPrice: 0, maxPrice: 1_000_000, currency: "USD" };
+  }
+}
+
+export async function queryPublicListings(
+  queryOptions: Pick<ListingQuery, "search" | "transactionType" | "propertyType" | "minPrice" | "maxPrice" | "minBedrooms" | "page" | "pageSize"> = {},
+): Promise<ListingPage> {
+  const page = Math.max(0, queryOptions.page ?? 0);
+  const pageSize = Math.min(100, Math.max(1, queryOptions.pageSize ?? 12));
+  let query = auth.elevate(items.query)(LISTINGS_COLLECTION_ID).eq("status", "active");
+  const search = queryOptions.search?.trim();
+
+  if (search) query = query.and(listingSearchFilter(search));
+  if (queryOptions.transactionType) query = query.eq("transactionType", queryOptions.transactionType);
+  if (queryOptions.propertyType) query = query.eq("propertyType", queryOptions.propertyType);
+  if (queryOptions.minPrice !== undefined) query = query.ge("price", queryOptions.minPrice);
+  if (queryOptions.maxPrice !== undefined) query = query.le("price", queryOptions.maxPrice);
+  if (queryOptions.minBedrooms !== undefined) query = query.ge("bedrooms", queryOptions.minBedrooms);
+
+  const result = await query
     .descending("_updatedDate")
-    .limit(100)
-    .find();
-  return result.items.map(normalizeListing);
+    .skip(page * pageSize)
+    .limit(pageSize)
+    .find({ returnTotalCount: true });
+  return {
+    items: result.items.map(normalizeListing),
+    totalCount: result.totalCount ?? result.items.length,
+    hasNext: result.hasNext(),
+  };
 }
 
 export async function getPublicListing(id: string): Promise<Listing | null> {

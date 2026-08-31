@@ -35,6 +35,7 @@ interface OverviewViewProps {
   refreshToken: number;
   onAddListing: () => void;
   onViewListings: () => void;
+  onOpenWriter: () => void;
 }
 
 function MetricCard({
@@ -118,7 +119,7 @@ function RecentListings({ listings, onViewListings }: { listings: DashboardSnaps
   );
 }
 
-export function OverviewView({ refreshToken, onAddListing, onViewListings }: OverviewViewProps) {
+export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpenWriter }: OverviewViewProps) {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -200,12 +201,12 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings }: Ove
             </div>
             <CardTitle className="mt-3 text-foreground">Turn details into momentum</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Start with complete listing basics. AI-assisted content generation can be connected when your provider is ready.
+              Turn your confirmed property facts into professional, luxury, short, SEO, or social-ready copy in seconds.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="secondary" size="sm" onClick={onAddListing}>
-              Create a listing <ArrowRight className="size-4" aria-hidden="true" />
+            <Button variant="secondary" size="sm" onClick={onOpenWriter}>
+              Open AI writer <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
           </CardContent>
         </Card>

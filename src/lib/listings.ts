@@ -14,6 +14,7 @@ export {
   getListingStatus,
   getPropertyType,
   getTransactionType,
+  getPanoramaImages,
   isAreaUnit,
   isListingStatus,
   isPropertyType,

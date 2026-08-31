@@ -5,7 +5,9 @@ import {
   Building2,
   LayoutDashboard,
   Settings2,
+  Inbox,
   Sparkles,
+  WandSparkles,
 } from 'lucide-react';
 
 import {
@@ -28,7 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
-export type DashboardSection = 'overview' | 'listings' | 'analytics' | 'settings';
+export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'settings';
 
 interface DashboardShellProps {
   section: DashboardSection;
@@ -43,6 +45,8 @@ const navigation: Array<{
 }> = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'listings', label: 'Listings', icon: Building2 },
+  { id: 'writer', label: 'AI Listing Writer', icon: WandSparkles },
+  { id: 'requests', label: 'Quote requests', icon: Inbox },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
@@ -50,6 +54,8 @@ const navigation: Array<{
 const sectionLabels: Record<DashboardSection, { title: string; eyebrow: string }> = {
   overview: { title: 'Overview', eyebrow: 'Workspace' },
   listings: { title: 'Listings', eyebrow: 'Property inventory' },
+  writer: { title: 'AI Listing Writer', eyebrow: 'Content studio' },
+  requests: { title: 'Quote requests', eyebrow: 'Lead management' },
   analytics: { title: 'Advanced analytics', eyebrow: 'Portfolio intelligence' },
   settings: { title: 'Settings', eyebrow: 'Workspace preferences' },
 };
