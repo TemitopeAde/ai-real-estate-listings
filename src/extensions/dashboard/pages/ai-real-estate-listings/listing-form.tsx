@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -66,6 +65,8 @@ const RichTextEditor = lazy(() =>
     default: module.RichTextEditor,
   })),
 );
+
+const API_ORIGIN = new URL(import.meta.url).origin;
 
 interface ListingFormProps {
   listing: Listing | null;
@@ -225,7 +226,13 @@ function createInitialState(
     amenities:
       listing?.amenities?.join(", ") ??
       (isNewListing ? "Swimming pool, Gym, 24/7 security, BQ" : ""),
-    country: listing?.address?.country ?? (isNewListing ? "NG" : ""),
+    country:
+      matchCountryCode(
+        fallbackCountries,
+        listing?.address?.country ?? (isNewListing ? "NG" : ""),
+      ) ??
+      listing?.address?.country ??
+      (isNewListing ? "NG" : ""),
     state:
       listing?.address?.state ??
       listing?.address?.subdivision ??
@@ -371,7 +378,7 @@ export function ListingForm({
     const loadCountries = async () => {
       try {
         const response = await httpClient.fetchWithAuth(
-          `${window.location.origin}/api/locations`,
+          `${API_ORIGIN}/api/locations`,
         );
         if (!response.ok) throw new Error("Countries could not be loaded.");
         const data = (await response.json()) as unknown;
@@ -400,10 +407,9 @@ export function ListingForm({
 
   useEffect(() => {
     let cancelled = false;
-    setStates([]);
-    setCities([]);
-    setLocationError(false);
     if (!form.country) {
+      setStates([]);
+      setCities([]);
       setStatesLoading(false);
       setCitiesLoading(false);
       return;
@@ -411,20 +417,23 @@ export function ListingForm({
 
     const loadStates = async () => {
       setStatesLoading(true);
+      setLocationError(false);
       try {
         const response = await httpClient.fetchWithAuth(
-          `${window.location.origin}/api/locations?country=${encodeURIComponent(form.country)}`,
+          `${API_ORIGIN}/api/locations?country=${encodeURIComponent(form.country)}`,
         );
         if (!response.ok) throw new Error("States could not be loaded.");
         const data = (await response.json()) as unknown;
-        if (!cancelled && Array.isArray(data)) {
+        if (cancelled) return;
+        if (Array.isArray(data)) {
           const nextStates = data.filter(isLocationOption);
           setStates(nextStates);
           setForm((current) => {
             if (!current.state) return current;
             const matchingState = matchStateOption(nextStates, current.state);
-            return matchingState?.iso2 && matchingState.iso2 !== current.state
-              ? { ...current, state: matchingState.iso2 }
+            const nextValue = matchingState?.iso2 ?? matchingState?.name;
+            return nextValue && nextValue !== current.state
+              ? { ...current, state: nextValue }
               : current;
           });
         }
@@ -432,7 +441,7 @@ export function ListingForm({
         console.error("Unable to load states.", error);
         if (!cancelled) setLocationError(true);
       } finally {
-        if (!cancelled) setStatesLoading(false);
+        setStatesLoading(false);
       }
     };
     void loadStates();
@@ -444,10 +453,11 @@ export function ListingForm({
   useEffect(() => {
     if (states.length === 0 || !form.state) return;
     const matchingState = matchStateOption(states, form.state);
-    if (matchingState?.iso2 && matchingState.iso2 !== form.state) {
+    const nextValue = matchingState?.iso2 ?? matchingState?.name;
+    if (nextValue && nextValue !== form.state) {
       setForm((current) =>
         current.state === form.state
-          ? { ...current, state: matchingState.iso2 ?? current.state }
+          ? { ...current, state: nextValue }
           : current,
       );
     }
@@ -465,7 +475,7 @@ export function ListingForm({
       setCitiesLoading(true);
       try {
         const response = await httpClient.fetchWithAuth(
-          `${window.location.origin}/api/locations?country=${encodeURIComponent(form.country)}&state=${encodeURIComponent(form.state)}`,
+          `${API_ORIGIN}/api/locations?country=${encodeURIComponent(form.country)}&state=${encodeURIComponent(form.state)}`,
         );
         if (!response.ok) throw new Error("Cities could not be loaded.");
         const data = (await response.json()) as unknown;
@@ -720,7 +730,9 @@ export function ListingForm({
 
   return (
     <TooltipProvider>
-    <form className="space-y-6" onSubmit={submit} noValidate>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit} noValidate>
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain py-6">
       <div>
         <p className="text-sm font-medium text-primary">Listing editor</p>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight">
@@ -812,10 +824,7 @@ export function ListingForm({
                   update("state", "");
                   update("city", "");
                 }}
-                options={countries.map((country) => ({
-                  value: country.code,
-                  label: country.name,
-                }))}
+                options={countrySelectOptions(countries, form.country)}
                 error={errors.country}
               />
               <FieldSelect
@@ -826,16 +835,16 @@ export function ListingForm({
                   update("city", "");
                 }}
                 options={stateSelectOptions(states, form.state)}
-                disabled={!form.country || statesLoading}
+                disabled={!form.country}
                 error={errors.state}
               />
               <label className="space-y-2 text-sm font-medium">
                 <FieldLabel text="Address" hint="Enter the street address or property location details." required />
-                <Textarea
+                <Input
                   value={form.address}
                   onChange={(event) => update("address", event.target.value)}
+                  aria-invalid={Boolean(errors.address)}
                   placeholder="Street address or neighborhood"
-                  rows={3}
                 />
                 {errors.address ? (
                   <span className="block text-xs font-normal text-destructive">
@@ -849,13 +858,8 @@ export function ListingForm({
                   value={form.city}
                   onChange={(event) => update("city", event.target.value)}
                   aria-invalid={Boolean(errors.city)}
-                  placeholder={
-                    citiesLoading
-                      ? "Loading cities…"
-                      : "Enter or select a city"
-                  }
+                  placeholder="Enter or select a city"
                   list="listing-city-options"
-                  disabled={!form.state || citiesLoading}
                 />
                 <datalist id="listing-city-options">
                   {cities.map((city) => (
@@ -1315,8 +1319,9 @@ export function ListingForm({
         <Check className="size-3.5 text-emerald-600" aria-hidden="true" /> AI
         fields are reserved for future generation workflows.
       </div>
+      </div>
 
-      <div className="sticky bottom-0 z-20 -mx-6 -mb-6 flex flex-wrap justify-end gap-2 border-t border-border/70 bg-background/95 px-6 py-4 shadow-[0_-4px_12px_rgba(0,0,0,.04)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="shrink-0 -mx-6 flex flex-wrap justify-end gap-2 border-t border-border/70 bg-background px-6 py-4">
         <Button type="button" variant="outline" onClick={onBack}>
           Cancel
         </Button>
@@ -1360,6 +1365,7 @@ export function ListingForm({
         </div>
       </DialogContent>
     </Dialog>
+    </div>
     </TooltipProvider>
   );
 }
@@ -1384,7 +1390,7 @@ function FieldSelect<T extends string>({
     <label className="block space-y-2 text-sm font-medium">
       <FieldLabel text={label} hint={hint} />
       <Select value={value || undefined} onValueChange={onValueChange} disabled={disabled}>
-        <SelectTrigger aria-label={label} aria-invalid={Boolean(error)}>
+        <SelectTrigger className="w-full" aria-label={label} aria-invalid={Boolean(error)}>
           <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
         </SelectTrigger>
         <SelectContent>
@@ -1450,13 +1456,33 @@ function matchStateOption(
   });
 }
 
+function countrySelectOptions(
+  countries: CountryOption[],
+  selected: string,
+): Array<{ value: string; label: string }> {
+  const options = countries.map((country) => ({
+    value: country.code,
+    label: country.name,
+  }));
+  if (selected && !options.some((option) => option.value === selected)) {
+    const matched = matchCountryCode(countries, selected);
+    options.unshift({
+      value: selected,
+      label:
+        countries.find((country) => country.code === matched)?.name ?? selected,
+    });
+  }
+  return options;
+}
+
 function stateSelectOptions(
   states: LocationOption[],
   selected: string,
 ): Array<{ value: string; label: string }> {
-  const options = states.flatMap((option) =>
-    option.iso2 ? [{ value: option.iso2, label: option.name }] : [],
-  );
+  const options = states.map((option) => ({
+    value: option.iso2 ?? option.name,
+    label: option.name,
+  }));
   if (selected && !options.some((option) => option.value === selected)) {
     const matched = matchStateOption(states, selected);
     options.unshift({

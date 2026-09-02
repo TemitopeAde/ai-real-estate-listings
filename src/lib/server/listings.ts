@@ -95,15 +95,51 @@ function cityFromFormatted(formatted: string | undefined, state?: string, countr
 function toAddress(value: unknown): Listing["address"] {
   if (!isRecord(value)) return undefined;
 
-  const country = toStringValue(value.country);
-  const state = toStringValue(value.state) ?? toStringValue(value.subdivision);
   const formatted = toStringValue(value.formatted) ?? toStringValue(value.formattedAddress);
+  const parsed = partsFromFormatted(formatted);
+  const country =
+    toStringValue(value.country) ?? parsed.country;
+  const state =
+    toStringValue(value.state) ??
+    toStringValue(value.subdivision) ??
+    parsed.state;
   const address =
-    toStringValue(value.address) ?? streetAddressLine(value.streetAddress);
+    toStringValue(value.address) ?? streetAddressLine(value.streetAddress) ?? parsed.address;
   const city =
-    toStringValue(value.city) ?? cityFromFormatted(formatted, state, country);
+    toStringValue(value.city) ??
+    parsed.city ??
+    cityFromFormatted(formatted, state, country);
   if (!country && !state && !city && !address && !formatted) return undefined;
   return { country, state, subdivision: state, city, address, streetAddress: address, formatted };
+}
+
+function partsFromFormatted(formatted: string | undefined): {
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+} {
+  if (!formatted) return {};
+  const parts = formatted
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length >= 4) {
+    return {
+      address: parts.slice(0, parts.length - 3).join(", "),
+      city: parts[parts.length - 3],
+      state: parts[parts.length - 2],
+      country: parts[parts.length - 1],
+    };
+  }
+  if (parts.length === 3) {
+    return {
+      city: parts[0],
+      state: parts[1],
+      country: parts[2],
+    };
+  }
+  return {};
 }
 
 function toStringArray(value: unknown): string[] {
@@ -237,11 +273,10 @@ function toWixAddress(
   address: NonNullable<Listing["address"]>,
 ): Record<string, unknown> {
   const street = toWixStreetAddress(address.address ?? address.streetAddress);
+  const state = address.state ?? address.subdivision;
   return {
     ...(address.country ? { country: address.country } : {}),
-    ...(address.state ?? address.subdivision
-      ? { subdivision: address.state ?? address.subdivision }
-      : {}),
+    ...(state ? { state, subdivision: state } : {}),
     ...(address.city ? { city: address.city } : {}),
     ...(address.formatted ? { formatted: address.formatted } : {}),
     ...(street ? { streetAddress: street } : {}),

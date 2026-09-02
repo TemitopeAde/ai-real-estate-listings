@@ -178,8 +178,8 @@ export function DashboardApp() {
           if (!open) closeEditor();
         }}
       >
-        <DialogContent className="h-[92vh] max-w-6xl">
-          <DialogHeader>
+        <DialogContent className="flex h-[92vh] max-h-[92vh] max-w-6xl flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle>
               {editorMode === "edit" ? "Edit listing" : "Add listing"}
             </DialogTitle>
@@ -187,7 +187,7 @@ export function DashboardApp() {
               Keep your property information accurate and ready for publishing.
             </DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-6">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6">
             {editorError ? (
               <div
                 role="alert"
