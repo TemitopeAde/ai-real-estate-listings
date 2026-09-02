@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 import { isPropertyType, isTransactionType, type ListingViewEvent } from "@/lib/listing-types";
 import { getPublicListing, getPublicPriceRange, queryPublicListings, recordListingView } from "@/lib/server/listings";
+import { withPublicOwnerContact } from "@/lib/server/site-owner";
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
@@ -28,7 +29,9 @@ export const GET: APIRoute = async ({ url }) => {
     const id = url.searchParams.get("id")?.trim();
     if (id) {
       const listing = await getPublicListing(id);
-      return listing ? json(listing) : json({ message: "Listing not found." }, 404);
+      return listing
+        ? json(await withPublicOwnerContact(listing))
+        : json({ message: "Listing not found." }, 404);
     }
     if (url.searchParams.get("priceRange") === "1") return json(await getPublicPriceRange());
     const transactionTypeParam = url.searchParams.get("transactionType") ?? "";

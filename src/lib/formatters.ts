@@ -32,9 +32,40 @@ export function formatPrice(price: number, currency: string): string {
   }
 }
 
-export function formatDate(date?: Date): string {
-  return date
-    ? date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+type DateLike = Date | string | number | { $date?: string } | null | undefined;
+
+function toDate(value: DateLike): Date | undefined {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+  if (typeof value === 'object' && value !== null && typeof value.$date === 'string') {
+    const parsed = new Date(value.$date);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+  return undefined;
+}
+
+export function formatDate(date?: DateLike): string {
+  const parsed = toDate(date);
+  return parsed
+    ? parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : '—';
+}
+
+export function formatDateTime(date?: DateLike): string {
+  const parsed = toDate(date);
+  return parsed
+    ? parsed.toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
     : '—';
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, type FC } from "react";
+import React, { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState, type FC } from "react";
 import ReactDOM from "react-dom";
 import reactToWebComponent from "react-to-webcomponent";
 import { Map as MapLibreMap, Marker, NavigationControl, Popup, type GeoJSONSource } from "maplibre-gl";
@@ -17,6 +17,14 @@ import { PropertySocialShare } from "./social-share";
 import { DEFAULT_DETAIL_WIDGET_CONFIG, formatListingPrice, getImageUrls, getListingLocation, parseWidgetJson, type DetailWidgetConfig } from "../../../../lib/site-widget";
 import styles from "./property-detail-widget.module.css";
 
+const QuoteMessageEditor = lazy(() =>
+  import("./quote-message-editor").then((module) => ({ default: module.QuoteMessageEditor })),
+);
+
+function plainFromHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
+}
+
 interface Props { config?: string; }
 const apiOrigin = new URL(import.meta.url).origin;
 
@@ -29,6 +37,39 @@ async function goToProperties(): Promise<void> {
 async function goToListing(id: string): Promise<void> {
   const baseUrl = await location.baseUrl();
   await location.to(`${baseUrl.replace(/\/+$/, "")}/property-details?id=${encodeURIComponent(id)}`);
+}
+
+function ListingContact({ listing }: { listing: Listing }) {
+  const parts: React.ReactNode[] = [];
+  if (listing.agentName) parts.push(<span key="name">{listing.agentName}</span>);
+  if (listing.agentPhone) {
+    parts.push(
+      <a key="phone" href={`tel:${listing.agentPhone.replace(/[^\d+]/g, "")}`}>
+        {listing.agentPhone}
+      </a>,
+    );
+  }
+  if (listing.agentEmail) {
+    parts.push(
+      <a key="email" href={`mailto:${listing.agentEmail}`}>
+        {listing.agentEmail}
+      </a>,
+    );
+  }
+  if (parts.length === 0) return null;
+  return (
+    <section className={styles.section}>
+      <h2>Contact</h2>
+      <p className={styles.agent}>
+        {parts.map((part, index) => (
+          <Fragment key={index}>
+            {index > 0 ? " · " : null}
+            {part}
+          </Fragment>
+        ))}
+      </p>
+    </section>
+  );
 }
 
 async function loadListing(id: string): Promise<Listing> {
@@ -191,20 +232,145 @@ const PropertyMap: FC<{ listing: Listing }> = ({ listing }) => {
 };
 
 const QuoteRequestModal: FC<{ listing: Listing; onClose: () => void }> = ({ listing, onClose }) => {
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', message: '' });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", message: "" });
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); setSubmitting(true); setError('');
-    try {
-      const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/quote-requests`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listingId: listing._id, ...form }) });
-      const result = await response.json() as { message?: string };
-      if (!response.ok) throw new Error(result.message ?? 'The request could not be submitted.');
-      setSuccess(true);
-    } catch (submitError) { setError(submitError instanceof Error ? submitError.message : 'The request could not be submitted.'); } finally { setSubmitting(false); }
+
+  const update = (key: keyof typeof form, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [key]: undefined }));
+    setError("");
   };
-  return <div className={styles.quoteOverlay} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className={styles.quoteModal} role="dialog" aria-modal="true" aria-labelledby="quote-request-title"><button type="button" className={styles.quoteClose} onClick={onClose} aria-label="Close quote request">×</button>{success ? <div className={styles.quoteSuccess}><h2 id="quote-request-title">Request received</h2><p>Thank you. An agent will contact you about {listing.title}.</p><button type="button" className={styles.quoteSubmit} onClick={onClose}>Done</button></div> : <><h2 id="quote-request-title">Request a quote</h2><p className={styles.quoteIntro}>Tell us how we can help with {listing.title}.</p><form onSubmit={(event) => void submit(event)}><div className={styles.quoteFields}><label>First name<input required value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} /></label><label>Last name<input value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} /></label><label>Email<input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label><label>Phone<input type="tel" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label><label className={styles.quoteMessage}>Message<textarea rows={4} value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} /></label></div>{error ? <p className={styles.quoteError} role="alert">{error}</p> : null}<button type="submit" className={styles.quoteSubmit} disabled={submitting}>{submitting ? 'Sending…' : 'Send request'}</button></form></>}</section></div>;
+
+  const validate = () => {
+    const next: Partial<Record<keyof typeof form, string>> = {};
+    if (!form.firstName.trim()) next.firstName = "Enter your first name.";
+    if (!form.lastName.trim()) next.lastName = "Enter your last name.";
+    if (!form.email.trim()) next.email = "Enter your email address.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      next.email = "Enter a valid email address.";
+    }
+    if (!form.phone.trim()) next.phone = "Enter your phone number.";
+    else if (!/^[+()\d\s.-]{7,30}$/.test(form.phone.trim())) {
+      next.phone = "Enter a valid phone number.";
+    }
+    if (plainFromHtml(form.message).length > 2000) next.message = "Keep the message under 2,000 characters.";
+    return next;
+  };
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextErrors = validate();
+    setFieldErrors(nextErrors);
+    setError("");
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Fix the highlighted fields before sending.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/quote-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: listing._id, ...form }),
+      });
+      const result = await response.json() as { message?: string };
+      if (!response.ok) throw new Error(result.message ?? "The request could not be submitted.");
+      setSuccess(true);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "The request could not be submitted.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const field = (
+    key: keyof typeof form,
+    label: string,
+    props: React.InputHTMLAttributes<HTMLInputElement> & React.TextareaHTMLAttributes<HTMLTextAreaElement> = {},
+  ) => {
+    const invalid = Boolean(fieldErrors[key]);
+    const shared = {
+      value: form[key],
+      "aria-invalid": invalid,
+      "aria-describedby": invalid ? `quote-${key}-error` : undefined,
+      onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        update(key, event.target.value);
+      },
+    };
+    return (
+      <label className={key === "message" ? styles.quoteMessage : undefined}>
+        {label}
+        {key === "message" ? <textarea rows={4} {...shared} /> : <input {...props} {...shared} />}
+        {invalid ? (
+          <span id={`quote-${key}-error`} className={styles.quoteFieldError} role="alert">
+            {fieldErrors[key]}
+          </span>
+        ) : null}
+      </label>
+    );
+  };
+
+  return (
+    <div
+      className={styles.quoteOverlay}
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className={styles.quoteModal} role="dialog" aria-modal="true" aria-labelledby="quote-request-title">
+        <button type="button" className={styles.quoteClose} onClick={onClose} aria-label="Close quote request">×</button>
+        {success ? (
+          <div className={styles.quoteSuccess}>
+            <h2 id="quote-request-title">Request received</h2>
+            <p>Thank you. An agent will contact you about {listing.title}.</p>
+            <button type="button" className={styles.quoteSubmit} onClick={onClose}>Done</button>
+          </div>
+        ) : (
+          <>
+            <h2 id="quote-request-title">Request a quote</h2>
+            <p className={styles.quoteIntro}>Tell us how we can help with {listing.title}.</p>
+            <form onSubmit={(event) => void submit(event)} noValidate>
+              <div className={styles.quoteFields}>
+                {field("firstName", "First name", { autoComplete: "given-name" })}
+                {field("lastName", "Last name", { autoComplete: "family-name" })}
+                {field("email", "Email", { type: "text", inputMode: "email", autoComplete: "email" })}
+                {field("phone", "Phone", { type: "tel", autoComplete: "tel" })}
+                <label className={styles.quoteMessage}>
+                  Message
+                  <div
+                    className={`${styles.quoteEditor}${fieldErrors.message ? ` ${styles.quoteEditorInvalid}` : ""}`}
+                    aria-invalid={Boolean(fieldErrors.message)}
+                    aria-describedby={fieldErrors.message ? "quote-message-error" : undefined}
+                  >
+                    <Suspense fallback={<div className={styles.quoteEditorFallback}>Loading editor…</div>}>
+                      <QuoteMessageEditor
+                        value={form.message}
+                        invalid={Boolean(fieldErrors.message)}
+                        onChange={(value) => update("message", value)}
+                      />
+                    </Suspense>
+                  </div>
+                  {fieldErrors.message ? (
+                    <span id="quote-message-error" className={styles.quoteFieldError} role="alert">
+                      {fieldErrors.message}
+                    </span>
+                  ) : null}
+                </label>
+              </div>
+              {error ? <p className={styles.quoteError} role="alert">{error}</p> : null}
+              <button type="submit" className={styles.quoteSubmit} disabled={submitting}>
+                {submitting ? "Sending…" : "Send request"}
+              </button>
+            </form>
+          </>
+        )}
+      </section>
+    </div>
+  );
 };
 
 const PropertyDetail: FC<Props> = ({ config: rawConfig }) => {
@@ -282,7 +448,7 @@ const PropertyDetail: FC<Props> = ({ config: rawConfig }) => {
     });
   };
   const panoramas = getPanoramaImages(listing);
-  return <article className={styles.root} style={style}><div className={styles.detailCard} style={{ borderRadius: `${config.cardRadius}px` }}><ImageCarousel listing={listing} ratio={config.imageRatio} /><div className={styles.content}><button type="button" className={styles.backButton} onClick={() => void goToProperties()}><ArrowLeft /> Back to properties</button><div className={styles.heading}><div><h1>{listing.title}</h1>{config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing)}</p> : null}</div><div className={styles.priceRow}><div className={styles.price}>{formatListingPrice(listing)}</div>{/* <button type="button" className={styles.quoteButton} onClick={() => setQuoteOpen(true)}>Request a quote</button> */}<button type="button" className={styles.saveButton} onClick={() => void handleSave()} aria-busy={saving} aria-label={saved ? "Remove property from saved properties" : "Save property"} aria-pressed={saved}>{saved ? <BookmarkCheck /> : <Bookmark />}</button></div></div>{config.showViewCount ? <div className={styles.views}><Eye /> {viewCount ?? listing.viewCount} views</div> : null}{config.showSocialShare ? <PropertySocialShare listing={listing} /> : null}{config.showAiAssistant ? <PropertyAssistant listing={listing} /> : null}{panoramas.length ? <section className={styles.section}><h2>360° virtual tour</h2><PanoramaViewer images={panoramas} title={listing.title} /></section> : null}{config.showDescription && listing.description ? <div className={styles.description} dangerouslySetInnerHTML={{ __html: listing.description }} /> : null}<div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {listing.bedrooms} bedrooms</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {listing.bathrooms} bathrooms</span> : null}<span><Ruler /> {listing.area.toLocaleString()} {listing.areaUnit}</span></div>{config.showLocation ? <section className={styles.section}><h2>Location</h2><PropertyMap listing={listing} /></section> : null}{config.showAmenities && listing.amenities?.length ? <section className={styles.section}><h2>Amenities</h2><ul>{listing.amenities.map((amenity) => <li key={amenity}>{amenity}</li>)}</ul></section> : null}{config.showAgent && listing.agentName ? <section className={styles.section}><h2>Contact</h2><p className={styles.agent}>{listing.agentName}{listing.agentPhone ? ` · ${listing.agentPhone}` : ""}{listing.agentEmail ? ` · ${listing.agentEmail}` : ""}</p></section> : null}</div></div>{config.showFeaturedListings && featuredListings.length ? <section className={styles.featuredSection} aria-label={config.featuredTitle}><header className={styles.featuredHeader}><div><h2>{config.featuredTitle}</h2><p>{config.featuredSubtitle}</p></div><div className={styles.featuredControls}><button type="button" aria-label="Previous related properties" onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: -320, behavior: "smooth" })}><ChevronLeft /></button><button type="button" aria-label="Next related properties" onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: 320, behavior: "smooth" })}><ChevronRight /></button></div></header><div id="featured-properties" className={styles.featuredList} style={{ gap: `${config.featuredGap}px` }}>{featuredListings.map((item) => <FeaturedCard key={item._id} listing={item} config={config} saved={featuredSavedIds.has(item._id)} onSave={handleFeaturedSave} />)}</div></section> : null}{quoteOpen ? <QuoteRequestModal listing={listing} onClose={() => setQuoteOpen(false)} /> : null}</article>;
+  return <article className={styles.root} style={style}><div className={styles.detailCard} style={{ borderRadius: `${config.cardRadius}px` }}><ImageCarousel listing={listing} ratio={config.imageRatio} /><div className={styles.content}><button type="button" className={styles.backButton} onClick={() => void goToProperties()}><ArrowLeft /> Back to properties</button><div className={styles.heading}><div><h1>{listing.title}</h1>{config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing)}</p> : null}</div><div className={styles.priceRow}><div className={styles.price}>{formatListingPrice(listing)}</div><button type="button" className={styles.quoteButton} onClick={() => setQuoteOpen(true)}>Request a quote</button><button type="button" className={styles.saveButton} onClick={() => void handleSave()} aria-busy={saving} aria-label={saved ? "Remove property from saved properties" : "Save property"} aria-pressed={saved}>{saved ? <BookmarkCheck /> : <Bookmark />}</button></div></div>{config.showViewCount ? <div className={styles.views}><Eye /> {viewCount ?? listing.viewCount} views</div> : null}{config.showSocialShare ? <PropertySocialShare listing={listing} /> : null}{config.showAiAssistant ? <PropertyAssistant listing={listing} /> : null}{panoramas.length ? <section className={styles.section}><h2>360° virtual tour</h2><PanoramaViewer images={panoramas} title={listing.title} /></section> : null}{config.showDescription && listing.description ? <div className={styles.description} dangerouslySetInnerHTML={{ __html: listing.description }} /> : null}<div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {listing.bedrooms} bedrooms</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {listing.bathrooms} bathrooms</span> : null}<span><Ruler /> {listing.area.toLocaleString()} {listing.areaUnit}</span></div>{config.showLocation ? <section className={styles.section}><h2>Location</h2><PropertyMap listing={listing} /></section> : null}{config.showAmenities && listing.amenities?.length ? <section className={styles.section}><h2>Amenities</h2><ul>{listing.amenities.map((amenity) => <li key={amenity}>{amenity}</li>)}</ul></section> : null}{config.showAgent ? <ListingContact listing={listing} /> : null}</div></div>{config.showFeaturedListings && featuredListings.length ? <section className={styles.featuredSection} aria-label={config.featuredTitle}><header className={styles.featuredHeader}><div><h2>{config.featuredTitle}</h2><p>{config.featuredSubtitle}</p></div><div className={styles.featuredControls}><button type="button" aria-label="Previous related properties" onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: -320, behavior: "smooth" })}><ChevronLeft /></button><button type="button" aria-label="Next related properties" onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: 320, behavior: "smooth" })}><ChevronRight /></button></div></header><div id="featured-properties" className={styles.featuredList} style={{ gap: `${config.featuredGap}px` }}>{featuredListings.map((item) => <FeaturedCard key={item._id} listing={item} config={config} saved={featuredSavedIds.has(item._id)} onSave={handleFeaturedSave} />)}</div></section> : null}{quoteOpen ? <QuoteRequestModal listing={listing} onClose={() => setQuoteOpen(false)} /> : null}</article>;
 };
 
 export default reactToWebComponent(PropertyDetail, React, ReactDOM as any, { props: { config: "string" } });

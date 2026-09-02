@@ -30,6 +30,7 @@ import { AnalyticsView } from "./analytics-view";
 import { SettingsView } from "./settings-view";
 import { RequestsView } from "./requests-view";
 import { AIWriterView } from "./ai-writer-view";
+import { GuideView } from "./guide-view";
 
 type EditorMode = "new" | "edit" | null;
 
@@ -45,14 +46,15 @@ export function DashboardApp() {
   );
 
   const openEditor = useCallback(async (id?: string) => {
+    setEditorError(null);
     setEditorMode(id ? "edit" : "new");
     setEditingListing(null);
-    setEditorError(null);
-    setSection("listings");
+    setEditorLoading(Boolean(id));
 
-    if (!id) return;
+    if (!id) {
+      return;
+    }
 
-    setEditorLoading(true);
     try {
       const listing = await getListing(id);
       if (!listing) throw new Error("This listing could not be found.");
@@ -133,6 +135,7 @@ export function DashboardApp() {
         onAddListing={() => void openEditor()}
         onViewListings={() => setSection("listings")}
         onOpenWriter={() => setSection("writer")}
+        onOpenGuide={() => setSection("guide")}
       />
     );
   } else if (section === "listings") {
@@ -151,6 +154,13 @@ export function DashboardApp() {
     content = <RequestsView refreshToken={refreshToken} />;
   } else if (section === "writer") {
     content = <AIWriterView />;
+  } else if (section === "guide") {
+    content = (
+      <GuideView
+        onNavigate={setSection}
+        onAddListing={() => void openEditor()}
+      />
+    );
   } else {
     content = (
       <SettingsView settings={settings} onSettingsChange={setSettings} />

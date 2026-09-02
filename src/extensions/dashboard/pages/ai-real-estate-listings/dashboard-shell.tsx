@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   BarChart3,
+  BookOpen,
   Building2,
   LayoutDashboard,
+  Mail,
   Settings2,
-  Inbox,
   Sparkles,
   WandSparkles,
 } from 'lucide-react';
@@ -30,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
-export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'settings';
+export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'guide' | 'settings';
 
 interface DashboardShellProps {
   section: DashboardSection;
@@ -46,8 +47,8 @@ const navigation: Array<{
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'listings', label: 'Listings', icon: Building2 },
   { id: 'writer', label: 'AI Listing Writer', icon: WandSparkles },
-  { id: 'requests', label: 'Quote requests', icon: Inbox },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'guide', label: 'Guide', icon: BookOpen },
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
 
@@ -57,6 +58,7 @@ const sectionLabels: Record<DashboardSection, { title: string; eyebrow: string }
   writer: { title: 'AI Listing Writer', eyebrow: 'Content studio' },
   requests: { title: 'Quote requests', eyebrow: 'Lead management' },
   analytics: { title: 'Advanced analytics', eyebrow: 'Portfolio intelligence' },
+  guide: { title: 'Guide', eyebrow: 'Getting started' },
   settings: { title: 'Settings', eyebrow: 'Workspace preferences' },
 };
 
@@ -123,6 +125,20 @@ export function DashboardShell({
               Keep property content organized and ready for assisted publishing.
             </p>
           </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                tooltip="admin@hikonsults.com"
+                className="h-11 rounded-xl"
+              >
+                <a href="mailto:admin@hikonsults.com">
+                  <Mail aria-hidden="true" />
+                  <span>Contact app developer</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="h-svh min-w-0 overflow-hidden bg-background">

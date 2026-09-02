@@ -36,6 +36,7 @@ interface OverviewViewProps {
   onAddListing: () => void;
   onViewListings: () => void;
   onOpenWriter: () => void;
+  onOpenGuide: () => void;
 }
 
 function MetricCard({
@@ -119,7 +120,7 @@ function RecentListings({ listings, onViewListings }: { listings: DashboardSnaps
   );
 }
 
-export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpenWriter }: OverviewViewProps) {
+export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpenWriter, onOpenGuide }: OverviewViewProps) {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,6 +146,7 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Your real estate workspace</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             Keep your inventory organized, spot movement quickly, and prepare every listing for assisted publishing.
+            New here? Follow the <button type="button" className="font-medium text-primary underline-offset-4 hover:underline" onClick={onOpenGuide}>workspace guide</button>.
           </p>
         </div>
         <Button onClick={onAddListing} className="w-full sm:w-auto">

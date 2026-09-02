@@ -1,10 +1,11 @@
 import { items } from '@wix/data';
 import { auth } from '@wix/essentials';
 import { notificationsV3 } from '@wix/notifications';
-import { appInstances } from '@wix/app-management';
 
 import { QUOTE_REQUESTS_COLLECTION_ID, QUOTE_REQUEST_STATUSES, type QuoteRequest, type QuoteRequestStatus } from '@/lib/listing-types';
 import { getPublicListing } from '@/lib/server/listings';
+import { normalizeRichText } from '@/lib/server/listing-validation';
+import { getSiteOwnerContact } from '@/lib/server/site-owner';
 
 type RecordValue = { _id?: string; [key: string]: unknown };
 
@@ -13,16 +14,22 @@ const WINDOW_MS = 10 * 60 * 1000;
 
 function record(value: unknown): RecordValue { return typeof value === 'object' && value !== null ? value as RecordValue : {}; }
 function text(value: unknown, max: number): string { return typeof value === 'string' ? value.trim().slice(0, max) : ''; }
+function plainFromHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+function richMessage(value: unknown): string {
+  const html = normalizeRichText(typeof value === 'string' ? value : '').slice(0, 20_000);
+  return plainFromHtml(html) ? html : '';
+}
 function email(value: string): boolean { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }
-function phone(value: string): boolean { return !value || /^[+()\d\s.-]{7,30}$/.test(value); }
+function phone(value: string): boolean { return /^[+()\d\s.-]{7,30}$/.test(value); }
 function status(value: unknown): QuoteRequestStatus { return QUOTE_REQUEST_STATUSES.some((item) => item.value === value) ? value as QuoteRequestStatus : 'new'; }
 function date(value: unknown): Date | undefined { const result = value instanceof Date ? value : new Date(String(value ?? '')); return Number.isNaN(result.getTime()) ? undefined : result; }
 
 async function notifyQuoteRequest(request: QuoteRequest, agentEmail?: string): Promise<void> {
   const templateId = import.meta.env.QUOTE_REQUEST_NOTIFICATION_TEMPLATE_ID?.trim();
   if (!templateId) return;
-  let ownerEmail = '';
-  try { ownerEmail = String((await appInstances.getAppInstance()).site?.ownerInfo?.email ?? '').trim(); } catch (error) { console.warn('Unable to resolve quote request notification recipient.', error); }
+  const ownerEmail = (await getSiteOwnerContact()).email ?? '';
   if (!ownerEmail && !agentEmail) return;
   try {
     await auth.elevate(notificationsV3.notify)(templateId, { dynamicValues: {
@@ -54,11 +61,13 @@ export async function createQuoteRequest(input: Record<string, unknown>, rateKey
   const lastName = text(input.lastName, 80);
   const requesterEmail = text(input.email, 160).toLowerCase();
   const requesterPhone = text(input.phone, 40);
-  const message = text(input.message, 2000);
+  const message = richMessage(input.message);
   if (!listingId) throw new Error('A listing is required.');
   if (!firstName) throw new Error('First name is required.');
+  if (!lastName) throw new Error('Last name is required.');
   if (!email(requesterEmail)) throw new Error('A valid email is required.');
-  if (!phone(requesterPhone)) throw new Error('A valid phone number is required.');
+  if (!requesterPhone || !phone(requesterPhone)) throw new Error('A valid phone number is required.');
+  if (plainFromHtml(message).length > 2000) throw new Error('Keep the message under 2,000 characters.');
   const listing = await getPublicListing(listingId);
   if (!listing) throw new Error('This property is no longer available.');
 
@@ -96,7 +105,7 @@ export function normalizeQuoteRequest(value: unknown): QuoteRequest {
     _id: text(item._id, 100), listingId: text(item.listingId, 100), listingTitle: text(item.listingTitle, 200),
     listingPrice: typeof item.listingPrice === 'number' ? item.listingPrice : 0, listingCurrency: text(item.listingCurrency, 10),
     listingCity: text(item.listingCity, 120), listingAddress: text(item.listingAddress, 300), listingPrimaryImage: text(item.listingPrimaryImage, 500),
-    firstName: text(item.firstName, 80), lastName: text(item.lastName, 80), email: text(item.email, 160), phone: text(item.phone, 40), message: text(item.message, 2000), memberId: text(item.memberId, 100),
+    firstName: text(item.firstName, 80), lastName: text(item.lastName, 80), email: text(item.email, 160), phone: text(item.phone, 40), message: richMessage(item.message), memberId: text(item.memberId, 100),
     status: status(item.status), notes: text(item.notes, 4000), archived: item.archived === true, _createdDate: date(item._createdDate), _updatedDate: date(item._updatedDate),
   };
 }

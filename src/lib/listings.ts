@@ -106,6 +106,10 @@ function deserializeListing(listing: Listing): Listing {
     aiGeneratedAt: listing.aiGeneratedAt
       ? new Date(listing.aiGeneratedAt)
       : undefined,
+    viewEvents: listing.viewEvents?.map((event) => ({
+      ...event,
+      viewedAt: event.viewedAt ? new Date(event.viewedAt) : event.viewedAt,
+    })),
   };
 }
 
@@ -187,4 +191,12 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
 
 export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
   return request<AnalyticsSnapshot>("/api/listings/analytics");
+}
+
+export async function getSiteOwnerContact(): Promise<{
+  name?: string;
+  email?: string;
+  phone?: string;
+}> {
+  return request("/api/listings/owner-contact");
 }

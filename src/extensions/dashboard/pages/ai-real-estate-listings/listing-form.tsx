@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { dashboard } from "@wix/dashboard";
-import { Check, ImagePlus, Save, Trash2 } from "lucide-react";
+import { Check, ImagePlus, Loader2, Save, Trash2, WandSparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CURRENCIES } from "@/lib/currencies";
 import { httpClient } from "@wix/essentials";
 import fallbackCountries from "@/data/countries.json";
@@ -49,7 +56,10 @@ import {
   type ListingImage,
   type ListingInput,
   type ListingStatus,
+  getSiteOwnerContact,
 } from "@/lib/listings";
+import { htmlFromPlainDescription, type ListingCopyInput } from "@/lib/ai-writer";
+import { AIWriterPanel } from "./ai-writer-panel";
 
 const RichTextEditor = lazy(() =>
   import("./rich-text-editor").then((module) => ({
@@ -183,12 +193,9 @@ function createInitialState(
           ? "5000000"
           : ""
         : String(listing.securityDeposit),
-    agentName: listing?.agentName ?? (isNewListing ? "Adebayo Properties" : ""),
-    agentPhone:
-      listing?.agentPhone ?? (isNewListing ? "+234 801 234 5678" : ""),
-    agentEmail:
-      listing?.agentEmail ??
-      (isNewListing ? "hello@adebayoproperties.example" : ""),
+    agentName: listing?.agentName ?? "",
+    agentPhone: listing?.agentPhone ?? "",
+    agentEmail: listing?.agentEmail ?? "",
     latitude:
       listing?.latitude === undefined
         ? isNewListing
@@ -256,6 +263,43 @@ function hasRichText(description: string): boolean {
   );
 }
 
+function listingCopyInputFromForm(
+  form: ListingFormState,
+  countries: CountryOption[],
+  states: LocationOption[],
+): ListingCopyInput {
+  const countryName =
+    countries.find((country) => country.code === form.country)?.name ??
+    form.country;
+  const stateName =
+    states.find((state) => (state.iso2 ?? state.name) === form.state)?.name ??
+    form.state;
+  const location = [form.address, form.city, stateName, countryName]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(", ");
+  const propertyType =
+    PROPERTY_TYPES.find((type) => type.value === form.propertyType)?.label ??
+    form.propertyType;
+  const furnishing =
+    FURNISHING_STATUSES.find((status) => status.value === form.furnishingStatus)
+      ?.label ?? form.furnishingStatus;
+  const amount = Number(form.price);
+  const price = form.price.trim()
+    ? `${form.currency} ${Number.isFinite(amount) ? amount.toLocaleString() : form.price.trim()}`
+    : "";
+  return {
+    bedrooms: form.bedrooms,
+    bathrooms: form.bathrooms,
+    location,
+    amenities: form.amenities,
+    furnishing,
+    price,
+    propertyType,
+    style: "professional",
+  };
+}
+
 export function ListingForm({
   listing,
   defaultCurrency,
@@ -281,6 +325,8 @@ export function ListingForm({
   const [statesLoading, setStatesLoading] = useState(false);
   const [citiesLoading, setCitiesLoading] = useState(false);
   const [locationError, setLocationError] = useState(false);
+  const [writerOpen, setWriterOpen] = useState(false);
+  const [writerKey, setWriterKey] = useState(0);
   const isEditing = Boolean(listing?._id);
 
   const editorLabel = isEditing
@@ -298,6 +344,27 @@ export function ListingForm({
     setErrors({});
     setSubmitError(null);
   }, [defaultAreaUnit, defaultCurrency, defaultStatus, listing, loading]);
+
+  useEffect(() => {
+    if (listing?._id || loading) return;
+    let cancelled = false;
+    void getSiteOwnerContact()
+      .then((owner) => {
+        if (cancelled) return;
+        setForm((current) => ({
+          ...current,
+          agentName: current.agentName.trim() ? current.agentName : (owner.name ?? ""),
+          agentPhone: current.agentPhone.trim() ? current.agentPhone : (owner.phone ?? ""),
+          agentEmail: current.agentEmail.trim() ? current.agentEmail : (owner.email ?? ""),
+        }));
+      })
+      .catch((error) => {
+        console.warn("Unable to auto-fill site owner contact.", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [listing?._id, loading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -517,6 +584,15 @@ export function ListingForm({
     if (!form.state.trim()) nextErrors.state = "Select a state or region.";
     if (!form.city.trim()) nextErrors.city = "Enter the city or locality.";
     if (!form.address.trim()) nextErrors.address = "Enter the street address.";
+    if (form.agentEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.agentEmail.trim())) {
+      nextErrors.agentEmail = "Enter a valid email address.";
+    }
+    if (
+      form.agentPhone.trim() &&
+      !/^[+()\d\s.-]{7,30}$/.test(form.agentPhone.trim())
+    ) {
+      nextErrors.agentPhone = "Enter a valid phone number.";
+    }
 
     for (const [key, value] of [
       ["bedrooms", form.bedrooms],
@@ -631,8 +707,13 @@ export function ListingForm({
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-        Loading listing…
+      <div
+        className="flex min-h-52 flex-col items-center justify-center py-16"
+        role="status"
+        aria-live="polite"
+      >
+        <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" />
+        <span className="sr-only">Loading listing</span>
       </div>
     );
   }
@@ -686,7 +767,21 @@ export function ListingForm({
             </label>
 
             <div className="space-y-2 text-sm font-medium">
-              <FieldLabel text="Description" hint="Describe the property, layout, finishes, and selling points." />
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FieldLabel text="Description" hint="Describe the property, layout, finishes, and selling points." />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setWriterKey((current) => current + 1);
+                    setWriterOpen(true);
+                  }}
+                >
+                  <WandSparkles className="size-4" aria-hidden="true" />
+                  Write with AI
+                </Button>
+              </div>
               <div className="listing-rich-editor overflow-hidden rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/30">
                 <Suspense
                   fallback={
@@ -1146,18 +1241,32 @@ export function ListingForm({
                       update("agentPhone", event.target.value)
                     }
                     placeholder="International phone number"
+                    aria-invalid={Boolean(errors.agentPhone)}
                   />
+                  {errors.agentPhone ? (
+                    <span className="block text-xs font-normal text-destructive">
+                      {errors.agentPhone}
+                    </span>
+                  ) : null}
                 </label>
                 <label className="space-y-2 text-sm font-medium sm:col-span-2">
                   <FieldLabel text="Email" hint="An email address for listing enquiries." />
                   <Input
-                    type="email"
+                    type="text"
+                    inputMode="email"
+                    autoComplete="email"
                     value={form.agentEmail}
                     onChange={(event) =>
                       update("agentEmail", event.target.value)
                     }
                     placeholder="agent@example.com"
+                    aria-invalid={Boolean(errors.agentEmail)}
                   />
+                  {errors.agentEmail ? (
+                    <span className="block text-xs font-normal text-destructive">
+                      {errors.agentEmail}
+                    </span>
+                  ) : null}
                 </label>
               </div>
             </div>
@@ -1222,6 +1331,35 @@ export function ListingForm({
         </Button>
       </div>
     </form>
+    <Dialog open={writerOpen} onOpenChange={setWriterOpen}>
+      <DialogContent
+        overlayClassName="z-[80]"
+        className="z-[80] max-h-[90vh] max-w-5xl"
+      >
+        <DialogHeader>
+          <DialogTitle>AI writer</DialogTitle>
+          <DialogDescription>
+            Facts from this listing are filled in for you. When writing finishes, the description on the form updates automatically.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          <AIWriterPanel
+            key={writerKey}
+            initialInput={listingCopyInputFromForm(form, countries, states)}
+            showShare={false}
+            onDescriptionReady={(copy) => {
+              update("description", htmlFromPlainDescription(copy));
+            }}
+            onGenerated={() => {
+              dashboard.showToast({
+                type: "success",
+                message: "The listing description was updated.",
+              });
+            }}
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
     </TooltipProvider>
   );
 }

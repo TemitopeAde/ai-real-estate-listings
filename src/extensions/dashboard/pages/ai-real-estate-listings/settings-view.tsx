@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AREA_UNITS, isListingStatus, LISTING_STATUSES } from '@/lib/listings';
+import { embedSavedPropertiesLauncher } from '@/lib/saved-properties';
 import { CURRENCIES } from '@/lib/currencies';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -72,8 +73,7 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps) 
   const embedSavedProperties = async () => {
     setEmbedding(true);
     try {
-      const response = await fetch('/api/saved-properties/embed', { method: 'POST', headers: { Accept: 'application/json' } });
-      if (!response.ok) throw new Error('The launcher could not be embedded.');
+      await embedSavedPropertiesLauncher();
       dashboard.showToast({ type: 'success', message: 'Saved Properties launcher is active on the site.' });
     } catch (embedError) {
       console.error('Unable to embed Saved Properties launcher.', embedError);

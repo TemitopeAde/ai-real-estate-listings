@@ -25,6 +25,7 @@ import {
   type ListingQuery,
 } from "@/lib/listing-types";
 import { normalizeRichText } from "@/lib/server/listing-validation";
+import { getSiteOwnerContact } from "@/lib/server/site-owner";
 
 type WixDataRecord = { _id?: string; [key: string]: unknown };
 
@@ -48,6 +49,10 @@ function toDateValue(value: unknown): Date | undefined {
   if (typeof value === "string" || typeof value === "number") {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? undefined : date;
+  }
+
+  if (isRecord(value)) {
+    return toDateValue(value.$date ?? value.date ?? value.value);
   }
 
   return undefined;
@@ -146,8 +151,7 @@ function toViewEvents(value: unknown): ListingViewEvent[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((event): ListingViewEvent[] => {
     if (!isRecord(event)) return [];
-    const viewedAt = toDateValue(event.viewedAt);
-    if (!viewedAt) return [];
+    const viewedAt = toDateValue(event.viewedAt) ?? toDateValue(event.viewedAtDate) ?? new Date(0);
     const result: ListingViewEvent = { viewedAt };
     if (typeof event.viewerId === "string" && event.viewerId.trim())
       result.viewerId = event.viewerId.trim();
@@ -355,6 +359,12 @@ export async function saveListing(
   revision?: string,
 ): Promise<Listing> {
   const data = withoutEmptyValues(input);
+  if (!id) {
+    const owner = await getSiteOwnerContact();
+    if (!data.agentEmail && owner.email) data.agentEmail = owner.email;
+    if (!data.agentName && owner.name) data.agentName = owner.name;
+    if (!data.agentPhone && owner.phone) data.agentPhone = owner.phone;
+  }
   if (revision) data._revision = revision;
   const result = id
     ? await auth.elevate(items.update)(LISTINGS_COLLECTION_ID, { _id: id, ...data })
