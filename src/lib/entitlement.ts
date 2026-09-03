@@ -3,9 +3,14 @@ import {
   featuresForPlan,
   type AppPlanId,
   type PlanFeatureFlags,
-} from "@/lib/pricing-plans";
+} from "./pricing-plans";
 
-export type { AppPlanId, PlanFeatureFlag, PlanFeatureFlags } from "@/lib/pricing-plans";
+export type { AppPlanId, PlanFeatureFlag, PlanFeatureFlags } from "./pricing-plans";
+export {
+  LOCKED_PUBLIC_ACCESS,
+  publicAccessFromFeatures,
+  type PublicListingAccess,
+} from "./public-listing-access";
 
 export interface AppEntitlement {
   planId: AppPlanId;
@@ -19,34 +24,6 @@ export interface AppEntitlement {
   features: PlanFeatureFlags;
   activeListingCount: number;
   publicListingCount: number;
-}
-
-export interface PublicListingAccess {
-  virtualTour: boolean;
-  multiSceneTour: boolean;
-  socialShare: boolean;
-  assistant: boolean;
-  relatedListings: boolean;
-}
-
-export const LOCKED_PUBLIC_ACCESS: PublicListingAccess = {
-  virtualTour: false,
-  multiSceneTour: false,
-  socialShare: false,
-  assistant: false,
-  relatedListings: false,
-};
-
-export function publicAccessFromFeatures(
-  features: PlanFeatureFlags,
-): PublicListingAccess {
-  return {
-    virtualTour: features.virtualTour,
-    multiSceneTour: features.multiSceneTour,
-    socialShare: features.socialShare,
-    assistant: features.assistant,
-    relatedListings: features.relatedListings,
-  };
 }
 
 export function listingCapForPlan(

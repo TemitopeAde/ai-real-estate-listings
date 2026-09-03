@@ -1,0 +1,29 @@
+Promotional text
+EstateAI — AI listings, customizable widgets, and a dashboard in 20 languages.
+
+Short description
+Create property listings with AI copy, then publish them on Wix with listing and detail widgets you can style and translate.
+
+Long description
+Create and manage a professional property showcase with AI-powered tools. Add detailed listings with photos, pricing, availability, property type, sale or rental terms, bedrooms, bathrooms, amenities, agent contact, and location—plus optional 360° virtual tours. Generate polished descriptions and relevant tags in professional, luxury, short, SEO, or social styles so every listing stands out and takes less time to publish. Use the dashboard in any of the top 20 languages, or let it follow the Wix account language.
+
+Display your properties through responsive listing and detail widgets with search, filtering, image galleries, maps, nearby property discovery, and saved properties for members. Update widget styles, colors, and fonts in the editor so listings match your site. Visitors can browse grid or carousel layouts, contact the listing agent, share listings, explore related homes, and use an on-site AI assistant—giving them an easier way to explore available homes, compare options, and keep track of the properties they love.
+
+Monitor listing activity with built-in analytics, view counts, and unique visitor insights, so you can see which properties attract the most interest. Track inventory mix, top cities, and pricing trends, and manage incoming quote requests from one inbox with statuses, notes, and email notifications.
+
+Features
+- AI listing writer for professional, luxury, short, SEO, and social copy
+- Detailed listings with photos, pricing, amenities, agent contact, and maps
+- Optional 360° virtual tours on property pages
+- Listing and detail widgets with search, filters, galleries, and saved properties
+- Editor controls for widget styles, colors, and fonts
+- Dashboard translated in the top 20 languages, or follow the Wix account language
+- Analytics, view counts, and unique visitor insights
+- Quote request inbox with statuses, notes, and email notifications
+
+Image captions
+estateai-market-01-main.png — Publish a professional property showcase on your Wix site.
+estateai-market-02-browse.png — Let visitors search and filter listings in grid or carousel layouts.
+estateai-market-03-details.png — Show photos, maps, tours, and agent contact on each property page.
+estateai-market-04-discover.png — Help visitors explore nearby homes and save the properties they love.
+estateai-market-05-dashboard.png — Manage inventory, quotes, and analytics in 20 languages.

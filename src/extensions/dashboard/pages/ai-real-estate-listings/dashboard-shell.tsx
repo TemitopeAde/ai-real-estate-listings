@@ -4,14 +4,15 @@ import {
   BadgeDollarSign,
   BarChart3,
   BookOpen,
+  CircleHelp,
   Building2,
+  Languages,
   LayoutDashboard,
   Lock,
   Mail,
   Settings2,
   Sparkles,
   WandSparkles,
-  Inbox,
 } from 'lucide-react';
 
 import {
@@ -35,16 +36,30 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { openAppUpgradePage } from '@/lib/entitlement';
-import { useDt } from '@/lib/dashboard-i18n';
+import {
+  DASHBOARD_LANGUAGE_OPTIONS,
+  isDashboardLanguageSetting,
+  useDt,
+  type DashboardLanguageSetting,
+} from '@/lib/dashboard-i18n';
 import { PLAN_NAME_KEYS } from '@/lib/dashboard-i18n/labels';
 import type { DashboardMessageKey } from '@/lib/dashboard-i18n';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useEntitlement } from './entitlement-context';
 
-export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'guide' | 'pricing' | 'settings';
+export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'guide' | 'faq' | 'pricing' | 'settings';
 
 interface DashboardShellProps {
   section: DashboardSection;
   onSectionChange: (section: DashboardSection) => void;
+  dashboardLanguage: DashboardLanguageSetting;
+  onDashboardLanguageChange: (language: DashboardLanguageSetting) => void;
   children: ReactNode;
 }
 
@@ -57,8 +72,9 @@ const navigation: Array<{
   { id: 'listings', labelKey: 'navListings', icon: Building2 },
   { id: 'writer', labelKey: 'navWriter', icon: WandSparkles },
   { id: 'analytics', labelKey: 'navAnalytics', icon: BarChart3 },
-  { id: 'requests', labelKey: 'navRequests', icon: Inbox },
+  // { id: 'requests', labelKey: 'navRequests', icon: Inbox },
   { id: 'guide', labelKey: 'navGuide', icon: BookOpen },
+  { id: 'faq', labelKey: 'navFaq', icon: CircleHelp },
   { id: 'pricing', labelKey: 'navPricing', icon: BadgeDollarSign },
   { id: 'settings', labelKey: 'navSettings', icon: Settings2 },
 ];
@@ -73,6 +89,7 @@ const sectionCopy: Record<
   requests: { titleKey: 'navRequests', eyebrowKey: 'eyebrowLeads' },
   analytics: { titleKey: 'analyticsTitle', eyebrowKey: 'eyebrowAnalytics' },
   guide: { titleKey: 'navGuide', eyebrowKey: 'eyebrowGuide' },
+  faq: { titleKey: 'navFaq', eyebrowKey: 'eyebrowFaq' },
   pricing: { titleKey: 'navPricing', eyebrowKey: 'eyebrowPricing' },
   settings: { titleKey: 'navSettings', eyebrowKey: 'eyebrowSettings' },
 };
@@ -80,6 +97,8 @@ const sectionCopy: Record<
 export function DashboardShell({
   section,
   onSectionChange,
+  dashboardLanguage,
+  onDashboardLanguageChange,
   children,
 }: DashboardShellProps) {
   const t = useDt();
@@ -178,6 +197,32 @@ export function DashboardShell({
                   <span>{t('contactDeveloper')}</span>
                 </a>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <div className="flex items-center gap-2 px-2 py-1.5">
+                <Languages className="size-4 shrink-0 text-sidebar-foreground/70" aria-hidden="true" />
+                <Select
+                  value={dashboardLanguage}
+                  onValueChange={(value) => {
+                    if (isDashboardLanguageSetting(value)) onDashboardLanguageChange(value);
+                  }}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="h-9 min-w-0 flex-1 rounded-xl border-sidebar-border bg-sidebar"
+                    aria-label={t('dashboardLanguage')}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" align="start" className="max-h-72">
+                    {DASHBOARD_LANGUAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {t(option.nameKey)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>

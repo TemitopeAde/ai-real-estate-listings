@@ -8,6 +8,7 @@ export const es = complete({
   navWriter: "AI Listing Writer",
   navAnalytics: "Analítica",
   navGuide: "Guía",
+  navFaq: "Preguntas frecuentes",
   navPricing: "Precios",
   navSettings: "Configuración",
   navRequests: "Solicitudes de cotización",
@@ -17,6 +18,7 @@ export const es = complete({
   eyebrowLeads: "Gestión de clientes potenciales",
   eyebrowAnalytics: "Inteligencia de cartera",
   eyebrowGuide: "Empezando",
+  eyebrowFaq: "Centro de ayuda",
   eyebrowPricing: "Planes",
   eyebrowSettings: "Preferencias de espacio de trabajo",
   toggleNav: "Alternar navegación",
@@ -520,6 +522,109 @@ export const es = complete({
   tenureLeasehold: "arrendamiento",
   rentalMonthly: "Mensual",
   rentalYearly: "Anual",
+  faqEyebrow: "Respuestas",
+  faqTitle: "Preguntas frecuentes",
+  faqIntro:
+    "Descubre cómo funcionan los listados, widgets, planes, copia con IA, tours, cotizaciones y analítica en este espacio de trabajo.",
+  faqSearch: "Buscar preguntas",
+  faqNoResults: "Ninguna pregunta coincide con esta búsqueda. Prueba con otra palabra clave.",
+  faqItemCount: "{count} pregunta",
+  faqItemCountPlural: "{count} preguntas",
+  faqOpenGuide: "Abrir la guía del espacio de trabajo",
+  faqCatStart: "Primeros pasos",
+  faqCatListings: "Listados",
+  faqCatSite: "Widgets del sitio",
+  faqCatPlans: "Planes y prueba",
+  faqCatWriter: "AI Listing Writer",
+  faqCatTours: "Fotos y tours 360°",
+  faqCatLeads: "Solicitudes de cotización",
+  faqCatAnalytics: "Analítica y visitantes",
+  faqCatSettings: "Configuración e idioma",
+  faqCatSupport: "Soporte",
+  faqStartWhatQ: "¿Qué hace esta aplicación?",
+  faqStartWhatA:
+    "EstateAI es un espacio de trabajo de listados para Wix. Creas y gestionas propiedades aquí, colocas widgets en tu sitio para que los visitantes las exploren y das seguimiento a las solicitudes de cotización desde este panel.",
+  faqStartFirstQ: "¿Qué debo hacer primero?",
+  faqStartFirstA:
+    "Añade al menos un listado activo, coloca los widgets de listados y de detalle de propiedad en tu sitio y envía una solicitud de cotización de prueba. La sección Guía recorre este camino.",
+  faqStartPublishQ: "¿Cómo aparecen los listados en mi sitio en vivo?",
+  faqStartPublishA:
+    "Solo se muestran los listados con estado Activo. Añade el widget de listados de propiedades a una página como /properties y el widget de detalle de propiedad a una página como /property-details. Tras la prueba gratuita, Basic muestra hasta 10 listados activos actualizados más recientemente, Pro hasta 50 y Business todos.",
+  faqListStatusQ: "¿Qué significan los estados de los listados?",
+  faqListStatusA:
+    "Borrador no es público. Activo está disponible en el sitio (dentro del límite de tu plan). En negociación significa que hay un trato en curso. Vendido marca una transacción completada. Archivado oculta el listado del inventario predeterminado a menos que actives listados archivados en Configuración.",
+  faqListVisibleQ: "¿Por qué falta un listado en el sitio web?",
+  faqListVisibleA:
+    "Comprueba que el estado sea Activo, que los widgets estén en una página publicada y que no hayas superado el límite de listados públicos de tu plan. La barra lateral muestra cuántos listados son visibles actualmente en el sitio.",
+  faqListArchiveQ: "¿Qué ocurre cuando elimino un listado?",
+  faqListArchiveA:
+    "Eliminar archiva el listado para que ya no esté activo. Puedes encontrarlo cuando Incluir listados archivados está activado en Configuración. No aparecerá en el sitio en vivo mientras esté archivado.",
+  faqListCoordsQ: "¿Pueden ser negativas la longitud o la latitud?",
+  faqListCoordsA:
+    "Sí. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180. Las longitudes occidentales (por ejemplo -74.0060) son válidas y se usan para el mapa en la página de la propiedad.",
+  faqListDefaultsQ: "¿La configuración cambia los listados existentes?",
+  faqListDefaultsA:
+    "No. La moneda, unidad de área y estado predeterminados solo rellenan listados nuevos. Los registros existentes permanecen igual.",
+  faqListImagesQ: "¿Cómo funcionan las imágenes de los listados?",
+  faqListImagesA:
+    "Elige imágenes desde Wix Media Manager. La primera imagen es la portada en las tarjetas y en la página de la propiedad. Puedes añadir más fotos a la galería en cualquier momento.",
+  faqSiteWidgetsQ: "¿Qué widgets necesito?",
+  faqSiteWidgetsA:
+    "Usa el widget de listados de propiedades para tu cuadrícula o lista de inventario, y el widget de detalle de propiedad para la página individual. En el editor puedes activar o desactivar Contacto, solicitud de cotización, compartir y listados relacionados.",
+  faqSiteSavedQ: "¿Cómo funcionan Saved Properties?",
+  faqSiteSavedA:
+    "Incrusta el lanzador de Saved Properties desde Configuración. Los miembros registrados pueden guardar propiedades. Es seguro incrustarlo más de una vez si necesitas restaurarlo.",
+  faqSiteRelatedQ: "¿Por qué faltan listados relacionados o compartir?",
+  faqSiteRelatedA:
+    "Los listados relacionados y el asistente de IA en el sitio son funciones de Business. Compartir en redes sociales y los tours 360° están en Pro y Business. Confirma también que esas opciones estén activadas en el widget en el editor.",
+  faqPlansDiffQ: "¿Qué incluye cada plan?",
+  faqPlansDiffA:
+    "Basic publica un inventario pequeño y recoge cotizaciones. Pro añade AI Listing Writer, tours 360°, información de visitantes únicos, analítica, compartir en redes y notificaciones por correo de cotizaciones. Business añade listados públicos ilimitados, varias escenas de tour, listados relacionados y el asistente en el sitio. Abre Precios para la comparación completa.",
+  faqPlansTrialQ: "¿Cómo funciona la prueba gratuita?",
+  faqPlansTrialA:
+    "Mientras dura la prueba tienes todas las funciones de Business. Usa Iniciar prueba gratuita desde la barra lateral o Precios. Cuando termine, el sitio en vivo y las herramientas restringidas siguen tu plan activo.",
+  faqPlansCapQ: "¿Cómo funciona el límite de listados?",
+  faqPlansCapA:
+    "El panel puede almacenar todos tus registros. El sitio en vivo muestra los listados Activos actualizados más recientemente hasta el límite de tu plan: 10 en Basic, 50 en Pro e ilimitados en Business o durante una prueba.",
+  faqWriterHowQ: "¿Cómo genero texto para un listado?",
+  faqWriterHowA:
+    "Abre AI Listing Writer o usa Escribir con IA dentro de un listado. Confirma los datos de la propiedad, elige un estilo (profesional, lujo, corto, SEO o social) y revisa el texto antes de guardar.",
+  faqWriterPlanQ: "¿Por qué está bloqueado el escritor de IA?",
+  faqWriterPlanA:
+    "AI Listing Writer está incluido en Pro y Business, y durante la prueba gratuita. Inicia una prueba o abre Precios para actualizar.",
+  faqToursWhatQ: "¿Qué imágenes sirven para un tour 360°?",
+  faqToursWhatA:
+    "Usa fotos 360° equirectangulares. Los visitantes pueden mirar alrededor en el visor interactivo de la página de la propiedad. Puedes añadir varias escenas; cada imagen es un punto de vista.",
+  faqToursPlanQ: "¿Qué plan muestra el tour virtual?",
+  faqToursPlanA:
+    "Los tours virtuales están en Pro y Business. Pro muestra la primera escena en el sitio; las escenas adicionales se activan en Business. Las panorámicas extra permanecen guardadas en el panel si las añades en Basic.",
+  faqLeadsWhereQ: "¿Dónde aparecen las solicitudes de cotización?",
+  faqLeadsWhereA:
+    "Abre Solicitudes de cotización en este panel. Cada consulta incluye la propiedad, datos del visitante, mensaje, estado y notas internas.",
+  faqLeadsStatusQ: "¿Cómo debo usar los estados de cotización?",
+  faqLeadsStatusA:
+    "Nuevo es sin leer o sin gestionar. Contactado significa que ya has respondido. Cotizado significa que enviaste condiciones. Cerrado significa que la consulta terminó. Archivar la quita de la lista predeterminada.",
+  faqLeadsEmailQ: "¿Quién recibe los correos de notificación de cotizaciones?",
+  faqLeadsEmailA:
+    "Las notificaciones usan el correo del agente del listado y el del propietario del sitio. Las notificaciones por correo de cotizaciones están incluidas en Pro y Business.",
+  faqAnalyticsWhatQ: "¿Qué muestra Analítica?",
+  faqAnalyticsWhatA:
+    "Analítica resume la mezcla de inventario, actividad reciente, contenido listo para IA, ciudades principales, precio medio solicitado por moneda y desglose por estado o tipo de transacción. Está disponible en Pro y Business.",
+  faqAnalyticsVisitorsQ: "¿Qué son los visitantes únicos?",
+  faqAnalyticsVisitorsA:
+    "La información de visitantes únicos muestra personas que vieron un listado, contadas una vez cada una, más vistas sin sesión. Ábrelo desde el menú de acciones del listado. Esta función está en Pro y Business.",
+  faqSettingsLangQ: "¿Cómo cambio el idioma del panel?",
+  faqSettingsLangA:
+    "Abre Configuración y elige Idioma del panel. Auto sigue el idioma de la cuenta Wix. También puedes elegir uno de los 20 idiomas admitidos. Árabe y urdu se muestran de derecha a izquierda.",
+  faqSettingsArchivedQ: "¿Cómo veo los listados archivados?",
+  faqSettingsArchivedA:
+    "Activa Incluir listados archivados en Configuración. Entonces aparecen de forma predeterminada en la vista Listados.",
+  faqSupportPermsQ: "¿Por qué falló la carga de una página?",
+  faqSupportPermsA:
+    "Descripción general, listados y analítica necesitan permisos de colección para esta aplicación. Si falta un widget o colección tras la instalación, reinstala la aplicación o contacta al desarrollador desde la barra lateral.",
+  faqSupportContactQ: "¿Cómo obtengo más ayuda?",
+  faqSupportContactA:
+    "Usa Contactar al desarrollador de la aplicación en la barra lateral, o abre la Guía para una ruta de configuración paso a paso.",
   langEn: "English",
   langZh: "中文",
   langHi: "हिन्दी",

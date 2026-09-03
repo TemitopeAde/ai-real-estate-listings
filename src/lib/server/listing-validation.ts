@@ -162,6 +162,32 @@ function optionalNumber(
   return requiredNumber(value, label, errors);
 }
 
+function optionalCoordinate(
+  value: unknown,
+  label: string,
+  errors: string[],
+): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    errors.push(`${label} must be a number.`);
+    return undefined;
+  }
+  return value;
+}
+
+function validateCoordinates(
+  latitude: number | undefined,
+  longitude: number | undefined,
+  errors: string[],
+): void {
+  if (latitude !== undefined && (latitude < -90 || latitude > 90)) {
+    errors.push("Latitude must be between -90 and 90.");
+  }
+  if (longitude !== undefined && (longitude < -180 || longitude > 180)) {
+    errors.push("Longitude must be between -180 and 180.");
+  }
+}
+
 function optionalBoolean(
   value: unknown,
   label: string,
@@ -410,12 +436,9 @@ export function parseListingInput(
   const agentEmail = optionalString(body.agentEmail, "Agent email", errors);
   if (agentEmail && !/^\S+@\S+\.\S+$/.test(agentEmail))
     errors.push("Agent email must be valid.");
-  const latitude = optionalNumber(body.latitude, "Latitude", errors);
-  const longitude = optionalNumber(body.longitude, "Longitude", errors);
-  if (latitude !== undefined && (latitude < -90 || latitude > 90))
-    errors.push("Latitude must be between -90 and 90.");
-  if (longitude !== undefined && (longitude < -180 || longitude > 180))
-    errors.push("Longitude must be between -180 and 180.");
+  const latitude = optionalCoordinate(body.latitude, "Latitude", errors);
+  const longitude = optionalCoordinate(body.longitude, "Longitude", errors);
+  validateCoordinates(latitude, longitude, errors);
   const panoramaImage = optionalString(
     body.panoramaImage,
     "360° panorama image",
@@ -679,9 +702,10 @@ export function parseListingPatch(
       errors.push("Agent email must be valid.");
   }
   if ("latitude" in body)
-    result.latitude = optionalNumber(body.latitude, "Latitude", errors);
+    result.latitude = optionalCoordinate(body.latitude, "Latitude", errors);
   if ("longitude" in body)
-    result.longitude = optionalNumber(body.longitude, "Longitude", errors);
+    result.longitude = optionalCoordinate(body.longitude, "Longitude", errors);
+  validateCoordinates(result.latitude, result.longitude, errors);
   if ("panoramaImage" in body)
     result.panoramaImage = optionalString(
       body.panoramaImage,

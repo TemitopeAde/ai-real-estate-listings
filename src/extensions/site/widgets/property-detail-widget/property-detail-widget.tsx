@@ -1,8 +1,6 @@
-import React, { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState, type FC } from "react";
+import React, { Fragment, lazy, Suspense, useEffect, useMemo, useState, type FC } from "react";
 import ReactDOM from "react-dom";
 import reactToWebComponent from "react-to-webcomponent";
-import { Map as MapLibreMap, Marker, NavigationControl, Popup, type GeoJSONSource } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
 import { httpClient } from "@wix/essentials";
 import { authentication, currentMember } from "@wix/site-members";
 import { location } from "@wix/site-location";
@@ -10,7 +8,7 @@ import { ArrowLeft, Bath, BedDouble, Bookmark, BookmarkCheck, ChevronLeft, Chevr
 import { showSiteToast } from "../../../../lib/site-toast";
 import { useWidgetFonts } from "../widget-fonts";
 import { getPanoramaImages, type Listing } from "../../../../lib/listing-types";
-import { LOCKED_PUBLIC_ACCESS, type PublicListingAccess } from "../../../../lib/entitlement";
+import { LOCKED_PUBLIC_ACCESS, type PublicListingAccess } from "../../../../lib/public-listing-access";
 import { PropertyAssistant } from "./property-assistant";
 import { PanoramaViewer } from "./panorama-viewer";
 import { PropertySocialShare } from "./social-share";
@@ -20,6 +18,9 @@ import styles from "./property-detail-widget.module.css";
 
 const QuoteMessageEditor = lazy(() =>
   import("./quote-message-editor").then((module) => ({ default: module.QuoteMessageEditor })),
+);
+const PropertyMap = lazy(() =>
+  import("./property-map").then((module) => ({ default: module.PropertyMap })),
 );
 
 function plainFromHtml(value: string): string {
@@ -166,6 +167,10 @@ const FeaturedCard: FC<{ listing: Listing; config: DetailWidgetConfig; saved: bo
   </article>
 );
 
+const MapFallback: FC<{ lang: WidgetLangCode }> = ({ lang }) => (
+  <div className={styles.mapFallback}>{t(lang, "mapUnavailable")}</div>
+);
+
 const DetailSkeleton: FC<{ config: DetailWidgetConfig; style: React.CSSProperties; lang: WidgetLangCode; dir: "ltr" | "rtl" }> = ({ config, style, lang, dir }) => (
     <article className={`${styles.root} ${styles.skeletonRoot}`} style={{
     ...style,
@@ -186,71 +191,6 @@ const DetailSkeleton: FC<{ config: DetailWidgetConfig; style: React.CSSPropertie
     </div>
   </article>
 );
-
-const PropertyMap: FC<{ listing: Listing; lang: WidgetLangCode }> = ({ listing, lang }) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const searchButtonRef = useRef<HTMLButtonElement | null>(null);
-  const coordinates =
-    typeof listing.latitude === "number" &&
-    Number.isFinite(listing.latitude) &&
-    typeof listing.longitude === "number" &&
-    Number.isFinite(listing.longitude)
-      ? { latitude: listing.latitude, longitude: listing.longitude }
-      : undefined;
-
-  useEffect(() => {
-    if (!containerRef.current || !coordinates) return;
-    let nearbyListings: Listing[] = [];
-    const map = new MapLibreMap({
-      container: containerRef.current,
-      center: [coordinates.longitude, coordinates.latitude],
-      zoom: 14,
-      minZoom: 3,
-      maxZoom: 19,
-      style: {
-        version: 8,
-        sources: {
-          openstreetmap: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors",
-          },
-        },
-        layers: [{ id: "openstreetmap", type: "raster", source: "openstreetmap" }],
-      },
-    });
-    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
-    map.on("load", () => {
-      map.addSource("nearby-properties", { type: "geojson", data: { type: "FeatureCollection", features: [] }, cluster: true, clusterMaxZoom: 14, clusterRadius: 48 });
-      map.addLayer({ id: "nearby-clusters", type: "circle", source: "nearby-properties", filter: ["has", "point_count"], paint: { "circle-color": "#0c3b2e", "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 30, 30], "circle-opacity": 0.9 } });
-      map.addLayer({ id: "nearby-cluster-count", type: "symbol", source: "nearby-properties", filter: ["has", "point_count"], layout: { "text-field": "{point_count_abbreviated}", "text-size": 12 }, paint: { "text-color": "#ffffff" } });
-      map.addLayer({ id: "nearby-points", type: "circle", source: "nearby-properties", filter: ["!", ["has", "point_count"]], paint: { "circle-color": "#4f8f6b", "circle-radius": 7, "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 } });
-      const updateVisibleProperties = () => {
-        const source = map.getSource("nearby-properties");
-        if (!source || !("setData" in source)) return;
-        const bounds = map.getBounds();
-        const features = nearbyListings.filter((property) => property._id !== listing._id && typeof property.latitude === "number" && typeof property.longitude === "number" && bounds.contains([property.longitude, property.latitude])).map((property) => ({ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [property.longitude as number, property.latitude as number] }, properties: { id: property._id, title: property.title, city: property.city } }));
-        (source as GeoJSONSource).setData({ type: "FeatureCollection", features });
-      };
-      searchButtonRef.current?.addEventListener("click", updateVisibleProperties);
-      map.on("moveend", updateVisibleProperties);
-      map.on("click", "nearby-clusters", (event) => { const feature = event.features?.[0]; const clusterId = feature?.properties?.cluster_id; if (typeof clusterId === "number") (map.getSource("nearby-properties") as GeoJSONSource).getClusterExpansionZoom(clusterId).then((zoom) => { const center = feature?.geometry.type === "Point" ? feature.geometry.coordinates as [number, number] : undefined; if (center) map.easeTo({ center, zoom }); }).catch((error) => console.error("Unable to expand property cluster.", error)); });
-      map.on("click", "nearby-points", (event) => { const feature = event.features?.[0]; const geometry = feature?.geometry; if (!feature || !geometry || geometry.type !== "Point") return; const coordinates = geometry.coordinates as [number, number]; new Popup().setLngLat(coordinates).setHTML(`<strong>${String(feature.properties?.title ?? "Property")}</strong><br>${String(feature.properties?.city ?? "")}`).addTo(map); });
-      void loadPublicListings().then((properties) => { nearbyListings = properties; updateVisibleProperties(); }).catch((error) => console.error("Unable to load nearby properties.", error));
-    });
-    new Marker({ color: "#0c3b2e" })
-      .setLngLat([coordinates.longitude, coordinates.latitude])
-      .setPopup(new Popup().setText(listing.title))
-      .addTo(map);
-    return () => { searchButtonRef.current?.replaceWith(searchButtonRef.current.cloneNode(true)); map.remove(); };
-  }, [coordinates, listing.title]);
-
-  if (!coordinates) {
-    return <div className={styles.mapFallback}>{t(lang, "mapUnavailable")}</div>;
-  }
-  return <div className={styles.mapWrap}><div ref={containerRef} className={styles.map} aria-label={t(lang, "mapLabel", { title: listing.title })} /><button ref={searchButtonRef} type="button" className={styles.searchAreaButton}>{t(lang, "searchThisArea")}</button></div>;
-};
 
 const QuoteRequestModal: FC<{ listing: Listing; lang: WidgetLangCode; onClose: () => void }> = ({ listing, lang, onClose }) => {
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", message: "" });
@@ -470,7 +410,7 @@ const PropertyDetail: FC<Props> = ({ config: rawConfig }) => {
     });
   };
   const panoramas = getPanoramaImages(listing);
-  return <article className={styles.root} style={style} lang={lang} dir={dir}><div className={styles.detailCard} style={{ borderRadius: `${config.cardRadius}px` }}><ImageCarousel listing={listing} ratio={config.imageRatio} showImageControls={config.showImageControls} showImageDots={config.showImageDots} lang={lang} /><div className={styles.content}><button type="button" className={styles.backButton} onClick={() => void goToProperties()}><ArrowLeft /> {t(lang, "backToProperties")}</button><div className={styles.heading}><div><h1>{listing.title}</h1>{config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing, t(lang, "locationNotSet"))}</p> : null}</div><div className={styles.priceRow}><div className={styles.price}>{formatListingPrice(listing, locale)}</div><button type="button" className={styles.quoteButton} onClick={() => setQuoteOpen(true)}>{t(lang, "requestQuote")}</button><button type="button" className={styles.saveButton} onClick={() => void handleSave()} aria-busy={saving} aria-label={saved ? t(lang, "removeProperty") : t(lang, "saveProperty")} aria-pressed={saved}>{saved ? <BookmarkCheck /> : <Bookmark />}</button></div></div>{config.showViewCount ? <div className={styles.views}><Eye /> {t(lang, "views", { count: viewCount ?? listing.viewCount ?? 0 })}</div> : null}{config.showSocialShare && access.socialShare ? <PropertySocialShare listing={listing} lang={lang} locale={locale} /> : null}{config.showAiAssistant && access.assistant ? <PropertyAssistant listing={listing} lang={lang} /> : null}{panoramas.length ? <section className={styles.section}><h2>{t(lang, "virtualTour")}</h2><PanoramaViewer images={panoramas} title={listing.title} lang={lang} /></section> : null}{config.showDescription && listing.description ? <div className={styles.description} dangerouslySetInnerHTML={{ __html: listing.description }} /> : null}<div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {t(lang, "bedrooms", { count: listing.bedrooms })}</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {t(lang, "bathrooms", { count: listing.bathrooms })}</span> : null}<span><Ruler /> {listing.area.toLocaleString(locale)} {listing.areaUnit}</span></div>{config.showLocation ? <section className={styles.section}><h2>{t(lang, "location")}</h2><PropertyMap listing={listing} lang={lang} /></section> : null}{config.showAmenities && listing.amenities?.length ? <section className={styles.section}><h2>{t(lang, "amenities")}</h2><ul>{listing.amenities.map((amenity) => <li key={amenity}>{amenity}</li>)}</ul></section> : null}{config.showAgent ? <ListingContact listing={listing} lang={lang} /> : null}</div></div>{config.showFeaturedListings && access.relatedListings && featuredListings.length ? <section className={styles.featuredSection} aria-label={config.featuredTitle}><header className={styles.featuredHeader}><div><h2>{config.featuredTitle}</h2><p>{config.featuredSubtitle}</p></div><div className={styles.featuredControls}><button type="button" aria-label={t(lang, "previousRelated")} onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: -320, behavior: "smooth" })}><ChevronLeft /></button><button type="button" aria-label={t(lang, "nextRelated")} onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: 320, behavior: "smooth" })}><ChevronRight /></button></div></header><div id="featured-properties" className={styles.featuredList} style={{ gap: `${config.featuredGap}px` }}>{featuredListings.map((item) => <FeaturedCard key={item._id} listing={item} config={config} saved={featuredSavedIds.has(item._id)} lang={lang} locale={locale} onSave={handleFeaturedSave} />)}</div></section> : null}{quoteOpen ? <QuoteRequestModal listing={listing} lang={lang} onClose={() => setQuoteOpen(false)} /> : null}</article>;
+  return <article className={styles.root} style={style} lang={lang} dir={dir}><div className={styles.detailCard} style={{ borderRadius: `${config.cardRadius}px` }}><ImageCarousel listing={listing} ratio={config.imageRatio} showImageControls={config.showImageControls} showImageDots={config.showImageDots} lang={lang} /><div className={styles.content}><button type="button" className={styles.backButton} onClick={() => void goToProperties()}><ArrowLeft /> {t(lang, "backToProperties")}</button><div className={styles.heading}><div><h1>{listing.title}</h1>{config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing, t(lang, "locationNotSet"))}</p> : null}</div><div className={styles.priceRow}><div className={styles.price}>{formatListingPrice(listing, locale)}</div>{/* Request quote temporarily disabled. <button type="button" className={styles.quoteButton} onClick={() => setQuoteOpen(true)}>{t(lang, "requestQuote")}</button> */}<button type="button" className={styles.saveButton} onClick={() => void handleSave()} aria-busy={saving} aria-label={saved ? t(lang, "removeProperty") : t(lang, "saveProperty")} aria-pressed={saved}>{saved ? <BookmarkCheck /> : <Bookmark />}</button></div></div>{config.showViewCount ? <div className={styles.views}><Eye /> {t(lang, "views", { count: viewCount ?? listing.viewCount ?? 0 })}</div> : null}{config.showSocialShare && access.socialShare ? <PropertySocialShare listing={listing} lang={lang} locale={locale} /> : null}{config.showAiAssistant && access.assistant ? <PropertyAssistant listing={listing} lang={lang} /> : null}{panoramas.length ? <section className={styles.section}><h2>{t(lang, "virtualTour")}</h2><PanoramaViewer images={panoramas} title={listing.title} lang={lang} /></section> : null}{config.showDescription && listing.description ? <div className={styles.description} dangerouslySetInnerHTML={{ __html: listing.description }} /> : null}<div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {t(lang, "bedrooms", { count: listing.bedrooms })}</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {t(lang, "bathrooms", { count: listing.bathrooms })}</span> : null}<span><Ruler /> {listing.area.toLocaleString(locale)} {listing.areaUnit}</span></div>{config.showLocation ? <section className={styles.section}><h2>{t(lang, "location")}</h2><Suspense fallback={<MapFallback lang={lang} />}><PropertyMap listing={listing} lang={lang} loadNearby={loadPublicListings} /></Suspense></section> : null}{config.showAmenities && listing.amenities?.length ? <section className={styles.section}><h2>{t(lang, "amenities")}</h2><ul>{listing.amenities.map((amenity) => <li key={amenity}>{amenity}</li>)}</ul></section> : null}{config.showAgent ? <ListingContact listing={listing} lang={lang} /> : null}</div></div>{config.showFeaturedListings && access.relatedListings && featuredListings.length ? <section className={styles.featuredSection} aria-label={config.featuredTitle}><header className={styles.featuredHeader}><div><h2>{config.featuredTitle}</h2><p>{config.featuredSubtitle}</p></div><div className={styles.featuredControls}><button type="button" aria-label={t(lang, "previousRelated")} onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: -320, behavior: "smooth" })}><ChevronLeft /></button><button type="button" aria-label={t(lang, "nextRelated")} onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: 320, behavior: "smooth" })}><ChevronRight /></button></div></header><div id="featured-properties" className={styles.featuredList} style={{ gap: `${config.featuredGap}px` }}>{featuredListings.map((item) => <FeaturedCard key={item._id} listing={item} config={config} saved={featuredSavedIds.has(item._id)} lang={lang} locale={locale} onSave={handleFeaturedSave} />)}</div></section> : null}{quoteOpen ? <QuoteRequestModal listing={listing} lang={lang} onClose={() => setQuoteOpen(false)} /> : null}</article>;
 };
 
 export default reactToWebComponent(PropertyDetail, React, ReactDOM as any, { props: { config: "string" } });

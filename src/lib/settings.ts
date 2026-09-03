@@ -17,10 +17,12 @@ export interface WorkspaceSettings {
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
   defaultCurrency: 'USD',
   defaultAreaUnit: 'sq ft',
-  defaultStatus: 'draft',
+  defaultStatus: 'active',
   showArchived: false,
   dashboardLanguage: 'auto',
 };
+
+const SETTINGS_SCHEMA_VERSION = 2;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -46,7 +48,17 @@ export function readWorkspaceSettings(): WorkspaceSettings {
       return DEFAULT_WORKSPACE_SETTINGS;
     }
 
-    return {
+    const storedVersion =
+      typeof parsed.schemaVersion === 'number' ? parsed.schemaVersion : 1;
+    const storedStatus = isStatus(parsed.defaultStatus)
+      ? parsed.defaultStatus
+      : DEFAULT_WORKSPACE_SETTINGS.defaultStatus;
+    const defaultStatus =
+      storedVersion < SETTINGS_SCHEMA_VERSION && storedStatus === 'draft'
+        ? 'active'
+        : storedStatus;
+
+    const settings: WorkspaceSettings = {
       defaultCurrency:
         typeof parsed.defaultCurrency === 'string' && parsed.defaultCurrency.trim()
           ? parsed.defaultCurrency.toUpperCase()
@@ -55,9 +67,7 @@ export function readWorkspaceSettings(): WorkspaceSettings {
         typeof parsed.defaultAreaUnit === 'string' && parsed.defaultAreaUnit.trim()
           ? parsed.defaultAreaUnit
           : DEFAULT_WORKSPACE_SETTINGS.defaultAreaUnit,
-      defaultStatus: isStatus(parsed.defaultStatus)
-        ? parsed.defaultStatus
-        : DEFAULT_WORKSPACE_SETTINGS.defaultStatus,
+      defaultStatus,
       showArchived:
         typeof parsed.showArchived === 'boolean'
           ? parsed.showArchived
@@ -68,6 +78,12 @@ export function readWorkspaceSettings(): WorkspaceSettings {
           ? parsed.dashboardLanguage
           : DEFAULT_WORKSPACE_SETTINGS.dashboardLanguage,
     };
+
+    if (storedVersion < SETTINGS_SCHEMA_VERSION) {
+      writeWorkspaceSettings(settings);
+    }
+
+    return settings;
   } catch (error) {
     console.error('Unable to read workspace settings.', error);
     return DEFAULT_WORKSPACE_SETTINGS;
@@ -80,7 +96,10 @@ export function writeWorkspaceSettings(settings: WorkspaceSettings): void {
   }
 
   try {
-    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    window.localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify({ ...settings, schemaVersion: SETTINGS_SCHEMA_VERSION }),
+    );
   } catch (error) {
     console.error('Unable to save workspace settings.', error);
     throw new Error('Settings could not be saved in this browser.');

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { dashboard } from '@wix/dashboard';
 import { Box, Button as WdsButton, Text, WixDesignSystemProvider } from '@wix/design-system';
 import { Check, RotateCcw, Save, SlidersHorizontal } from 'lucide-react';
@@ -48,6 +48,14 @@ export function SettingsView({ settings, onSettingsChange }: SettingsViewProps) 
   const [draft, setDraft] = useState(settings);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraft((current) =>
+      current.dashboardLanguage === settings.dashboardLanguage
+        ? current
+        : { ...current, dashboardLanguage: settings.dashboardLanguage },
+    );
+  }, [settings.dashboardLanguage]);
 
   const updateDraft = <K extends keyof WorkspaceSettings>(key: K, value: WorkspaceSettings[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));

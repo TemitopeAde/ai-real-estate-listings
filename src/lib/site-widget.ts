@@ -15,6 +15,11 @@ export function fontFamilyFromShorthand(value: string): string {
   return sizeIndex >= 0 ? shorthand.slice(shorthand.indexOf(' ', sizeIndex) + 1).trim().split(',')[0]?.trim() ?? shorthand : shorthand;
 }
 
+export function fontSizeFromShorthand(value: string): string | undefined {
+  const match = value.trim().match(/\b(\d+(?:\.\d+)?)(px|pt|pc|em|rem|%)\b/i);
+  return match ? `${match[1]}${match[2]}` : undefined;
+}
+
 export interface WidgetSpacing {
   top: number;
   right: number;
@@ -174,7 +179,7 @@ export const DEFAULT_LISTING_WIDGET_CONFIG: ListingWidgetConfig = {
   showImageControls: true,
   showImageDots: true,
   titleFont: { font: 'normal normal bold 28px "Helvetica Neue", Helvetica, Arial, sans-serif' },
-  bodyFont: { font: 'normal normal normal 16px "Helvetica Neue", Helvetica, Arial, sans-serif' },
+  bodyFont: { font: 'normal normal normal 14px "Helvetica Neue", Helvetica, Arial, sans-serif' },
   detailPagePath: DETAIL_PAGE_PATH,
   language: "auto",
 };
@@ -225,13 +230,16 @@ export const DEFAULT_DETAIL_WIDGET_CONFIG: DetailWidgetConfig = {
 
 const PREVIOUS_DEFAULT_FILL = "var(--wst-color-fill-background-secondary, #ffffff)";
 const PREVIOUS_DEFAULT_TITLE_FONT = "var(--wst-font-style-h2, 700 2rem Inter, sans-serif)";
-const PREVIOUS_DEFAULT_BODY_FONT = "var(--wst-font-style-paragraph, 400 1rem Inter, sans-serif)";
+const PREVIOUS_DEFAULT_BODY_FONTS = [
+  "var(--wst-font-style-paragraph, 400 1rem Inter, sans-serif)",
+  'normal normal normal 16px "Helvetica Neue", Helvetica, Arial, sans-serif',
+];
 
 function isPreviousDefaultFont(value: unknown, kind: "title" | "body"): boolean {
   if (typeof value !== "string") return false;
   return kind === "title"
     ? value === PREVIOUS_DEFAULT_TITLE_FONT || value.includes("--wst-font-style-h2")
-    : value === PREVIOUS_DEFAULT_BODY_FONT || value.includes("--wst-font-style-paragraph");
+    : PREVIOUS_DEFAULT_BODY_FONTS.includes(value) || value.includes("--wst-font-style-paragraph");
 }
 
 function withTransparentDefaultSurfaces<T extends object>(config: T): T {

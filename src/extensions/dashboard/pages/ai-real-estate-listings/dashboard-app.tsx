@@ -13,8 +13,10 @@ import {
 import {
   DEFAULT_WORKSPACE_SETTINGS,
   readWorkspaceSettings,
+  writeWorkspaceSettings,
   type WorkspaceSettings,
 } from "@/lib/settings";
+import type { DashboardLanguageSetting } from "@/lib/dashboard-i18n";
 import {
   archiveListing,
   getAppEntitlement,
@@ -34,6 +36,7 @@ import { SettingsView } from "./settings-view";
 import { RequestsView } from "./requests-view";
 import { AIWriterView } from "./ai-writer-view";
 import { GuideView } from "./guide-view";
+import { FaqView } from "./faq-view";
 import { PricingView } from "./pricing-view";
 import { EntitlementProvider } from "./entitlement-context";
 
@@ -157,6 +160,16 @@ function DashboardAppInner({
     setSection(nextSection);
   };
 
+  const changeLanguage = (dashboardLanguage: DashboardLanguageSetting) => {
+    const nextSettings = { ...settings, dashboardLanguage };
+    try {
+      writeWorkspaceSettings(nextSettings);
+      setSettings(nextSettings);
+    } catch (error) {
+      console.error("Unable to save dashboard language.", error);
+    }
+  };
+
   let content;
   if (section === "overview") {
     content = (
@@ -198,6 +211,8 @@ function DashboardAppInner({
         onAddListing={() => void openEditor()}
       />
     );
+  } else if (section === "faq") {
+    content = <FaqView onNavigate={setSection} />;
   } else if (section === "pricing") {
     content = <PricingView />;
   } else {
@@ -208,7 +223,12 @@ function DashboardAppInner({
 
   return (
     <EntitlementProvider value={entitlement}>
-      <DashboardShell section={section} onSectionChange={changeSection}>
+      <DashboardShell
+        section={section}
+        onSectionChange={changeSection}
+        dashboardLanguage={settings.dashboardLanguage}
+        onDashboardLanguageChange={changeLanguage}
+      >
         {content}
       </DashboardShell>
       <Dialog

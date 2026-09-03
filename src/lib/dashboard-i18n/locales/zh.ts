@@ -8,6 +8,7 @@ export const zh = complete({
   navWriter: "AI Listing Writer",
   navAnalytics: "分析",
   navGuide: "指南",
+  navFaq: "常见问题",
   navPricing: "定价",
   navSettings: "设置",
   navRequests: "报价请求",
@@ -17,6 +18,7 @@ export const zh = complete({
   eyebrowLeads: "潜在客户管理",
   eyebrowAnalytics: "投资组合情报",
   eyebrowGuide: "开始使用",
+  eyebrowFaq: "帮助中心",
   eyebrowPricing: "计划",
   eyebrowSettings: "工作空间偏好",
   toggleNav: "切换导航",
@@ -520,6 +522,106 @@ export const zh = complete({
   tenureLeasehold: "租赁权",
   rentalMonthly: "每月",
   rentalYearly: "每年",
+  faqEyebrow: "解答",
+  faqTitle: "常见问题",
+  faqIntro:
+    "了解此工作区中房源、小组件、套餐、AI 文案、360° 导览、报价请求和分析如何运作。",
+  faqSearch: "搜索问题",
+  faqNoResults: "没有与此搜索匹配的问题。请尝试其他关键词。",
+  faqItemCount: "{count} 个问题",
+  faqItemCountPlural: "{count} 个问题",
+  faqOpenGuide: "打开工作区指南",
+  faqCatStart: "入门",
+  faqCatListings: "房源",
+  faqCatSite: "网站小组件",
+  faqCatPlans: "套餐与试用",
+  faqCatWriter: "AI Listing Writer",
+  faqCatTours: "照片与 360° 导览",
+  faqCatLeads: "报价请求",
+  faqCatAnalytics: "分析与访客",
+  faqCatSettings: "设置与语言",
+  faqCatSupport: "支持",
+  faqStartWhatQ: "此应用有什么作用？",
+  faqStartWhatA:
+    "EstateAI 是面向 Wix 的房源工作区。您可在此创建和管理房源，在网站上放置小组件供访客浏览，并在此仪表板跟进报价请求。",
+  faqStartFirstQ: "我应该先做什么？",
+  faqStartFirstA:
+    "至少添加一条活跃房源，在网站上放置房源列表和房源详情小组件，然后发送一条测试报价请求。指南部分会逐步说明此流程。",
+  faqStartPublishQ: "房源如何显示在实时网站上？",
+  faqStartPublishA:
+    "仅状态为“活跃”的房源会显示。将房源列表小组件添加到如 /properties 的页面，将房源详情小组件添加到如 /property-details 的页面。免费试用结束后，Basic 最多显示 10 条最近更新的活跃房源，Pro 最多 50 条，Business 显示全部。",
+  faqListStatusQ: "房源状态分别表示什么？",
+  faqListStatusA:
+    "草稿不公开。活跃表示在网站上可见（受套餐上限限制）。洽谈中表示交易进行中。已售表示交易完成。已归档会从默认库存中隐藏，除非在设置中开启“包含已归档房源”。",
+  faqListVisibleQ: "为什么某条房源没有出现在网站上？",
+  faqListVisibleA:
+    "请确认状态为“活跃”、小组件已放在已发布页面上，且未超过当前套餐的公开房源上限。侧边栏会显示当前在网站上可见的房源数量。",
+  faqListArchiveQ: "删除房源会发生什么？",
+  faqListArchiveA:
+    "删除会将房源归档，不再处于活跃状态。在设置中启用“包含已归档房源”后仍可找到。归档期间不会出现在实时网站上。",
+  faqListCoordsQ: "经度或纬度可以为负数吗？",
+  faqListCoordsA:
+    "可以。纬度须在 -90 到 90 之间，经度须在 -180 到 180 之间。西经（例如 -74.0060）有效，并用于房源页面上的地图。",
+  faqListDefaultsQ: "设置会改变现有房源吗？",
+  faqListDefaultsA: "不会。默认货币、面积单位和状态仅预填新房源。现有记录保持不变。",
+  faqListImagesQ: "房源图片如何工作？",
+  faqListImagesA:
+    "从 Wix Media Manager 选择图片。第一张为卡片和房源页面的封面。可随时向图库添加更多照片。",
+  faqSiteWidgetsQ: "需要哪些小组件？",
+  faqSiteWidgetsA:
+    "使用房源列表小组件展示库存网格或列表，使用房源详情小组件作为单个房源页面。在编辑器中可开启或关闭联系、报价请求、分享和相关房源。",
+  faqSiteSavedQ: "Saved Properties 如何工作？",
+  faqSiteSavedA:
+    "从设置嵌入 Saved Properties 启动器。已登录会员可收藏房源。如需恢复，可安全地多次嵌入。",
+  faqSiteRelatedQ: "为什么缺少相关房源或分享功能？",
+  faqSiteRelatedA:
+    "相关房源和站内 AI 助手属于 Business 功能。社交分享和 360° 导览在 Pro 和 Business 提供。也请确认编辑器中小组件已启用这些选项。",
+  faqPlansDiffQ: "各套餐包含什么？",
+  faqPlansDiffA:
+    "Basic 可发布少量库存并收集报价。Pro 增加 AI Listing Writer、360° 导览、独立访客洞察、分析、社交分享和报价邮件通知。Business 增加无限公开房源、多场景导览、相关房源和站内助手。打开定价查看完整对比。",
+  faqPlansTrialQ: "免费试用如何运作？",
+  faqPlansTrialA:
+    "试用期间可使用全部 Business 功能。从侧边栏或定价页点击“开始免费试用”。试用结束后，实时网站和受限工具将按当前套餐执行。",
+  faqPlansCapQ: "房源上限如何计算？",
+  faqPlansCapA:
+    "仪表板可保存全部记录。实时网站显示最近更新的活跃房源，数量不超过套餐上限：Basic 10 条、Pro 50 条，Business 或试用期间无限制。",
+  faqWriterHowQ: "如何生成房源文案？",
+  faqWriterHowA:
+    "打开 AI Listing Writer，或在房源内使用“使用 AI 撰写”。确认房源信息后选择风格（专业、奢华、简短、SEO 或社交），保存前请审阅文案。",
+  faqWriterPlanQ: "为什么 AI 写作器被锁定？",
+  faqWriterPlanA:
+    "AI Listing Writer 包含在 Pro 和 Business 中，试用期间也可用。开始试用或打开定价页升级。",
+  faqToursWhatQ: "360° 导览应使用什么图片？",
+  faqToursWhatA:
+    "使用等距圆柱 360° 照片。访客可在房源页面的交互查看器中环顾四周。可添加多个场景，每张图片为一个视点。",
+  faqToursPlanQ: "哪个套餐显示虚拟导览？",
+  faqToursPlanA:
+    "虚拟导览在 Pro 和 Business 提供。Pro 在网站上显示第一个场景；更多场景在 Business 上线。在 Basic 上添加的全景图仍会保存在仪表板中。",
+  faqLeadsWhereQ: "报价请求在哪里查看？",
+  faqLeadsWhereA:
+    "在此仪表板打开“报价请求”。每条咨询包含房源、访客信息、留言、状态和内部备注。",
+  faqLeadsStatusQ: "应如何使用报价状态？",
+  faqLeadsStatusA:
+    "新建表示未读或未处理。已联系表示已跟进。已报价表示已发送条款。已关闭表示咨询结束。归档会从默认列表中移除。",
+  faqLeadsEmailQ: "谁接收报价通知邮件？",
+  faqLeadsEmailA:
+    "通知发送至房源经纪人邮箱和网站所有者邮箱。报价邮件通知包含在 Pro 和 Business 中。",
+  faqAnalyticsWhatQ: "分析显示什么？",
+  faqAnalyticsWhatA:
+    "分析汇总库存构成、近期活动、AI 就绪内容、热门城市、按货币的平均要价以及状态或交易类型分布。Pro 和 Business 可用。",
+  faqAnalyticsVisitorsQ: "什么是独立访客？",
+  faqAnalyticsVisitorsA:
+    "独立访客洞察显示查看过房源的用户（每人计一次）以及未登录浏览次数。在房源操作菜单中查看。此功能在 Pro 和 Business 提供。",
+  faqSettingsLangQ: "如何更改仪表板语言？",
+  faqSettingsLangA:
+    "打开设置并选择“仪表板语言”。自动跟随 Wix 账户语言。也可选择 20 种支持的语言之一。阿拉伯语和乌尔都语为从右到左显示。",
+  faqSettingsArchivedQ: "如何查看已归档房源？",
+  faqSettingsArchivedA: "在设置中启用“包含已归档房源”。它们将默认显示在房源视图中。",
+  faqSupportPermsQ: "为什么页面加载失败？",
+  faqSupportPermsA:
+    "概览、房源和分析需要此应用的集合权限。安装后若缺少小组件或集合，请尝试重新安装应用，或从侧边栏联系应用开发者。",
+  faqSupportContactQ: "如何获得更多帮助？",
+  faqSupportContactA: "使用侧边栏中的“联系应用开发者”，或打开指南按步骤完成设置。",
   langEn: "English",
   langZh: "中文",
   langHi: "हिन्दी",

@@ -171,7 +171,7 @@ export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
           <CardTitle className="mt-2">{t("supportTitle")}</CardTitle>
           <CardDescription>{t("supportBody")}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
             size="sm"
@@ -179,6 +179,13 @@ export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
           >
             <Settings2 className="size-4" aria-hidden="true" />
             {t("openSettings")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onNavigate("faq")}
+          >
+            {t("navFaq")}
           </Button>
         </CardContent>
       </Card>

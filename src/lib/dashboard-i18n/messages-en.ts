@@ -6,6 +6,7 @@ export const EN = {
   navWriter: "AI Listing Writer",
   navAnalytics: "Analytics",
   navGuide: "Guide",
+  navFaq: "FAQ",
   navPricing: "Pricing",
   navSettings: "Settings",
   navRequests: "Quote requests",
@@ -15,6 +16,7 @@ export const EN = {
   eyebrowLeads: "Lead management",
   eyebrowAnalytics: "Portfolio intelligence",
   eyebrowGuide: "Getting started",
+  eyebrowFaq: "Help centre",
   eyebrowPricing: "Plans",
   eyebrowSettings: "Workspace preferences",
   toggleNav: "Toggle navigation",
@@ -316,7 +318,7 @@ export const EN = {
   guideStep2Summary: "Show inventory and property details to visitors.",
   guideStep2Item1: "Add the property listings widget to a page such as /properties.",
   guideStep2Item2: "Add the property detail widget to a page such as /property-details.",
-  guideStep2Item3: "In the editor, turn Contact, quote request, share, and related listings on or off.",
+  guideStep2Item3: "In the editor, update styles, colors, and fonts, and turn Contact, quote request, share, and related listings on or off.",
   guideStep2Item4: "Embed the Saved Properties launcher from Settings so members can bookmark homes.",
   openSettings: "Open settings",
   guideStep3Title: "Handle visitor enquiries",
@@ -571,6 +573,110 @@ export const EN = {
   tenureLeasehold: "Leasehold",
   rentalMonthly: "Monthly",
   rentalYearly: "Yearly",
+
+  faqEyebrow: "Answers",
+  faqTitle: "Frequently asked questions",
+  faqIntro:
+    "Find how listings, widgets, plans, AI copy, tours, quotes, and analytics work in this workspace.",
+  faqSearch: "Search questions",
+  faqNoResults: "No questions match this search. Try a different keyword.",
+  faqItemCount: "{count} question",
+  faqItemCountPlural: "{count} questions",
+  faqOpenGuide: "Open the workspace guide",
+  faqCatStart: "Getting started",
+  faqCatListings: "Listings",
+  faqCatSite: "Site widgets",
+  faqCatPlans: "Plans and trial",
+  faqCatWriter: "AI Listing Writer",
+  faqCatTours: "Photos and 360° tours",
+  faqCatLeads: "Quote requests",
+  faqCatAnalytics: "Analytics and visitors",
+  faqCatSettings: "Settings and language",
+  faqCatSupport: "Support",
+  faqStartWhatQ: "What does this app do?",
+  faqStartWhatA:
+    "EstateAI is a listing workspace for Wix. You create and manage properties here, place widgets on your site so visitors can browse them, and follow up on quote requests from this dashboard. The workspace is translated in the top 20 languages, and widget styles, colors, and fonts can be updated in the editor.",
+  faqStartFirstQ: "What should I do first?",
+  faqStartFirstA:
+    "Add at least one active listing, place the listings and property detail widgets on your site, then send a test quote request. The Guide section walks through this path.",
+  faqStartPublishQ: "How do listings appear on my live site?",
+  faqStartPublishA:
+    "Only listings with Active status are shown. Add the property listings widget to a page such as /properties and the property detail widget to a page such as /property-details. After your free trial, Basic shows up to 10 of your most recently updated active listings, Pro up to 50, and Business shows all of them.",
+  faqListStatusQ: "What do listing statuses mean?",
+  faqListStatusA:
+    "Draft is not public. Active is available on the site (within your plan cap). Under offer means a deal is in progress. Sold marks a completed transaction. Archived hides the listing from the default inventory unless you turn on archived listings in Settings.",
+  faqListVisibleQ: "Why is a listing missing from the website?",
+  faqListVisibleA:
+    "Check that the status is Active, the widgets are on a published page, and you have not exceeded the public listing cap for your plan. The sidebar shows how many listings are currently visible on the site.",
+  faqListArchiveQ: "What happens when I delete a listing?",
+  faqListArchiveA:
+    "Delete archives the listing so it is no longer active. You can still find it when Include archived listings is enabled in Settings. It will not appear on the live site while it is archived.",
+  faqListCoordsQ: "Can longitude or latitude be negative?",
+  faqListCoordsA:
+    "Yes. Latitude must be between -90 and 90, and longitude between -180 and 180. Western longitudes (for example -74.0060) are valid and are used for the map on the property page.",
+  faqListDefaultsQ: "Do Settings change existing listings?",
+  faqListDefaultsA:
+    "No. Default currency, area unit, and status only prefill new listings. Existing records stay as they are.",
+  faqListImagesQ: "How do listing images work?",
+  faqListImagesA:
+    "Choose images from Wix Media Manager. The first image is the cover on cards and the property page. You can add more photos to the gallery at any time.",
+  faqSiteWidgetsQ: "Which widgets do I need?",
+  faqSiteWidgetsA:
+    "Use the property listings widget for your inventory grid or list, and the property detail widget for the individual property page. In the editor you can update styles, colors, and fonts, and turn Contact, quote request, share, and related listings on or off.",
+  faqSiteSavedQ: "How do Saved Properties work?",
+  faqSiteSavedA:
+    "Embed the Saved Properties launcher from Settings. Signed-in members can bookmark homes. The launcher is safe to embed more than once if you need to restore it.",
+  faqSiteRelatedQ: "Why are related listings or sharing missing?",
+  faqSiteRelatedA:
+    "Related listings and the on-site AI assistant are Business features. Social sharing and 360° tours are on Pro and Business. Also confirm those options are enabled on the widget in the editor.",
+  faqPlansDiffQ: "What is included on each plan?",
+  faqPlansDiffA:
+    "Basic publishes a small inventory and collects quotes. Pro adds AI Listing Writer, 360° tours, unique visitor insights, analytics, social sharing, and quote email notifications. Business adds unlimited public listings, multiple tour scenes, related listings, and the on-site assistant. Open Pricing for the full comparison.",
+  faqPlansTrialQ: "How does the free trial work?",
+  faqPlansTrialA:
+    "While the trial is in progress you have every Business feature. Use Start free trial from the sidebar or Pricing. After it ends, the live site and gated tools follow your active plan.",
+  faqPlansCapQ: "How does the listing cap work?",
+  faqPlansCapA:
+    "The dashboard can hold all of your records. The live site shows the most recently updated Active listings up to your plan cap: 10 on Basic, 50 on Pro, and unlimited on Business or during a trial.",
+  faqWriterHowQ: "How do I generate listing copy?",
+  faqWriterHowA:
+    "Open AI Listing Writer, or use Write with AI inside a listing. Confirm the property facts, choose a style (professional, luxury, short, SEO, or social), then review the copy before you save.",
+  faqWriterPlanQ: "Why is the AI writer locked?",
+  faqWriterPlanA:
+    "AI Listing Writer is included on Pro and Business, and during a free trial. Start a trial or open Pricing to upgrade.",
+  faqToursWhatQ: "What images work for a 360° tour?",
+  faqToursWhatA:
+    "Use equirectangular 360° photos. Visitors can look around in the interactive viewer on the property page. You can add several scenes; each image is one viewpoint.",
+  faqToursPlanQ: "Which plan shows the virtual tour?",
+  faqToursPlanA:
+    "Virtual tours are on Pro and Business. Pro shows the first scene on the site; additional scenes go live on Business. Extra panoramas stay saved in the dashboard if you add them on Basic.",
+  faqLeadsWhereQ: "Where do quote requests appear?",
+  faqLeadsWhereA:
+    "Open Quote requests in this dashboard. Each enquiry includes the property, visitor details, message, status, and internal notes.",
+  faqLeadsStatusQ: "How should I use quote statuses?",
+  faqLeadsStatusA:
+    "New is unread or unworked. Contacted means you have reached out. Quoted means you sent terms. Closed means the enquiry is finished. Archive removes it from the default list.",
+  faqLeadsEmailQ: "Who receives quote notification emails?",
+  faqLeadsEmailA:
+    "Notifications use the listing agent email and the site owner email. Quote email notifications are included on Pro and Business.",
+  faqAnalyticsWhatQ: "What does Analytics show?",
+  faqAnalyticsWhatA:
+    "Analytics summarises your inventory mix, recent activity, AI-ready content, top cities, average asking price by currency, and status or transaction breakdowns. It is available on Pro and Business.",
+  faqAnalyticsVisitorsQ: "What are unique visitors?",
+  faqAnalyticsVisitorsA:
+    "Unique visitor insights show people who viewed a listing, counted once each, plus unsigned views. Open a listing’s actions menu to review them. This feature is on Pro and Business.",
+  faqSettingsLangQ: "How do I change the dashboard language?",
+  faqSettingsLangA:
+    "Choose Dashboard language from the sidebar under Contact app developer, or open Settings. Auto follows the Wix account language. You can also pick one of the 20 supported languages. Arabic and Urdu display right to left.",
+  faqSettingsArchivedQ: "How do I see archived listings?",
+  faqSettingsArchivedA:
+    "Enable Include archived listings in Settings. They then appear in the Listings view by default.",
+  faqSupportPermsQ: "Why did a page fail to load?",
+  faqSupportPermsA:
+    "Overview, listings, and analytics need collection permissions for this app. If a widget or collection is missing after install, try reinstalling the app or contact the app developer from the sidebar.",
+  faqSupportContactQ: "How do I get more help?",
+  faqSupportContactA:
+    "Use Contact app developer in the sidebar, or open the Guide for a step-by-step setup path.",
 
   langEn: "English",
   langZh: "中文",

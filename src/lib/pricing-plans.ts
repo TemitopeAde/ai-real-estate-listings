@@ -26,14 +26,14 @@ export const APP_PLANS: AppPlan[] = [
   {
     id: "pro",
     name: "Pro",
-    price: "$19",
+    price: "$6.50",
     billing: "per month",
     summary: "AI copy, 360° tours, visitor insights, and portfolio analytics.",
   },
   {
     id: "business",
     name: "Business",
-    price: "$49",
+    price: "$12",
     billing: "per month",
     summary: "Unlimited listings, on-site AI assistant, and full marketing tools.",
   },
