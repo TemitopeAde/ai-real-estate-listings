@@ -12,6 +12,8 @@ import {
   LISTING_COPY_STYLES,
   type ListingCopyInput,
 } from '@/lib/ai-writer';
+import { useDt } from '@/lib/dashboard-i18n';
+import { COPY_STYLE_KEYS } from '@/lib/dashboard-i18n/labels';
 import { SocialShare } from './social-share';
 
 interface AIWriterPanelProps {
@@ -21,12 +23,18 @@ interface AIWriterPanelProps {
   showShare?: boolean;
 }
 
+function isUpgradeMessage(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return normalized.includes('pro') || normalized.includes('business') || normalized.includes('upgrade');
+}
+
 export function AIWriterPanel({
   initialInput,
   onDescriptionReady,
   onGenerated,
   showShare = true,
 }: AIWriterPanelProps) {
+  const t = useDt();
   const [form, setForm] = useState<ListingCopyInput>({ ...DEFAULT_LISTING_COPY_INPUT, ...initialInput });
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,7 +55,9 @@ export function AIWriterPanel({
       onGenerated?.();
     } catch (generationError) {
       console.error('Unable to generate listing copy.', generationError);
-      setError(generationError instanceof Error ? generationError.message : 'The description could not be generated.');
+      const message =
+        generationError instanceof Error ? generationError.message : t('writerFailed');
+      setError(isUpgradeMessage(message) ? t('writerUpgrade') : message || t('writerFailed'));
     } finally {
       setLoading(false);
     }
@@ -64,49 +74,84 @@ export function AIWriterPanel({
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
       <Card className="border-border/70 bg-card/90 shadow-sm">
         <CardHeader>
-          <CardTitle>Property basics</CardTitle>
-          <CardDescription>What should the description say?</CardDescription>
+          <CardTitle>{t('propertyBasics')}</CardTitle>
+          <CardDescription>{t('propertyBasicsHint')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium">Bedrooms<Input value={form.bedrooms} onChange={(event) => update('bedrooms', event.target.value)} /></label>
-            <label className="space-y-2 text-sm font-medium">Bathrooms<Input value={form.bathrooms} onChange={(event) => update('bathrooms', event.target.value)} /></label>
+            <label className="space-y-2 text-sm font-medium">
+              {t('bedrooms')}
+              <Input value={form.bedrooms} onChange={(event) => update('bedrooms', event.target.value)} />
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              {t('bathrooms')}
+              <Input value={form.bathrooms} onChange={(event) => update('bathrooms', event.target.value)} />
+            </label>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium">Location<Input value={form.location} onChange={(event) => update('location', event.target.value)} placeholder="Austin, Texas" /></label>
-            <label className="space-y-2 text-sm font-medium">Price<Input value={form.price} onChange={(event) => update('price', event.target.value)} placeholder="$875,000" /></label>
+            <label className="space-y-2 text-sm font-medium">
+              {t('location')}
+              <Input
+                value={form.location}
+                onChange={(event) => update('location', event.target.value)}
+                placeholder={t('locationPlaceholder')}
+              />
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              {t('price')}
+              <Input
+                value={form.price}
+                onChange={(event) => update('price', event.target.value)}
+                placeholder={t('pricePlaceholder')}
+              />
+            </label>
           </div>
-          <label className="space-y-2 text-sm font-medium">Property type<Input value={form.propertyType} onChange={(event) => update('propertyType', event.target.value)} /></label>
-          <label className="space-y-2 text-sm font-medium">Amenities<Textarea value={form.amenities} onChange={(event) => update('amenities', event.target.value)} placeholder="Swimming pool, gym, parking" rows={3} /></label>
-          <label className="space-y-2 text-sm font-medium">Furnishing
+          <label className="space-y-2 text-sm font-medium">
+            {t('propertyType')}
+            <Input value={form.propertyType} onChange={(event) => update('propertyType', event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm font-medium">
+            {t('amenities')}
+            <Textarea
+              value={form.amenities}
+              onChange={(event) => update('amenities', event.target.value)}
+              placeholder={t('amenitiesWriterPlaceholder')}
+              rows={3}
+            />
+          </label>
+          <label className="space-y-2 text-sm font-medium">
+            {t('furnishingStatus')}
             <Select value={form.furnishing} onValueChange={(value) => update('furnishing', value)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Furnished">Furnished</SelectItem>
-                <SelectItem value="Semi-furnished">Semi-furnished</SelectItem>
-                <SelectItem value="Unfurnished">Unfurnished</SelectItem>
+                <SelectItem value="Furnished">{t('furnishingFurnished')}</SelectItem>
+                <SelectItem value="Semi-furnished">{t('furnishingSemi')}</SelectItem>
+                <SelectItem value="Unfurnished">{t('furnishingUnfurnished')}</SelectItem>
               </SelectContent>
             </Select>
           </label>
           <div className="space-y-3">
-            <p className="text-sm font-medium">Writing style</p>
+            <p className="text-sm font-medium">{t('writingStyle')}</p>
             <div className="grid gap-2 sm:grid-cols-2">
-              {LISTING_COPY_STYLES.map((style) => (
-                <button
-                  key={style.value}
-                  type="button"
-                  onClick={() => update('style', style.value)}
-                  className={`rounded-xl border p-3 text-left transition ${form.style === style.value ? 'border-primary bg-primary/5 ring-2 ring-primary/15' : 'border-border hover:border-primary/40'}`}
-                >
-                  <span className="block text-sm font-medium">{style.label}</span>
-                  <span className="mt-1 block text-xs text-muted-foreground">{style.description}</span>
-                </button>
-              ))}
+              {LISTING_COPY_STYLES.map((style) => {
+                const keys = COPY_STYLE_KEYS[style.value];
+                return (
+                  <button
+                    key={style.value}
+                    type="button"
+                    onClick={() => update('style', style.value)}
+                    className={`rounded-xl border p-3 text-left transition ${form.style === style.value ? 'border-primary bg-primary/5 ring-2 ring-primary/15' : 'border-border hover:border-primary/40'}`}
+                  >
+                    <span className="block text-sm font-medium">{t(keys.label)}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{t(keys.hint)}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
           <Button type="button" className="w-full" onClick={() => void generate()} disabled={loading || !form.location.trim()}>
             <WandSparkles className="size-4" aria-hidden="true" />
-            {loading ? 'Writing your description…' : 'Generate description'}
+            {loading ? t('writingDescription') : t('generateDescription')}
           </Button>
           {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
         </CardContent>
@@ -114,17 +159,15 @@ export function AIWriterPanel({
       <Card className="min-h-[32rem] border-border/70 bg-card/90 shadow-sm">
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
-            <CardTitle>Generated description</CardTitle>
+            <CardTitle>{t('generatedDescription')}</CardTitle>
             <CardDescription>
-              {onDescriptionReady
-                ? 'When writing finishes, this copy is added to the listing description.'
-                : 'Review the copy, then copy it into your listing.'}
+              {onDescriptionReady ? t('generatedHintListing') : t('generatedHintStandalone')}
             </CardDescription>
           </div>
           {description ? (
             <Button type="button" variant="outline" size="sm" onClick={() => void copy()}>
               {copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? t('copied') : t('copy')}
             </Button>
           ) : null}
         </CardHeader>
@@ -139,7 +182,7 @@ export function AIWriterPanel({
                   onDescriptionReady?.(next);
                 }}
                 className="min-h-[25rem] resize-y leading-7"
-                aria-label="Generated property description"
+                aria-label={t('generatedAria')}
               />
               {showShare ? <SocialShare text={description} /> : null}
             </>
@@ -148,9 +191,9 @@ export function AIWriterPanel({
               <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <Sparkles className="size-5" aria-hidden="true" />
               </div>
-              <h3 className="mt-4 font-semibold">Your polished copy will appear here</h3>
+              <h3 className="mt-4 font-semibold">{t('polishedCopyTitle')}</h3>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                Choose a style and generate a description from the confirmed property facts.
+                {t('polishedCopyBody')}
               </p>
             </div>
           )}

@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { openAppUpgradePage } from "@/lib/entitlement";
+import { useDt } from "@/lib/dashboard-i18n";
 import { useEntitlement } from "./entitlement-context";
 
 interface PlanGateProps {
@@ -16,6 +17,7 @@ interface PlanGateProps {
 }
 
 export function PlanGate({ title, description, onUpgrade }: PlanGateProps) {
+  const t = useDt();
   const entitlement = useEntitlement();
   const startTrial = () => openAppUpgradePage(entitlement.instanceId);
 
@@ -28,7 +30,7 @@ export function PlanGate({ title, description, onUpgrade }: PlanGateProps) {
       <CardContent className="flex flex-wrap gap-2">
         {entitlement.canStartTrial ? (
           <Button type="button" onClick={startTrial}>
-            Start free trial
+            {t("startFreeTrial")}
           </Button>
         ) : null}
         <Button
@@ -36,7 +38,7 @@ export function PlanGate({ title, description, onUpgrade }: PlanGateProps) {
           variant={entitlement.canStartTrial ? "outline" : "default"}
           onClick={onUpgrade}
         >
-          View plans
+          {t("viewPlans")}
         </Button>
       </CardContent>
     </Card>

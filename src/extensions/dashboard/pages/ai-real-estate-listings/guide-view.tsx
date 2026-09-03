@@ -18,6 +18,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useDt } from "@/lib/dashboard-i18n";
+import type { DashboardMessageKey } from "@/lib/dashboard-i18n";
 import type { DashboardSection } from "./dashboard-shell";
 
 interface GuideViewProps {
@@ -26,82 +28,78 @@ interface GuideViewProps {
 }
 
 const steps: Array<{
-  title: string;
-  summary: string;
-  items: string[];
-  actionLabel: string;
+  titleKey: DashboardMessageKey;
+  summaryKey: DashboardMessageKey;
+  itemKeys: DashboardMessageKey[];
+  actionKey: DashboardMessageKey;
   icon: LucideIcon;
   onSelect: (actions: GuideViewProps) => void;
 }> = [
   {
-    title: "Create and manage listings",
-    summary: "Keep every property in one inventory.",
-    items: [
-      "Add a listing with location, price, images, and an optional 360° tour.",
-      "Agent / owner contact is filled from the site owner and can be edited per listing.",
-      "Use the listing actions menu to edit, review unique visitors, or delete.",
-      "Only active listings appear on the live site.",
+    titleKey: "guideStep1Title",
+    summaryKey: "guideStep1Summary",
+    itemKeys: [
+      "guideStep1Item1",
+      "guideStep1Item2",
+      "guideStep1Item3",
+      "guideStep1Item4",
     ],
-    actionLabel: "Open listings",
+    actionKey: "openListings",
     icon: Building2,
     onSelect: ({ onNavigate }) => onNavigate("listings"),
   },
   {
-    title: "Publish listings on the site",
-    summary: "Show inventory and property details to visitors.",
-    items: [
-      "Add the property listings widget to a page such as /properties.",
-      "Add the property detail widget to a page such as /property-details.",
-      "In the editor, turn Contact, quote request, share, and related listings on or off.",
-      "Embed the Saved Properties launcher from Settings so members can bookmark homes.",
+    titleKey: "guideStep2Title",
+    summaryKey: "guideStep2Summary",
+    itemKeys: [
+      "guideStep2Item1",
+      "guideStep2Item2",
+      "guideStep2Item3",
+      "guideStep2Item4",
     ],
-    actionLabel: "Open settings",
+    actionKey: "openSettings",
     icon: LayoutDashboard,
     onSelect: ({ onNavigate }) => onNavigate("settings"),
   },
   {
-    title: "Handle visitor enquiries",
-    summary: "Let buyers contact you without leaving the listing.",
-    items: [
-      "Visitors see owner name, phone, and email on the property page when Contact is enabled.",
-      "Request a quote collects name, email, phone, and a formatted message.",
-      "New requests appear here with status, notes, and archive.",
-      "Quote notifications use the listing agent email and the site owner email.",
+    titleKey: "guideStep3Title",
+    summaryKey: "guideStep3Summary",
+    itemKeys: [
+      "guideStep3Item1",
+      "guideStep3Item2",
+      "guideStep3Item3",
+      "guideStep3Item4",
     ],
-    actionLabel: "Open quote requests",
+    actionKey: "openQuoteRequests",
     icon: Inbox,
     onSelect: ({ onNavigate }) => onNavigate("requests"),
   },
   {
-    title: "Write listing copy with AI",
-    summary: "Turn facts into marketing-ready descriptions.",
-    items: [
-      "Open AI Listing Writer or use Write with AI inside the listing editor.",
-      "Review the generated copy, then save it on the listing before publishing.",
-      "Use Analytics to see which listings attract the most views.",
-    ],
-    actionLabel: "Open AI writer",
+    titleKey: "guideStep4Title",
+    summaryKey: "guideStep4Summary",
+    itemKeys: ["guideStep4Item1", "guideStep4Item2", "guideStep4Item3"],
+    actionKey: "openWriter",
     icon: WandSparkles,
     onSelect: ({ onNavigate }) => onNavigate("writer"),
   },
 ];
 
 export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
+  const t = useDt();
   return (
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-medium text-primary">Getting started</p>
+          <p className="text-sm font-medium text-primary">{t("guideEyebrow")}</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">
-            How to use this workspace
+            {t("guideTitle")}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Create listings here, publish them with the site widgets, then
-            follow up on quote requests and visitor activity from this dashboard.
+            {t("guideIntro")}
           </p>
         </div>
         <Button onClick={onAddListing} className="w-full sm:w-auto">
-          Add listing
+          {t("addListing")}
           <ArrowRight className="size-4" aria-hidden="true" />
         </Button>
       </div>
@@ -112,11 +110,8 @@ export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
             <BookOpen className="size-5" aria-hidden="true" />
           </div>
           <div>
-            <CardTitle>Recommended path</CardTitle>
-            <CardDescription>
-              Add at least one active listing, place the widgets on your site,
-              then check Quote requests after a visitor submits an enquiry.
-            </CardDescription>
+            <CardTitle>{t("recommendedPath")}</CardTitle>
+            <CardDescription>{t("recommendedPathHint")}</CardDescription>
           </div>
         </CardHeader>
       </Card>
@@ -126,7 +121,7 @@ export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
           const Icon = step.icon;
           return (
             <Card
-              key={step.title}
+              key={step.titleKey}
               className="border-border/70 bg-card/90 shadow-sm"
             >
               <CardHeader>
@@ -136,17 +131,17 @@ export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
                       <Icon className="size-5" aria-hidden="true" />
                     </div>
                     <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                      Step {index + 1}
+                      {t("stepLabel", { n: index + 1 })}
                     </p>
                   </div>
                 </div>
-                <CardTitle className="mt-3">{step.title}</CardTitle>
-                <CardDescription>{step.summary}</CardDescription>
+                <CardTitle className="mt-3">{t(step.titleKey)}</CardTitle>
+                <CardDescription>{t(step.summaryKey)}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                  {step.items.map((item) => (
-                    <li key={item}>{item}</li>
+                  {step.itemKeys.map((itemKey) => (
+                    <li key={itemKey}>{t(itemKey)}</li>
                   ))}
                 </ul>
                 <Button
@@ -156,7 +151,7 @@ export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
                     step.onSelect({ onNavigate, onAddListing })
                   }
                 >
-                  {step.actionLabel}
+                  {t(step.actionKey)}
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Button>
               </CardContent>
@@ -170,15 +165,11 @@ export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="size-4" aria-hidden="true" />
             <span className="text-xs font-semibold uppercase tracking-[0.18em]">
-              Need more help
+              {t("needMoreHelp")}
             </span>
           </div>
-          <CardTitle className="mt-2">Workspace defaults and support</CardTitle>
-          <CardDescription>
-            Set default currency, area unit, and status in Settings. Contact
-            the app developer from the sidebar if a widget or collection is
-            missing after install.
-          </CardDescription>
+          <CardTitle className="mt-2">{t("supportTitle")}</CardTitle>
+          <CardDescription>{t("supportBody")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button
@@ -187,7 +178,7 @@ export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
             onClick={() => onNavigate("settings")}
           >
             <Settings2 className="size-4" aria-hidden="true" />
-            Open settings
+            {t("openSettings")}
           </Button>
         </CardContent>
       </Card>

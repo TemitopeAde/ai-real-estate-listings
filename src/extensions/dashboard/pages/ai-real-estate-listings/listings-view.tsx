@@ -60,11 +60,14 @@ import {
   formatDate,
   formatDateTime,
   formatPrice,
-  formatPropertyType,
-  formatStatus,
-  formatTransactionType,
   getImageUrl,
 } from "@/lib/formatters";
+import { useDashboardI18n, useDt } from "@/lib/dashboard-i18n";
+import {
+  PROPERTY_TYPE_MESSAGE_KEYS,
+  STATUS_MESSAGE_KEYS,
+  TRANSACTION_MESSAGE_KEYS,
+} from "@/lib/dashboard-i18n/labels";
 import {
   LISTING_STATUSES,
   PROPERTY_TYPES,
@@ -99,7 +102,10 @@ interface UniqueViewer {
   lastViewedAt: Date;
 }
 
-function uniqueViewersFromEvents(events: ListingViewEvent[] | undefined): {
+function uniqueViewersFromEvents(
+  events: ListingViewEvent[] | undefined,
+  defaultVisitorName: string,
+): {
   viewers: UniqueViewer[];
   anonymousViews: number;
 } {
@@ -121,7 +127,7 @@ function uniqueViewersFromEvents(events: ListingViewEvent[] | undefined): {
     if (!existing) {
       map.set(key, {
         key,
-        name: event.viewerName?.trim() || "Signed-in visitor",
+        name: event.viewerName?.trim() || defaultVisitorName,
         email: event.viewerEmail?.trim(),
         viewCount: 1,
         lastViewedAt: viewedAt,
@@ -151,6 +157,8 @@ export function ListingsView({
   onArchiveListing,
   onOpenPricing,
 }: ListingsViewProps) {
+  const t = useDt();
+  const { locale } = useDashboardI18n();
   const entitlement = useEntitlement();
   const [listings, setListings] = useState<Listing[]>([]);
   const [search, setSearch] = useState("");
@@ -192,13 +200,11 @@ export function ListingsView({
       });
     } catch (loadError) {
       console.error("Unable to load listings.", loadError);
-      setError(
-        "We could not load listings. Check the collection permissions and try again.",
-      );
+      setError(t("listingsLoadError"));
     } finally {
       setLoading(false);
     }
-  }, [includeArchived, page, propertyType, search, status]);
+  }, [includeArchived, page, propertyType, search, status, t]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 250);
@@ -243,12 +249,15 @@ export function ListingsView({
         found: Boolean(fullListing),
         viewCount: fullListing?.viewCount,
         viewEvents: fullListing?.viewEvents,
-        unique: uniqueViewersFromEvents(fullListing?.viewEvents ?? listing.viewEvents),
+        unique: uniqueViewersFromEvents(
+          fullListing?.viewEvents ?? listing.viewEvents,
+          t("signedInVisitor"),
+        ),
       });
       setViewersListing(fullListing ?? listing);
     } catch (error) {
       console.error("[listings-viewers] fetch failed", error);
-      setViewersError("Unique visitors could not be loaded. Try again.");
+      setViewersError(t("uniqueVisitorsError"));
     } finally {
       setViewersLoading(false);
     }
@@ -262,31 +271,34 @@ export function ListingsView({
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-medium text-primary">
-              Inventory management
+              {t("listingsEyebrow")}
             </p>
             <h2 className="mt-1 text-3xl font-semibold tracking-tight">
-              All listings
+              {t("listingsTitle")}
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Search, organize, and keep every property ready for its next
-              stage.
+              {t("listingsIntro")}
               {entitlement.listingCap !== null
-                ? ` The live site shows the ${entitlement.publicListingCount} most recently updated active listing${entitlement.publicListingCount === 1 ? "" : "s"} of your ${entitlement.listingCap} plan cap.`
+                ? ` ${t("listingsCapNote", {
+                    visible: entitlement.publicListingCount,
+                    cap: entitlement.listingCap,
+                  })}`
                 : ""}
             </p>
           </div>
           <Button onClick={onAddListing} className="w-full sm:w-auto">
-            <Plus className="size-4" aria-hidden="true" /> Add listing
+            <Plus className="size-4" aria-hidden="true" /> {t("addListing")}
           </Button>
         </div>
 
         <Card className="border-border/70 bg-card/90 shadow-sm">
           <CardHeader className="gap-4 border-b border-border/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle>Property inventory</CardTitle>
+              <CardTitle>{t("propertyInventory")}</CardTitle>
               <CardDescription>
-                {totalCount} listing{totalCount === 1 ? "" : "s"} in this
-                workspace
+                {totalCount === 1
+                  ? t("listingsCount", { count: totalCount })
+                  : t("listingsCountPlural", { count: totalCount })}
               </CardDescription>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -301,23 +313,23 @@ export function ListingsView({
                     setSearch(event.target.value);
                     setPage(0);
                   }}
-                  placeholder="Search title or city"
+                  placeholder={t("searchTitleOrCity")}
                   className="pl-9"
-                  aria-label="Search listings"
+                  aria-label={t("searchListings")}
                 />
               </div>
               <Select value={status} onValueChange={handleStatusChange}>
                 <SelectTrigger
                   className="w-full sm:w-36"
-                  aria-label="Filter by status"
+                  aria-label={t("filterByStatus")}
                 >
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t("status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="all">{t("allStatuses")}</SelectItem>
                   {LISTING_STATUSES.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {t(STATUS_MESSAGE_KEYS[option.value])}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -328,15 +340,15 @@ export function ListingsView({
               >
                 <SelectTrigger
                   className="w-full sm:w-40"
-                  aria-label="Filter by property type"
+                  aria-label={t("filterByType")}
                 >
-                  <SelectValue placeholder="Property type" />
+                  <SelectValue placeholder={t("propertyType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All property types</SelectItem>
+                  <SelectItem value="all">{t("allPropertyTypes")}</SelectItem>
                   {PROPERTY_TYPES.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {t(PROPERTY_TYPE_MESSAGE_KEYS[option.value])}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -348,7 +360,7 @@ export function ListingsView({
               <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
                 <p className="text-sm text-destructive">{error}</p>
                 <Button variant="outline" size="sm" onClick={() => void load()}>
-                  <RefreshCw className="size-4" aria-hidden="true" /> Retry
+                  <RefreshCw className="size-4" aria-hidden="true" /> {t("retry")}
                 </Button>
               </div>
             ) : loading ? (
@@ -358,21 +370,19 @@ export function ListingsView({
                 aria-live="polite"
               >
                 <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" />
-                <span className="sr-only">Loading listings</span>
+                <span className="sr-only">{t("loadingListings")}</span>
               </div>
             ) : listings.length === 0 ? (
               <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
                 <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <BuildingIcon />
                 </div>
-                <h3 className="font-semibold">
-                  No listings match these filters
-                </h3>
+                <h3 className="font-semibold">{t("emptyListings")}</h3>
                 <p className="max-w-md text-sm text-muted-foreground">
-                  Create your first listing or adjust the search and filters.
+                  {t("emptyListingsBody")}
                 </p>
                 <Button size="sm" onClick={onAddListing}>
-                  <Plus className="size-4" aria-hidden="true" /> Add listing
+                  <Plus className="size-4" aria-hidden="true" /> {t("addListing")}
                 </Button>
               </div>
             ) : (
@@ -381,25 +391,25 @@ export function ListingsView({
                   <TableHeader className="bg-muted/20 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                     <TableRow>
                       <TableHead className="h-auto px-6 py-3 font-medium">
-                        Listing
+                        {t("columnProperty")}
                       </TableHead>
                       <TableHead className="h-auto px-3 py-3 font-medium">
-                        Type
+                        {t("columnType")}
                       </TableHead>
                       <TableHead className="h-auto px-3 py-3 font-medium">
-                        Price
+                        {t("columnPrice")}
                       </TableHead>
                       <TableHead className="h-auto px-3 py-3 font-medium">
-                        Status
+                        {t("columnStatus")}
                       </TableHead>
                       <TableHead className="h-auto px-3 py-3 font-medium">
-                        Views
+                        {t("columnViews")}
                       </TableHead>
                       <TableHead className="h-auto px-3 py-3 font-medium">
-                        Updated
+                        {t("columnUpdated")}
                       </TableHead>
                       <TableHead className="h-auto px-6 py-3 text-right font-medium">
-                        Actions
+                        {t("columnActions")}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -429,19 +439,19 @@ export function ListingsView({
                                   {listing.title}
                                 </p>
                                 <p className="mt-1 max-w-[240px] truncate text-xs text-muted-foreground">
-                                  {listing.city || "Location not set"}
+                                  {listing.city || t("locationNotSet")}
                                 </p>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell className="px-3 py-4">
-                            <p>{formatPropertyType(listing.propertyType)}</p>
+                            <p>{t(PROPERTY_TYPE_MESSAGE_KEYS[listing.propertyType])}</p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {formatTransactionType(listing.transactionType)}
+                              {t(TRANSACTION_MESSAGE_KEYS[listing.transactionType])}
                             </p>
                           </TableCell>
                           <TableCell className="px-3 py-4 font-medium">
-                            {formatPrice(listing.price, listing.currency)}
+                            {formatPrice(listing.price, listing.currency, locale)}
                           </TableCell>
                           <TableCell className="px-3 py-4">
                             <Badge
@@ -451,14 +461,14 @@ export function ListingsView({
                                   : "secondary"
                               }
                             >
-                              {formatStatus(listing.status)}
+                              {t(STATUS_MESSAGE_KEYS[listing.status])}
                             </Badge>
                           </TableCell>
                           <TableCell className="px-3 py-4 font-medium">
                             {listing.viewCount ?? 0}
                           </TableCell>
                           <TableCell className="px-3 py-4 text-muted-foreground">
-                            {formatDate(listing._updatedDate)}
+                            {formatDate(listing._updatedDate, locale)}
                           </TableCell>
                           <TableCell className="px-6 py-4 text-right">
                             <ListingActionsMenu
@@ -496,7 +506,7 @@ export function ListingsView({
             {!loading && !error && totalCount > 0 ? (
               <div className="flex items-center justify-between border-t border-border/60 px-6 py-3">
                 <p className="text-xs text-muted-foreground">
-                  Page {page + 1} of {totalPages}
+                  {t("pageOf", { current: page + 1, total: totalPages })}
                 </p>
                 <div className="flex gap-2">
                   <Button
@@ -506,7 +516,7 @@ export function ListingsView({
                     onClick={() =>
                       setPage((current) => Math.max(0, current - 1))
                     }
-                    aria-label="Previous page"
+                    aria-label={t("previousPage")}
                   >
                     <ChevronLeft className="size-4" aria-hidden="true" />
                   </Button>
@@ -515,7 +525,7 @@ export function ListingsView({
                     size="icon-sm"
                     disabled={!hasNext}
                     onClick={() => setPage((current) => current + 1)}
-                    aria-label="Next page"
+                    aria-label={t("nextPage")}
                   >
                     <ChevronRight className="size-4" aria-hidden="true" />
                   </Button>
@@ -537,9 +547,9 @@ export function ListingsView({
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Unique visitors</DialogTitle>
+            <DialogTitle>{t("uniqueVisitorsTitle")}</DialogTitle>
             <DialogDescription>
-              People who viewed “{viewersListing?.title}”, counted once each.
+              {t("uniqueVisitorsHint", { title: viewersListing?.title ?? "" })}
             </DialogDescription>
           </DialogHeader>
           <div className="px-6 py-4">
@@ -559,14 +569,13 @@ export function ListingsView({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this listing?</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteListingTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              “{archiveCandidate?.title}” will be removed from active listings.
-              You can still view it when archived listings are enabled.
+              {t("deleteListingBody", { title: archiveCandidate?.title ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
@@ -574,7 +583,7 @@ export function ListingsView({
                 setArchiveCandidate(null);
               }}
             >
-              Delete listing
+              {t("deleteListing")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -596,6 +605,7 @@ function ListingActionsMenu({
   onViewers: () => void;
   onDelete: () => void;
 }) {
+  const t = useDt();
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -668,7 +678,7 @@ function ListingActionsMenu({
               onEdit();
             }}
           >
-            <Pencil className="size-4" aria-hidden="true" /> Edit
+            <Pencil className="size-4" aria-hidden="true" /> {t("edit")}
           </button>
           <button
             type="button"
@@ -679,7 +689,7 @@ function ListingActionsMenu({
               onViewers();
             }}
           >
-            <Eye className="size-4" aria-hidden="true" /> Unique visitors
+            <Eye className="size-4" aria-hidden="true" /> {t("uniqueVisitors")}
           </button>
           {listing.status !== "archived" ? (
             <button
@@ -692,7 +702,7 @@ function ListingActionsMenu({
                 onDelete();
               }}
             >
-              <Archive className="size-4" aria-hidden="true" /> Delete
+              <Archive className="size-4" aria-hidden="true" /> {t("delete")}
             </button>
           ) : null}
         </div>,
@@ -708,7 +718,7 @@ function ListingActionsMenu({
         size="icon-sm"
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`Actions for ${listing.title}`}
+        aria-label={t("actionsFor", { title: listing.title })}
         onClick={toggle}
       >
         <MoreHorizontal className="size-4" aria-hidden="true" />
@@ -727,6 +737,9 @@ function UniqueViewersList({
   loading: boolean;
   error: string | null;
 }) {
+  const t = useDt();
+  const { locale } = useDashboardI18n();
+
   if (loading) {
     return (
       <div
@@ -735,7 +748,7 @@ function UniqueViewersList({
         aria-live="polite"
       >
         <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" />
-        <span className="sr-only">Loading unique visitors</span>
+        <span className="sr-only">{t("uniqueVisitorsLoading")}</span>
       </div>
     );
   }
@@ -744,6 +757,7 @@ function UniqueViewersList({
   }
   const { viewers, anonymousViews } = uniqueViewersFromEvents(
     listing?.viewEvents,
+    t("signedInVisitor"),
   );
   console.info("[listings-viewers] render list", {
     listingId: listing?._id,
@@ -753,17 +767,21 @@ function UniqueViewersList({
   });
   if (viewers.length === 0 && anonymousViews === 0) {
     return (
-      <p className="py-4 text-sm text-muted-foreground">
-        No one has viewed this listing yet.
-      </p>
+      <p className="py-4 text-sm text-muted-foreground">{t("noViewersYet")}</p>
     );
   }
   return (
     <div className="max-h-[min(24rem,60vh)] space-y-3 overflow-y-auto pr-1">
       <p className="text-xs text-muted-foreground">
-        {viewers.length} unique visitor{viewers.length === 1 ? "" : "s"}
+        {viewers.length === 1
+          ? t("uniqueVisitorCount", { count: viewers.length })
+          : t("uniqueVisitorCountPlural", { count: viewers.length })}
         {anonymousViews > 0
-          ? ` · ${anonymousViews} unsigned view${anonymousViews === 1 ? "" : "s"}`
+          ? ` · ${
+              anonymousViews === 1
+                ? t("unsignedViews", { count: anonymousViews })
+                : t("unsignedViewsPlural", { count: anonymousViews })
+            }`
           : ""}
       </p>
       {viewers.length > 0 ? (
@@ -780,17 +798,16 @@ function UniqueViewersList({
                 </a>
               ) : null}
               <p className="mt-1 text-xs text-muted-foreground">
-                {viewer.viewCount} view{viewer.viewCount === 1 ? "" : "s"} · last{" "}
-                {formatDateTime(viewer.lastViewedAt)}
+                {viewer.viewCount === 1
+                  ? t("viewCountLabel", { count: viewer.viewCount })
+                  : t("viewCountLabelPlural", { count: viewer.viewCount })}{" "}
+                · {t("lastViewed", { when: formatDateTime(viewer.lastViewedAt, locale) })}
               </p>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          Views so far are from unsigned visitors, so unique users cannot be
-          listed.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("unsignedViewsOnly")}</p>
       )}
     </div>
   );

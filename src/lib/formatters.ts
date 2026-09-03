@@ -20,15 +20,19 @@ export function formatTransactionType(transactionType: Listing['transactionType'
   );
 }
 
-export function formatPrice(price: number, currency: string): string {
+export function formatPrice(
+  price: number,
+  currency: string,
+  locale?: string,
+): string {
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency || 'USD',
       maximumFractionDigits: 0,
     }).format(price);
   } catch {
-    return `${currency || 'USD'} ${price.toLocaleString()}`;
+    return `${currency || 'USD'} ${price.toLocaleString(locale)}`;
   }
 }
 
@@ -49,17 +53,17 @@ function toDate(value: DateLike): Date | undefined {
   return undefined;
 }
 
-export function formatDate(date?: DateLike): string {
+export function formatDate(date?: DateLike, locale?: string): string {
   const parsed = toDate(date);
   return parsed
-    ? parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    ? parsed.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
     : '—';
 }
 
-export function formatDateTime(date?: DateLike): string {
+export function formatDateTime(date?: DateLike, locale?: string): string {
   const parsed = toDate(date);
   return parsed
-    ? parsed.toLocaleString(undefined, {
+    ? parsed.toLocaleString(locale, {
         month: 'short',
         day: 'numeric',
         year: 'numeric',

@@ -3,6 +3,8 @@ import { dashboard } from '@wix/dashboard';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
+import { useDt } from '@/lib/dashboard-i18n';
+
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -29,6 +31,7 @@ const formats = [
 ];
 
 export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
+  const t = useDt();
   const editorRef = useRef<ReactQuill | null>(null);
 
   const insertImages = useCallback(async () => {
@@ -55,10 +58,10 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
       console.error('Unable to insert images into the description.', error);
       dashboard.showToast({
         type: 'error',
-        message: 'Images could not be added to the description.',
+        message: t('imagesInsertFailed'),
       });
     }
-  }, []);
+  }, [t]);
 
   const insertVideos = useCallback(async () => {
     try {
@@ -84,10 +87,10 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
       console.error('Unable to insert videos into the description.', error);
       dashboard.showToast({
         type: 'error',
-        message: 'Videos could not be added to the description.',
+        message: t('videosInsertFailed'),
       });
     }
-  }, []);
+  }, [t]);
 
   const modules = useMemo(
     () => ({
@@ -121,8 +124,8 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
       onChange={onChange}
       modules={modules}
       formats={formats}
-      placeholder="Describe the light, layout, finishes, and reasons to love this property…"
-      aria-label="Listing description"
+      placeholder={t('descriptionPlaceholder')}
+      aria-label={t('listingDescriptionAria')}
     />
   );
 }

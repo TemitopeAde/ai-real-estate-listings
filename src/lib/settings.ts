@@ -1,4 +1,8 @@
 import { LISTING_STATUSES, type ListingStatus } from './listings';
+import {
+  isDashboardLanguageSetting,
+  type DashboardLanguageSetting,
+} from './dashboard-i18n';
 
 export const SETTINGS_STORAGE_KEY = 'ai-real-estate-listings.workspace-settings';
 
@@ -7,6 +11,7 @@ export interface WorkspaceSettings {
   defaultAreaUnit: string;
   defaultStatus: ListingStatus;
   showArchived: boolean;
+  dashboardLanguage: DashboardLanguageSetting;
 }
 
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
@@ -14,6 +19,7 @@ export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
   defaultAreaUnit: 'sq ft',
   defaultStatus: 'draft',
   showArchived: false,
+  dashboardLanguage: 'auto',
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -56,6 +62,11 @@ export function readWorkspaceSettings(): WorkspaceSettings {
         typeof parsed.showArchived === 'boolean'
           ? parsed.showArchived
           : DEFAULT_WORKSPACE_SETTINGS.showArchived,
+      dashboardLanguage:
+        typeof parsed.dashboardLanguage === 'string' &&
+        isDashboardLanguageSetting(parsed.dashboardLanguage)
+          ? parsed.dashboardLanguage
+          : DEFAULT_WORKSPACE_SETTINGS.dashboardLanguage,
     };
   } catch (error) {
     console.error('Unable to read workspace settings.', error);

@@ -22,15 +22,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  formatDate,
-  formatPrice,
-  formatPropertyType,
-  formatStatus,
-  getImageUrl,
-} from '@/lib/formatters';
+import { formatDate, formatPrice, getImageUrl } from '@/lib/formatters';
 import { getDashboardSnapshot, type DashboardSnapshot } from '@/lib/listings';
 import { openAppUpgradePage } from '@/lib/entitlement';
+import { useDashboardI18n, useDt } from '@/lib/dashboard-i18n';
+import {
+  PROPERTY_TYPE_MESSAGE_KEYS,
+  STATUS_MESSAGE_KEYS,
+} from '@/lib/dashboard-i18n/labels';
 import { useEntitlement } from './entitlement-context';
 
 interface OverviewViewProps {
@@ -69,19 +68,45 @@ function MetricCard({
   );
 }
 
-function RecentListings({ listings, onViewListings }: { listings: DashboardSnapshot['recent']; onViewListings: () => void }) {
+function GuideIntro({ onOpenGuide }: { onOpenGuide: () => void }) {
+  const t = useDt();
+  const [before, after] = t('overviewIntro').split('{guide}');
+  return (
+    <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+      {before}
+      <button
+        type="button"
+        className="font-medium text-primary underline-offset-4 hover:underline"
+        onClick={onOpenGuide}
+      >
+        {t('workspaceGuide')}
+      </button>
+      {after}
+    </p>
+  );
+}
+
+function RecentListings({
+  listings,
+  onViewListings,
+}: {
+  listings: DashboardSnapshot['recent'];
+  onViewListings: () => void;
+}) {
+  const t = useDt();
+  const { locale } = useDashboardI18n();
   if (listings.length === 0) {
     return (
       <div className="flex min-h-52 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 text-center">
         <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Building2 className="size-5" aria-hidden="true" />
         </div>
-        <h3 className="mt-4 font-semibold">Your inventory is ready for its first listing</h3>
+        <h3 className="mt-4 font-semibold">{t('inventoryEmptyTitle')}</h3>
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Add a property to start tracking your portfolio and unlock analytics.
+          {t('inventoryEmptyBody')}
         </p>
         <Button variant="outline" size="sm" className="mt-4" onClick={onViewListings}>
-          Open listings <ArrowRight className="size-4" aria-hidden="true" />
+          {t('openListings')} <ArrowRight className="size-4" aria-hidden="true" />
         </Button>
       </div>
     );
@@ -104,17 +129,17 @@ function RecentListings({ listings, onViewListings }: { listings: DashboardSnaps
               <p className="truncate text-sm font-medium">{listing.title}</p>
               <p className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground">
                 <MapPin className="size-3" aria-hidden="true" />
-                {listing.city || 'Location not set'}
+                {listing.city || t('locationNotSet')}
                 <span aria-hidden="true">·</span>
-                {formatPropertyType(listing.propertyType)}
+                {t(PROPERTY_TYPE_MESSAGE_KEYS[listing.propertyType])}
               </p>
             </div>
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium">{formatPrice(listing.price, listing.currency)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{formatDate(listing._updatedDate)}</p>
+              <p className="text-sm font-medium">{formatPrice(listing.price, listing.currency, locale)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{formatDate(listing._updatedDate, locale)}</p>
             </div>
             <Badge variant={listing.status === 'active' ? 'default' : 'secondary'}>
-              {formatStatus(listing.status)}
+              {t(STATUS_MESSAGE_KEYS[listing.status])}
             </Badge>
           </div>
         );
@@ -124,6 +149,7 @@ function RecentListings({ listings, onViewListings }: { listings: DashboardSnaps
 }
 
 export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpenWriter, onOpenGuide, onOpenPricing }: OverviewViewProps) {
+  const t = useDt();
   const entitlement = useEntitlement();
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -134,9 +160,9 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
       setSnapshot(await getDashboardSnapshot());
     } catch (loadError) {
       console.error('Unable to load dashboard overview.', loadError);
-      setError('We could not load your overview. Check the collection permissions and try again.');
+      setError(t('overviewLoadError'));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -146,16 +172,13 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-medium text-primary">Good to see you</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Your real estate workspace</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Keep your inventory organized, spot movement quickly, and prepare every listing for assisted publishing.
-            New here? Follow the <button type="button" className="font-medium text-primary underline-offset-4 hover:underline" onClick={onOpenGuide}>workspace guide</button>.
-          </p>
+          <p className="text-sm font-medium text-primary">{t('overviewEyebrow')}</p>
+          <h2 className="mt-1 text-3xl font-semibold tracking-tight">{t('overviewTitle')}</h2>
+          <GuideIntro onOpenGuide={onOpenGuide} />
         </div>
         <Button onClick={onAddListing} className="w-full sm:w-auto">
           <Plus className="size-4" aria-hidden="true" />
-          Add listing
+          {t('addListing')}
         </Button>
       </div>
 
@@ -164,7 +187,7 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
           <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-destructive">{error}</p>
             <Button variant="outline" size="sm" onClick={() => void load()}>
-              <RefreshCw className="size-4" aria-hidden="true" /> Retry
+              <RefreshCw className="size-4" aria-hidden="true" /> {t('retry')}
             </Button>
           </CardContent>
         </Card>
@@ -173,10 +196,10 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {snapshot ? (
           <>
-            <MetricCard label="Total listings" value={snapshot.total} detail="Across your workspace" icon={Building2} />
-            <MetricCard label="Active" value={snapshot.active} detail="Currently available" icon={CheckCircle2} />
-            <MetricCard label="Under offer" value={snapshot.underOffer} detail="Moving through a deal" icon={Handshake} />
-            <MetricCard label="Sold" value={snapshot.sold} detail="Completed transactions" icon={BadgeDollarSign} />
+            <MetricCard label={t('metricTotal')} value={snapshot.total} detail={t('metricTotalDetail')} icon={Building2} />
+            <MetricCard label={t('metricActive')} value={snapshot.active} detail={t('metricActiveDetail')} icon={CheckCircle2} />
+            <MetricCard label={t('metricUnderOffer')} value={snapshot.underOffer} detail={t('metricUnderOfferDetail')} icon={Handshake} />
+            <MetricCard label={t('metricSold')} value={snapshot.sold} detail={t('metricSoldDetail')} icon={BadgeDollarSign} />
           </>
         ) : (
           Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-36 rounded-xl" />)
@@ -187,11 +210,11 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
         <Card className="border-border/70 bg-card/90 shadow-sm">
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
-              <CardTitle>Recent listings</CardTitle>
-              <CardDescription>The latest properties added or updated in your workspace.</CardDescription>
+              <CardTitle>{t('recentListings')}</CardTitle>
+              <CardDescription>{t('recentListingsHint')}</CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={onViewListings}>
-              View all <ArrowRight className="size-4" aria-hidden="true" />
+              {t('viewAll')} <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
           </CardHeader>
           <CardContent>
@@ -203,11 +226,11 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
           <CardHeader>
             <div className="flex items-center gap-2 text-[#0C3B2E]">
               <Clock3 className="size-4" aria-hidden="true" />
-              <span className="text-xs font-semibold uppercase tracking-[0.18em]">Next focus</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.18em]">{t('nextFocus')}</span>
             </div>
-            <CardTitle className="mt-3 text-foreground">Turn details into momentum</CardTitle>
+            <CardTitle className="mt-3 text-foreground">{t('momentumTitle')}</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Turn your confirmed property facts into professional, luxury, short, SEO, or social-ready copy in seconds.
+              {t('momentumBody')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -227,10 +250,10 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
               }}
             >
               {entitlement.features.aiWriter
-                ? "Open AI writer"
+                ? t('openWriter')
                 : entitlement.canStartTrial
-                  ? "Start free trial"
-                  : "Unlock AI writer"}{" "}
+                  ? t('startFreeTrial')
+                  : t('unlockWriter')}{" "}
               <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
           </CardContent>

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { dashboard } from "@wix/dashboard";
 import { Check, ImagePlus, Loader2, Save, Trash2, WandSparkles } from "lucide-react";
 
@@ -58,6 +58,18 @@ import {
   getSiteOwnerContact,
 } from "@/lib/listings";
 import { htmlFromPlainDescription, type ListingCopyInput } from "@/lib/ai-writer";
+import { useDashboardI18n, useDt } from "@/lib/dashboard-i18n";
+import {
+  AREA_UNIT_MESSAGE_KEYS,
+  CONDITION_MESSAGE_KEYS,
+  FURNISHING_MESSAGE_KEYS,
+  PROPERTY_TYPE_MESSAGE_KEYS,
+  RENTAL_MESSAGE_KEYS,
+  STATUS_MESSAGE_KEYS,
+  TENURE_MESSAGE_KEYS,
+  TRANSACTION_MESSAGE_KEYS,
+} from "@/lib/dashboard-i18n/labels";
+import type { AreaUnit } from "@/lib/listing-types";
 import { AIWriterPanel } from "./ai-writer-panel";
 import { useEntitlement } from "./entitlement-context";
 
@@ -141,14 +153,8 @@ function createInitialState(
   const availabilityDate = listing?.availabilityDate;
   const isNewListing = !listing?._id && !loading;
   return {
-    title:
-      listing?.title ??
-      (isNewListing ? "Contemporary 3-bedroom house in Austin, TX" : ""),
-    description:
-      listing?.description ??
-      (isNewListing
-        ? "<p>Bright and spacious home with modern finishes, excellent natural light, and a two-car garage. Located close to shops, restaurants, and major commuter routes.</p><p>Ideal for professionals or a growing family looking for a comfortable home in a well-connected neighborhood.</p>"
-        : ""),
+    title: listing?.title ?? "",
+    description: listing?.description ?? "",
     transactionType: listing?.transactionType ?? "sale",
     propertyType: listing?.propertyType ?? "house",
     status: listing?.status ?? defaults.defaultStatus,
@@ -224,9 +230,7 @@ function createInitialState(
           : ""
         : String(listing.parkingSpaces),
     furnished: listing?.furnished ?? isNewListing,
-    amenities:
-      listing?.amenities?.join(", ") ??
-      (isNewListing ? "Swimming pool, Gym, Garage, Central air" : ""),
+    amenities: listing?.amenities?.join(", ") ?? "",
     country:
       matchCountryCode(
         fallbackCountries,
@@ -275,6 +279,8 @@ function listingCopyInputFromForm(
   form: ListingFormState,
   countries: CountryOption[],
   states: LocationOption[],
+  translate: ReturnType<typeof useDt>,
+  locale: string,
 ): ListingCopyInput {
   const countryName =
     countries.find((country) => country.code === form.country)?.name ??
@@ -286,15 +292,15 @@ function listingCopyInputFromForm(
     .map((part) => part.trim())
     .filter(Boolean)
     .join(", ");
-  const propertyType =
-    PROPERTY_TYPES.find((type) => type.value === form.propertyType)?.label ??
-    form.propertyType;
-  const furnishing =
-    FURNISHING_STATUSES.find((status) => status.value === form.furnishingStatus)
-      ?.label ?? form.furnishingStatus;
+  const propertyType = translate(
+    PROPERTY_TYPE_MESSAGE_KEYS[form.propertyType],
+  );
+  const furnishing = translate(
+    FURNISHING_MESSAGE_KEYS[form.furnishingStatus],
+  );
   const amount = Number(form.price);
   const price = form.price.trim()
-    ? `${form.currency} ${Number.isFinite(amount) ? amount.toLocaleString() : form.price.trim()}`
+    ? `${form.currency} ${Number.isFinite(amount) ? amount.toLocaleString(locale) : form.price.trim()}`
     : "";
   return {
     bedrooms: form.bedrooms,
@@ -318,6 +324,8 @@ export function ListingForm({
   onSave,
 }: ListingFormProps) {
   const entitlement = useEntitlement();
+  const t = useDt();
+  const { locale } = useDashboardI18n();
   const [form, setForm] = useState(() =>
     createInitialState(listing, {
       defaultCurrency,
@@ -331,16 +339,79 @@ export function ListingForm({
   const [countries, setCountries] = useState<CountryOption[]>(fallbackCountries);
   const [states, setStates] = useState<LocationOption[]>([]);
   const [cities, setCities] = useState<LocationOption[]>([]);
-  const [statesLoading, setStatesLoading] = useState(false);
-  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [, setStatesLoading] = useState(false);
+  const [, setCitiesLoading] = useState(false);
   const [locationError, setLocationError] = useState(false);
   const [writerOpen, setWriterOpen] = useState(false);
   const [writerKey, setWriterKey] = useState(0);
   const isEditing = Boolean(listing?._id);
 
-  const editorLabel = isEditing
-    ? "Edit listing details"
-    : "Create a new listing";
+  const editorLabel = isEditing ? t("editListingDetails") : t("createListing");
+
+  const transactionOptions = useMemo(
+    () =>
+      TRANSACTION_TYPES.map((option) => ({
+        value: option.value,
+        label: t(TRANSACTION_MESSAGE_KEYS[option.value]),
+      })),
+    [t],
+  );
+  const propertyTypeOptions = useMemo(
+    () =>
+      PROPERTY_TYPES.map((option) => ({
+        value: option.value,
+        label: t(PROPERTY_TYPE_MESSAGE_KEYS[option.value]),
+      })),
+    [t],
+  );
+  const statusOptions = useMemo(
+    () =>
+      LISTING_STATUSES.map((option) => ({
+        value: option.value,
+        label: t(STATUS_MESSAGE_KEYS[option.value]),
+      })),
+    [t],
+  );
+  const conditionOptions = useMemo(
+    () =>
+      PROPERTY_CONDITIONS.map((option) => ({
+        value: option.value,
+        label: t(CONDITION_MESSAGE_KEYS[option.value]),
+      })),
+    [t],
+  );
+  const furnishingOptions = useMemo(
+    () =>
+      FURNISHING_STATUSES.map((option) => ({
+        value: option.value,
+        label: t(FURNISHING_MESSAGE_KEYS[option.value]),
+      })),
+    [t],
+  );
+  const tenureOptions = useMemo(
+    () =>
+      TENURE_TYPES.map((option) => ({
+        value: option.value,
+        label: t(TENURE_MESSAGE_KEYS[option.value]),
+      })),
+    [t],
+  );
+  const rentalOptions = useMemo(
+    () =>
+      RENTAL_FREQUENCIES.map((option) => ({
+        value: option.value,
+        label: t(RENTAL_MESSAGE_KEYS[option.value]),
+      })),
+    [t],
+  );
+  const areaUnitOptions = useMemo(
+    () =>
+      AREA_UNITS.map((option) => ({
+        value: option.value,
+        label: t(AREA_UNIT_MESSAGE_KEYS[option.value as AreaUnit]),
+      })),
+    [t],
+  );
 
   useEffect(() => {
     setForm(
@@ -353,6 +424,24 @@ export function ListingForm({
     setErrors({});
     setSubmitError(null);
   }, [defaultAreaUnit, defaultCurrency, defaultStatus, listing, loading]);
+
+  useEffect(() => {
+    if (listing?._id || loading) return;
+    setForm((current) => {
+      const needsTitle = !current.title.trim();
+      const needsDescription = !current.description.trim();
+      const needsAmenities = !current.amenities.trim();
+      if (!needsTitle && !needsDescription && !needsAmenities) return current;
+      return {
+        ...current,
+        title: needsTitle ? t("sampleListingTitle") : current.title,
+        description: needsDescription ? t("sampleListingDescription") : current.description,
+        amenities: needsAmenities ? t("sampleAmenities") : current.amenities,
+      };
+    });
+    // Seed sample copy once for new listings; omit `t` so language changes do not reset edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listing?._id, loading]);
 
   useEffect(() => {
     if (listing?._id || loading) return;
@@ -382,7 +471,7 @@ export function ListingForm({
         const response = await httpClient.fetchWithAuth(
           `${API_ORIGIN}/api/locations`,
         );
-        if (!response.ok) throw new Error("Countries could not be loaded.");
+        if (!response.ok) throw new Error("location-countries");
         const data = (await response.json()) as unknown;
         if (!cancelled && Array.isArray(data)) {
           const nextCountries = data.filter(isCountryOption);
@@ -424,7 +513,7 @@ export function ListingForm({
         const response = await httpClient.fetchWithAuth(
           `${API_ORIGIN}/api/locations?country=${encodeURIComponent(form.country)}`,
         );
-        if (!response.ok) throw new Error("States could not be loaded.");
+        if (!response.ok) throw new Error("location-states");
         const data = (await response.json()) as unknown;
         if (cancelled) return;
         if (Array.isArray(data)) {
@@ -479,7 +568,7 @@ export function ListingForm({
         const response = await httpClient.fetchWithAuth(
           `${API_ORIGIN}/api/locations?country=${encodeURIComponent(form.country)}&state=${encodeURIComponent(form.state)}`,
         );
-        if (!response.ok) throw new Error("Cities could not be loaded.");
+        if (!response.ok) throw new Error("location-cities");
         const data = (await response.json()) as unknown;
         if (!cancelled && Array.isArray(data))
           setCities(data.filter(isLocationOption));
@@ -522,7 +611,7 @@ export function ListingForm({
       console.error("Unable to open the Wix Media Manager.", error);
       dashboard.showToast({
         type: "error",
-        message: "The Media Manager could not be opened.",
+        message: t("mediaManagerFailed"),
       });
     }
   };
@@ -551,7 +640,7 @@ export function ListingForm({
       console.error("Unable to open the Wix Media Manager for panorama images.", error);
       dashboard.showToast({
         type: "error",
-        message: "The Media Manager could not be opened.",
+        message: t("mediaManagerFailed"),
       });
     }
   };
@@ -579,31 +668,30 @@ export function ListingForm({
 
   const validate = (): FormErrors => {
     const nextErrors: FormErrors = {};
-    if (!form.title.trim())
-      nextErrors.title = "Enter a title for this listing.";
+    if (!form.title.trim()) nextErrors.title = t("enterTitle");
     if (!form.currency.trim() || !/^[a-z]{3}$/i.test(form.currency.trim())) {
-      nextErrors.currency = "Use a three-letter currency code.";
+      nextErrors.currency = t("currencyCodeError");
     }
 
     const price = Number(form.price);
     if (!form.price.trim() || !Number.isFinite(price) || price < 0)
-      nextErrors.price = "Enter a valid price.";
+      nextErrors.price = t("enterValidPrice");
 
     const area = Number(form.area);
     if (!form.area.trim() || !Number.isFinite(area) || area < 0)
-      nextErrors.area = "Enter a valid area.";
-    if (!form.country.trim()) nextErrors.country = "Select a country.";
-    if (!form.state.trim()) nextErrors.state = "Select a state or region.";
-    if (!form.city.trim()) nextErrors.city = "Enter the city or locality.";
-    if (!form.address.trim()) nextErrors.address = "Enter the street address.";
+      nextErrors.area = t("enterValidArea");
+    if (!form.country.trim()) nextErrors.country = t("selectCountry");
+    if (!form.state.trim()) nextErrors.state = t("selectState");
+    if (!form.city.trim()) nextErrors.city = t("enterCityError");
+    if (!form.address.trim()) nextErrors.address = t("enterAddressError");
     if (form.agentEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.agentEmail.trim())) {
-      nextErrors.agentEmail = "Enter a valid email address.";
+      nextErrors.agentEmail = t("validEmail");
     }
     if (
       form.agentPhone.trim() &&
       !/^[+()\d\s.-]{7,30}$/.test(form.agentPhone.trim())
     ) {
-      nextErrors.agentPhone = "Enter a valid phone number.";
+      nextErrors.agentPhone = t("validPhone");
     }
 
     for (const [key, value] of [
@@ -611,7 +699,7 @@ export function ListingForm({
       ["bathrooms", form.bathrooms],
     ] as const) {
       if (value.trim() && optionalNumber(value) === undefined)
-        nextErrors[key] = "Enter a valid number.";
+        nextErrors[key] = t("validNumber");
     }
 
     for (const [key, value] of [
@@ -620,7 +708,7 @@ export function ListingForm({
     ] as const) {
       const number = optionalNumber(value);
       if (value.trim() && (number === undefined || !Number.isInteger(number))) {
-        nextErrors[key] = "Enter a whole number.";
+        nextErrors[key] = t("wholeNumber");
       }
     }
 
@@ -634,13 +722,9 @@ export function ListingForm({
     setSubmitError(null);
     if (Object.keys(nextErrors).length > 0) {
       const messages = Object.values(nextErrors).filter((message): message is string => Boolean(message));
-      const first = messages[0] ?? "Fix the highlighted fields before saving.";
-      const extraCount = messages.length - 1;
       dashboard.showToast({
         type: "error",
-        message: extraCount > 0
-          ? `${first} ${extraCount} more ${extraCount === 1 ? "issue needs" : "issues need"} attention.`
-          : first,
+        message: messages[0] ?? t("formInvalid"),
       });
       return;
     }
@@ -710,7 +794,7 @@ export function ListingForm({
       setSubmitError(
         saveError instanceof Error
           ? saveError.message
-          : "The listing could not be saved.",
+          : t("listingSaveFailed"),
       );
     } finally {
       setSaving(false);
@@ -725,7 +809,7 @@ export function ListingForm({
         aria-live="polite"
       >
         <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" />
-        <span className="sr-only">Loading listing</span>
+        <span className="sr-only">{t("loadingListing")}</span>
       </div>
     );
   }
@@ -736,13 +820,12 @@ export function ListingForm({
     <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit} noValidate>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain py-6">
       <div>
-        <p className="text-sm font-medium text-primary">Listing editor</p>
+        <p className="text-sm font-medium text-primary">{t("listingEditorEyebrow")}</p>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight">
           {editorLabel}
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Capture the facts once, then keep this record ready for future
-          AI-assisted publishing.
+          {t("listingEditorIntro")}
         </p>
       </div>
 
@@ -759,19 +842,17 @@ export function ListingForm({
         <div className="min-w-0 space-y-6">
         <Card className="border-border/70 bg-card/90 shadow-sm">
           <CardHeader>
-            <CardTitle>Property story</CardTitle>
-            <CardDescription>
-              Use the editor to add a polished, structured description.
-            </CardDescription>
+            <CardTitle>{t("propertyStory")}</CardTitle>
+            <CardDescription>{t("propertyStoryHint")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <label className="space-y-2 text-sm font-medium">
-              <FieldLabel text="Title" hint="A concise name that identifies this property." required />
+              <FieldLabel text={t("title")} hint={t("titleHint")} required />
               <Input
                 value={form.title}
                 onChange={(event) => update("title", event.target.value)}
                 aria-invalid={Boolean(errors.title)}
-                placeholder="Light-filled 3-bedroom house in Austin, TX"
+                placeholder={t("titlePlaceholder")}
               />
               {errors.title ? (
                 <span className="block text-xs font-normal text-destructive">
@@ -782,7 +863,7 @@ export function ListingForm({
 
             <div className="space-y-2 text-sm font-medium">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <FieldLabel text="Description" hint="Describe the property, layout, finishes, and selling points." />
+                <FieldLabel text={t("description")} hint={t("descriptionHint")} />
                 <Button
                   type="button"
                   variant="outline"
@@ -795,14 +876,14 @@ export function ListingForm({
                   disabled={!entitlement.features.aiWriter}
                 >
                   <WandSparkles className="size-4" aria-hidden="true" />
-                  {entitlement.features.aiWriter ? "Write with AI" : "AI writer (Pro)"}
+                  {entitlement.features.aiWriter ? t("writeWithAi") : t("writeWithAiPro")}
                 </Button>
               </div>
               <div className="listing-rich-editor overflow-hidden rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/30">
                 <Suspense
                   fallback={
                     <div className="min-h-52 p-4 text-sm text-muted-foreground">
-                      Loading editor…
+                      {t("loadingEditor")}
                     </div>
                   }
                 >
@@ -813,15 +894,14 @@ export function ListingForm({
                 </Suspense>
               </div>
               <p className="text-xs font-normal text-muted-foreground">
-                Full formatting includes fonts, sizes, headings, emphasis,
-                colors, alignment, lists, indentation, quotes, code, and links.
-                Add images in the listing gallery below.
+                {t("descriptionFormatHint")}
               </p>
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
               <FieldSelect
-                label="Country"
+                label={t("country")}
+                hint={t("countryHint")}
                 value={form.country}
                 onValueChange={(value) => {
                   update("country", value);
@@ -832,7 +912,8 @@ export function ListingForm({
                 error={errors.country}
               />
               <FieldSelect
-                label="State / region"
+                label={t("state")}
+                hint={t("stateHint")}
                 value={form.state}
                 onValueChange={(value) => {
                   update("state", value);
@@ -843,12 +924,12 @@ export function ListingForm({
                 error={errors.state}
               />
               <label className="space-y-2 text-sm font-medium">
-                <FieldLabel text="Address" hint="Enter the street address or property location details." required />
+                <FieldLabel text={t("address")} hint={t("addressHint")} required />
                 <Input
                   value={form.address}
                   onChange={(event) => update("address", event.target.value)}
                   aria-invalid={Boolean(errors.address)}
-                  placeholder="Street address or neighborhood"
+                  placeholder={t("addressPlaceholder")}
                 />
                 {errors.address ? (
                   <span className="block text-xs font-normal text-destructive">
@@ -857,12 +938,12 @@ export function ListingForm({
                 ) : null}
               </label>
               <label className="space-y-2 text-sm font-medium">
-                <FieldLabel text="City" hint="Choose a suggested city or enter one manually." required />
+                <FieldLabel text={t("city")} hint={t("cityHint")} required />
                 <Input
                   value={form.city}
                   onChange={(event) => update("city", event.target.value)}
                   aria-invalid={Boolean(errors.city)}
-                  placeholder="Enter or select a city"
+                  placeholder={t("cityPlaceholder")}
                   list="listing-city-options"
                 />
                 <datalist id="listing-city-options">
@@ -872,8 +953,7 @@ export function ListingForm({
                 </datalist>
                 {locationError ? (
                   <span className="block text-xs font-normal text-muted-foreground">
-                    Location suggestions are unavailable. Enter the city
-                    manually.
+                    {t("locationUnavailable")}
                   </span>
                 ) : null}
                 {errors.city ? (
@@ -888,19 +968,16 @@ export function ListingForm({
 
         <Card className="border-border/70 bg-card/90 shadow-sm">
           <CardHeader>
-            <CardTitle>Listing images</CardTitle>
-            <CardDescription>
-              Choose photos from your Wix Media Manager. The first image is the cover.
-            </CardDescription>
+            <CardTitle>{t("listingImages")}</CardTitle>
+            <CardDescription>{t("listingImagesCardHint")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-3 text-sm font-medium">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                <FieldLabel text="Listing images" hint="Choose images from Wix Media Manager; the first image is the cover." />
+                <FieldLabel text={t("listingImages")} hint={t("listingImagesHint")} />
                   <p className="mt-1 text-xs font-normal text-muted-foreground">
-                    Choose multiple images from your Wix Media Manager. The
-                    first image is used as the cover.
+                    {t("listingImagesMultiHint")}
                   </p>
                 </div>
                 <Button
@@ -909,7 +986,7 @@ export function ListingForm({
                   size="sm"
                   onClick={() => void chooseImages()}
                 >
-                  <ImagePlus className="size-4" aria-hidden="true" /> Add images
+                  <ImagePlus className="size-4" aria-hidden="true" /> {t("addImages")}
                 </Button>
               </div>
               {form.gallery.length > 0 ? (
@@ -921,12 +998,12 @@ export function ListingForm({
                     >
                       <img
                         src={image.url}
-                        alt={image.title ?? `Listing image ${index + 1}`}
+                        alt={image.title ?? t("listingImageAlt", { n: index + 1 })}
                         className="aspect-square w-full object-cover"
                       />
                       <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/65 p-1.5 text-white">
                         <span className="truncate text-[11px]">
-                          {index === 0 ? "Cover image" : `Image ${index + 1}`}
+                          {index === 0 ? t("coverImage") : t("imageN", { n: index + 1 })}
                         </span>
                         <Button
                           type="button"
@@ -934,7 +1011,7 @@ export function ListingForm({
                           size="icon-xs"
                           className="text-white hover:bg-white/20 hover:text-white"
                           onClick={() => removeImage(index)}
-                          aria-label={`Remove image ${index + 1}`}
+                          aria-label={t("removeImage", { n: index + 1 })}
                         >
                           <Trash2 className="size-3.5" aria-hidden="true" />
                         </Button>
@@ -944,7 +1021,7 @@ export function ListingForm({
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs font-normal text-muted-foreground">
-                  No images selected yet.
+                  {t("noImagesYet")}
                 </div>
               )}
             </div>
@@ -953,25 +1030,22 @@ export function ListingForm({
 
         <Card className="border-border/70 bg-card/90 shadow-sm">
           <CardHeader>
-            <CardTitle>360° virtual tour</CardTitle>
+            <CardTitle>{t("virtualTour")}</CardTitle>
             <CardDescription>
-              Add equirectangular 360° photos for the interactive Three.js viewer.
+              {t("virtualTourHint")}
               {!entitlement.features.virtualTour
-                ? " Virtual tours are included on Pro and Business; extra images stay in the dashboard if you add them now."
+                ? ` ${t("virtualTourLocked")}`
                 : entitlement.features.multiSceneTour
-                  ? " Visitors can switch between rooms and viewpoints."
-                  : " Pro sites show the first scene; additional scenes go live on Business."}
+                  ? ` ${t("virtualTourScenes")}`
+                  : ` ${t("virtualTourPro")}`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm font-medium">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <FieldLabel
-                  text="360° panorama images"
-                  hint="Choose equirectangular 360° images for the interactive Three.js viewer. Visitors can switch between scenes."
-                />
+                <FieldLabel text={t("panoramaImages")} hint={t("panoramaHint")} />
                 <p className="mt-1 text-xs font-normal text-muted-foreground">
-                  Optional. Each image should be an equirectangular 360° photo.
+                  {t("panoramaOptional")}
                 </p>
               </div>
               <Button
@@ -981,7 +1055,7 @@ export function ListingForm({
                 onClick={() => void choosePanoramaImages()}
               >
                 <ImagePlus className="size-4" aria-hidden="true" />
-                {form.panoramaImages.length > 0 ? "Add images" : "Choose images"}
+                {form.panoramaImages.length > 0 ? t("addImages") : t("chooseImages")}
               </Button>
             </div>
             {form.panoramaImages.length > 0 ? (
@@ -993,12 +1067,12 @@ export function ListingForm({
                   >
                     <img
                       src={image.url}
-                      alt={image.title ?? `360° panorama ${index + 1}`}
+                      alt={image.title ?? t("sceneN", { n: index + 1 })}
                       className="aspect-square w-full object-cover"
                     />
                     <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/65 p-1.5 text-white">
                       <span className="truncate text-[11px]">
-                        {image.title ?? `Scene ${index + 1}`}
+                        {image.title ?? t("sceneN", { n: index + 1 })}
                       </span>
                       <Button
                         type="button"
@@ -1006,7 +1080,7 @@ export function ListingForm({
                         size="icon-xs"
                         className="text-white hover:bg-white/20 hover:text-white"
                         onClick={() => removePanoramaImage(index)}
-                        aria-label={`Remove panorama ${index + 1}`}
+                        aria-label={t("removePanorama", { n: index + 1 })}
                       >
                         <Trash2 className="size-3.5" aria-hidden="true" />
                       </Button>
@@ -1016,7 +1090,7 @@ export function ListingForm({
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs font-normal text-muted-foreground">
-                No 360° panoramas selected.
+                {t("noPanoramas")}
               </div>
             )}
           </CardContent>
@@ -1025,74 +1099,79 @@ export function ListingForm({
 
         <Card className="border-border/70 bg-card/90 shadow-sm">
           <CardHeader>
-            <CardTitle>Listing facts</CardTitle>
-            <CardDescription>
-              These fields power filters and portfolio analytics.
-            </CardDescription>
+            <CardTitle>{t("listingFacts")}</CardTitle>
+            <CardDescription>{t("listingFactsHint")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <FieldSelect
-              label="Transaction type"
+              label={t("transactionType")}
+              hint={t("transactionHint")}
               value={form.transactionType}
               onValueChange={(value) => {
                 if (isTransactionType(value)) update("transactionType", value);
               }}
-              options={TRANSACTION_TYPES}
+              options={transactionOptions}
             />
             <FieldSelect
-              label="Property type"
+              label={t("propertyType")}
+              hint={t("propertyTypeHint")}
               value={form.propertyType}
               onValueChange={(value) => {
                 if (isPropertyType(value)) update("propertyType", value);
               }}
-              options={PROPERTY_TYPES}
+              options={propertyTypeOptions}
             />
             <FieldSelect
-              label="Status"
+              label={t("status")}
+              hint={t("statusHint")}
               value={form.status}
               onValueChange={(value) => {
                 if (isListingStatus(value)) update("status", value);
               }}
-              options={LISTING_STATUSES}
+              options={statusOptions}
             />
             <FieldSelect
-              label="Property condition"
+              label={t("propertyCondition")}
+              hint={t("propertyConditionHint")}
               value={form.propertyCondition}
               onValueChange={(value) => {
                 if (isPropertyCondition(value))
                   update("propertyCondition", value);
               }}
-              options={PROPERTY_CONDITIONS}
+              options={conditionOptions}
             />
             <FieldSelect
-              label="Furnishing status"
+              label={t("furnishingStatus")}
+              hint={t("furnishingHint")}
               value={form.furnishingStatus}
               onValueChange={(value) => {
                 if (isFurnishingStatus(value))
                   update("furnishingStatus", value);
               }}
-              options={FURNISHING_STATUSES}
+              options={furnishingOptions}
             />
             <FieldSelect
-              label="Tenure"
+              label={t("tenure")}
+              hint={t("tenureHint")}
               value={form.tenure}
               onValueChange={(value) => {
                 if (isTenureType(value)) update("tenure", value);
               }}
-              options={TENURE_TYPES}
+              options={tenureOptions}
             />
             <FieldSelect
-              label="Rental frequency"
+              label={t("rentalFrequency")}
+              hint={t("rentalHint")}
               value={form.rentalFrequency}
               onValueChange={(value) => {
                 if (isRentalFrequency(value)) update("rentalFrequency", value);
               }}
-              options={RENTAL_FREQUENCIES}
+              options={rentalOptions}
             />
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
               <label className="space-y-2 text-sm font-medium">
-                <FieldLabel text="Price" hint="The listing price in the selected currency." required />
+                <FieldLabel text={t("price")} hint={t("priceHint")} required />
                 <Input
                   type="number"
                   min="0"
@@ -1109,14 +1188,14 @@ export function ListingForm({
                 ) : null}
               </label>
               <label className="space-y-2 text-sm font-medium">
-                <FieldLabel text="Currency" hint="The three-letter currency used for the listing price." required />
+                <FieldLabel text={t("currency")} hint={t("currencyHint")} required />
                 <Select
                   value={form.currency}
                   onValueChange={(value) => update("currency", value)}
                 >
                   <SelectTrigger
                     className="w-full"
-                    aria-label="Currency"
+                    aria-label={t("currency")}
                     aria-invalid={Boolean(errors.currency)}
                   >
                     <SelectValue />
@@ -1136,7 +1215,7 @@ export function ListingForm({
                 ) : null}
               </label>
               <label className="space-y-2 text-sm font-medium">
-                <FieldLabel text="Area" hint="The property size in the selected area unit." required />
+                <FieldLabel text={t("area")} hint={t("areaHint")} required />
                 <Input
                   type="number"
                   min="0"
@@ -1153,22 +1232,23 @@ export function ListingForm({
                 ) : null}
               </label>
               <FieldSelect
-                label="Area unit"
+                label={t("areaUnit")}
+                hint={t("areaUnitHint")}
                 value={form.areaUnit}
                 onValueChange={(value) => update("areaUnit", value)}
-                options={AREA_UNITS}
+                options={areaUnitOptions}
               />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
               <OptionalNumberField
-                label="Bedrooms"
+                label={t("bedrooms")}
                 value={form.bedrooms}
                 error={errors.bedrooms}
                 onChange={(value) => update("bedrooms", value)}
               />
               <OptionalNumberField
-                label="Bathrooms"
+                label={t("bathrooms")}
                 value={form.bathrooms}
                 error={errors.bathrooms}
                 onChange={(value) => update("bathrooms", value)}
@@ -1177,13 +1257,13 @@ export function ListingForm({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <OptionalNumberField
-                label="Year built"
+                label={t("yearBuilt")}
                 value={form.yearBuilt}
                 error={errors.yearBuilt}
                 onChange={(value) => update("yearBuilt", value)}
               />
               <OptionalNumberField
-                label="Parking spaces"
+                label={t("parkingSpaces")}
                 value={form.parkingSpaces}
                 error={errors.parkingSpaces}
                 onChange={(value) => update("parkingSpaces", value)}
@@ -1191,20 +1271,17 @@ export function ListingForm({
             </div>
 
             <label className="space-y-2 text-sm font-medium">
-              <FieldLabel text="Amenities" hint="List notable features separated by commas." />
+              <FieldLabel text={t("amenities")} hint={t("amenitiesHint")} />
               <Input
                 value={form.amenities}
                 onChange={(event) => update("amenities", event.target.value)}
-                placeholder="Swimming pool, gym, 24/7 security"
+                placeholder={t("amenitiesPlaceholder")}
               />
-              <span className="block text-xs font-normal text-muted-foreground">
-                Separate amenities with commas.
-              </span>
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-2 text-sm font-medium">
-                <FieldLabel text="Availability date" hint="The date when the property becomes available." />
+                <FieldLabel text={t("availabilityDate")} hint={t("availabilityHint")} />
                 <Input
                   type="date"
                   value={form.availabilityDate}
@@ -1214,13 +1291,13 @@ export function ListingForm({
                 />
               </label>
               <OptionalNumberField
-                label="Service charge"
+                label={t("serviceCharge")}
                 value={form.serviceCharge}
                 error={errors.serviceCharge}
                 onChange={(value) => update("serviceCharge", value)}
               />
               <OptionalNumberField
-                label="Security deposit"
+                label={t("securityDeposit")}
                 value={form.securityDeposit}
                 error={errors.securityDeposit}
                 onChange={(value) => update("securityDeposit", value)}
@@ -1229,31 +1306,28 @@ export function ListingForm({
 
             <div className="space-y-4 rounded-xl border border-border/70 p-4">
               <div>
-                <p className="text-sm font-medium">Agent / owner contact</p>
-                <p className="mt-1 text-xs font-normal text-muted-foreground">
-                  Optional contact details for this listing.
-                </p>
+                <p className="text-sm font-medium">{t("agentContact")}</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
-                  <FieldLabel text="Name" hint="The agent or owner responsible for this listing." />
+                  <FieldLabel text={t("agentName")} hint={t("agentNameHint")} />
                   <Input
                     value={form.agentName}
                     onChange={(event) =>
                       update("agentName", event.target.value)
                     }
-                    placeholder="Agent or owner name"
+                    placeholder={t("agentNamePlaceholder")}
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
-                  <FieldLabel text="Phone" hint="A phone number for listing enquiries." />
+                  <FieldLabel text={t("agentPhone")} hint={t("agentPhoneHint")} />
                   <Input
                     type="tel"
                     value={form.agentPhone}
                     onChange={(event) =>
                       update("agentPhone", event.target.value)
                     }
-                    placeholder="International phone number"
+                    placeholder={t("agentPhonePlaceholder")}
                     aria-invalid={Boolean(errors.agentPhone)}
                   />
                   {errors.agentPhone ? (
@@ -1263,7 +1337,7 @@ export function ListingForm({
                   ) : null}
                 </label>
                 <label className="space-y-2 text-sm font-medium sm:col-span-2">
-                  <FieldLabel text="Email" hint="An email address for listing enquiries." />
+                  <FieldLabel text={t("agentEmail")} hint={t("agentEmailHint")} />
                   <Input
                     type="text"
                     inputMode="email"
@@ -1272,7 +1346,6 @@ export function ListingForm({
                     onChange={(event) =>
                       update("agentEmail", event.target.value)
                     }
-                    placeholder="agent@example.com"
                     aria-invalid={Boolean(errors.agentEmail)}
                   />
                   {errors.agentEmail ? (
@@ -1286,14 +1359,11 @@ export function ListingForm({
 
             <div className="space-y-4 rounded-xl border border-border/70 p-4">
               <div>
-                <p className="text-sm font-medium">Map location</p>
-                <p className="mt-1 text-xs font-normal text-muted-foreground">
-                  Add coordinates so the property can be placed on the map.
-                </p>
+                <p className="text-sm font-medium">{t("mapPlacement")}</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium">
-                  <FieldLabel text="Latitude" hint="The property latitude used for map placement." />
+                  <FieldLabel text={t("latitude")} hint={t("latitudeHint")} />
                   <Input
                     type="number"
                     min="-90"
@@ -1301,11 +1371,11 @@ export function ListingForm({
                     step="any"
                     value={form.latitude}
                     onChange={(event) => update("latitude", event.target.value)}
-                    placeholder="e.g. 40.7128"
+                    placeholder="40.7128"
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
-                  <FieldLabel text="Longitude" hint="The property longitude used for map placement." />
+                  <FieldLabel text={t("longitude")} hint={t("longitudeHint")} />
                   <Input
                     type="number"
                     min="-180"
@@ -1315,7 +1385,7 @@ export function ListingForm({
                     onChange={(event) =>
                       update("longitude", event.target.value)
                     }
-                    placeholder="e.g. -74.0060"
+                    placeholder="-74.0060"
                   />
                 </label>
               </div>
@@ -1325,21 +1395,21 @@ export function ListingForm({
       </div>
 
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Check className="size-3.5 text-emerald-600" aria-hidden="true" /> AI
-        fields are reserved for future generation workflows.
+        <Check className="size-3.5 text-emerald-600" aria-hidden="true" />{" "}
+        {t("aiFieldsReserved")}
       </div>
       </div>
 
       <div className="shrink-0 -mx-6 flex flex-wrap justify-end gap-2 border-t border-border/70 bg-background px-6 py-4">
         <Button type="button" variant="outline" onClick={onBack}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" disabled={saving}>
           {saving ? (
-            "Saving…"
+            t("saving")
           ) : (
             <>
-              <Save className="size-4" aria-hidden="true" /> Save listing
+              <Save className="size-4" aria-hidden="true" /> {t("saveListing")}
             </>
           )}
         </Button>
@@ -1351,15 +1421,13 @@ export function ListingForm({
         className="z-[80] max-h-[90vh] max-w-5xl"
       >
         <DialogHeader>
-          <DialogTitle>AI writer</DialogTitle>
-          <DialogDescription>
-            Facts from this listing are filled in for you. When writing finishes, the description on the form updates automatically.
-          </DialogDescription>
+          <DialogTitle>{t("aiWriterDialog")}</DialogTitle>
+          <DialogDescription>{t("aiWriterDialogHint")}</DialogDescription>
         </DialogHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <AIWriterPanel
             key={writerKey}
-            initialInput={listingCopyInputFromForm(form, countries, states)}
+            initialInput={listingCopyInputFromForm(form, countries, states, t, locale)}
             showShare={false}
             onDescriptionReady={(copy) => {
               update("description", htmlFromPlainDescription(copy));
@@ -1367,7 +1435,7 @@ export function ListingForm({
             onGenerated={() => {
               dashboard.showToast({
                 type: "success",
-                message: "The listing description was updated.",
+                message: t("descriptionUpdated"),
               });
             }}
           />
@@ -1381,6 +1449,7 @@ export function ListingForm({
 
 function FieldSelect<T extends string>({
   label,
+  hint,
   value,
   onValueChange,
   options,
@@ -1388,19 +1457,20 @@ function FieldSelect<T extends string>({
   disabled,
 }: {
   label: string;
+  hint: string;
   value: T;
   onValueChange: (value: string) => void;
   options: ReadonlyArray<{ value: T; label: string }>;
   error?: string;
   disabled?: boolean;
 }) {
-  const hint = FIELD_HINTS[label] ?? `Choose the ${label.toLowerCase()} for this listing.`;
+  const t = useDt();
   return (
     <label className="block space-y-2 text-sm font-medium">
       <FieldLabel text={label} hint={hint} />
       <Select value={value || undefined} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger className="w-full" aria-label={label} aria-invalid={Boolean(error)}>
-          <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+          <SelectValue placeholder={t("selectLabel", { label })} />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
@@ -1528,9 +1598,10 @@ function OptionalNumberField({
   error?: string;
   onChange: (value: string) => void;
 }) {
+  const t = useDt();
   return (
     <label className="space-y-2 text-sm font-medium">
-      <FieldLabel text={label} hint={`Optional ${label.toLowerCase()} value for this listing.`} />
+      <FieldLabel text={label} hint={t("optionalValueHint", { label })} />
       <Input
         type="number"
         min="0"
@@ -1538,7 +1609,7 @@ function OptionalNumberField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={Boolean(error)}
-        placeholder="Optional"
+        placeholder={t("optionalPlaceholder")}
       />
       {error ? (
         <span className="block text-xs font-normal text-destructive">
@@ -1549,19 +1620,6 @@ function OptionalNumberField({
   );
 }
 
-const FIELD_HINTS: Record<string, string> = {
-  "Transaction type": "Whether the property is for sale, rent, or lease.",
-  "Property type": "The category that best describes the property.",
-  Status: "The current workflow stage for this listing.",
-  "Property condition": "The current physical condition of the property.",
-  "Furnishing status": "Whether the property is unfurnished, partly furnished, or furnished.",
-  Tenure: "The ownership or lease arrangement for the property.",
-  "Rental frequency": "How often rent is expected for rental or lease listings.",
-  Country: "The country where the property is located.",
-  "State / region": "The state, province, or region where the property is located.",
-  "Area unit": "The unit used to measure the property area.",
-};
-
 function FieldLabel({
   text,
   hint,
@@ -1571,16 +1629,21 @@ function FieldLabel({
   hint: string;
   required?: boolean;
 }) {
+  const t = useDt();
   return (
     <span className="flex items-center gap-1">
       {text}
-      {required ? <span className="text-destructive">*</span> : null}
+      {required ? (
+        <span className="text-destructive" aria-label={t("required")}>
+          *
+        </span>
+      ) : null}
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             type="button"
             className="inline-flex size-4 items-center justify-center rounded-full text-xs text-muted-foreground hover:text-foreground"
-            aria-label={`Help: ${hint}`}
+            aria-label={t("helpPrefix", { hint })}
             onClick={(event) => event.stopPropagation()}
           >
             <span aria-hidden="true">?</span>

@@ -11,6 +11,7 @@ import {
   Settings2,
   Sparkles,
   WandSparkles,
+  Inbox,
 } from 'lucide-react';
 
 import {
@@ -33,8 +34,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { APP_PLANS } from '@/lib/pricing-plans';
 import { openAppUpgradePage } from '@/lib/entitlement';
+import { useDt } from '@/lib/dashboard-i18n';
+import { PLAN_NAME_KEYS } from '@/lib/dashboard-i18n/labels';
+import type { DashboardMessageKey } from '@/lib/dashboard-i18n';
 import { useEntitlement } from './entitlement-context';
 
 export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'guide' | 'pricing' | 'settings';
@@ -47,27 +50,31 @@ interface DashboardShellProps {
 
 const navigation: Array<{
   id: DashboardSection;
-  label: string;
+  labelKey: DashboardMessageKey;
   icon: LucideIcon;
 }> = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'listings', label: 'Listings', icon: Building2 },
-  { id: 'writer', label: 'AI Listing Writer', icon: WandSparkles },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'guide', label: 'Guide', icon: BookOpen },
-  { id: 'pricing', label: 'Pricing', icon: BadgeDollarSign },
-  { id: 'settings', label: 'Settings', icon: Settings2 },
+  { id: 'overview', labelKey: 'navOverview', icon: LayoutDashboard },
+  { id: 'listings', labelKey: 'navListings', icon: Building2 },
+  { id: 'writer', labelKey: 'navWriter', icon: WandSparkles },
+  { id: 'analytics', labelKey: 'navAnalytics', icon: BarChart3 },
+  { id: 'requests', labelKey: 'navRequests', icon: Inbox },
+  { id: 'guide', labelKey: 'navGuide', icon: BookOpen },
+  { id: 'pricing', labelKey: 'navPricing', icon: BadgeDollarSign },
+  { id: 'settings', labelKey: 'navSettings', icon: Settings2 },
 ];
 
-const sectionLabels: Record<DashboardSection, { title: string; eyebrow: string }> = {
-  overview: { title: 'Overview', eyebrow: 'Workspace' },
-  listings: { title: 'Listings', eyebrow: 'Property inventory' },
-  writer: { title: 'AI Listing Writer', eyebrow: 'Content studio' },
-  requests: { title: 'Quote requests', eyebrow: 'Lead management' },
-  analytics: { title: 'Advanced analytics', eyebrow: 'Portfolio intelligence' },
-  guide: { title: 'Guide', eyebrow: 'Getting started' },
-  pricing: { title: 'Pricing', eyebrow: 'Plans' },
-  settings: { title: 'Settings', eyebrow: 'Workspace preferences' },
+const sectionCopy: Record<
+  DashboardSection,
+  { titleKey: DashboardMessageKey; eyebrowKey: DashboardMessageKey }
+> = {
+  overview: { titleKey: 'navOverview', eyebrowKey: 'eyebrowWorkspace' },
+  listings: { titleKey: 'navListings', eyebrowKey: 'eyebrowInventory' },
+  writer: { titleKey: 'navWriter', eyebrowKey: 'eyebrowStudio' },
+  requests: { titleKey: 'navRequests', eyebrowKey: 'eyebrowLeads' },
+  analytics: { titleKey: 'analyticsTitle', eyebrowKey: 'eyebrowAnalytics' },
+  guide: { titleKey: 'navGuide', eyebrowKey: 'eyebrowGuide' },
+  pricing: { titleKey: 'navPricing', eyebrowKey: 'eyebrowPricing' },
+  settings: { titleKey: 'navSettings', eyebrowKey: 'eyebrowSettings' },
 };
 
 export function DashboardShell({
@@ -75,10 +82,10 @@ export function DashboardShell({
   onSectionChange,
   children,
 }: DashboardShellProps) {
-  const currentSection = sectionLabels[section];
+  const t = useDt();
+  const currentSection = sectionCopy[section];
   const entitlement = useEntitlement();
-  const planName =
-    APP_PLANS.find((plan) => plan.id === entitlement.planId)?.name ?? "Basic";
+  const planName = t(PLAN_NAME_KEYS[entitlement.planId]);
   const lockedSections: Partial<Record<DashboardSection, boolean>> = {
     writer: !entitlement.features.aiWriter,
     analytics: !entitlement.features.analytics,
@@ -94,8 +101,8 @@ export function DashboardShell({
               <Sparkles className="size-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold tracking-tight text-foreground">EstateAI</p>
-              <p className="truncate text-xs text-muted-foreground">Listing workspace</p>
+              <p className="truncate text-[15px] font-semibold tracking-tight text-foreground">{t('appName')}</p>
+              <p className="truncate text-xs text-muted-foreground">{t('appTagline')}</p>
             </div>
           </div>
         </SidebarHeader>
@@ -103,23 +110,24 @@ export function DashboardShell({
         <SidebarContent>
           <SidebarGroup className="px-3 py-6">
             <SidebarGroupLabel className="px-2 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/50">
-              Workspace
+              {t('eyebrowWorkspace')}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navigation.map((item) => {
                   const Icon = item.icon;
+                  const label = t(item.labelKey);
                   return (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         type="button"
                         isActive={section === item.id}
                         onClick={() => onSectionChange(item.id)}
-                        tooltip={item.label}
+                        tooltip={label}
                         className="h-11 rounded-xl"
                       >
                         <Icon aria-hidden="true" />
-                        <span>{item.label}</span>
+                        <span>{label}</span>
                         {lockedSections[item.id] ? (
                           <Lock className="ml-auto size-3.5 opacity-60" aria-hidden="true" />
                         ) : null}
@@ -136,13 +144,16 @@ export function DashboardShell({
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="text-xs font-medium">{planName}</span>
               <Badge variant="secondary" className="border-0 bg-sidebar-primary/10 text-[10px] text-sidebar-primary">
-                {entitlement.isTrial ? "Trial" : entitlement.isWixStaff ? "Wix" : "Plan"}
+                {entitlement.isTrial ? t('badgeTrial') : entitlement.isWixStaff ? t('badgeWix') : t('badgePlan')}
               </Badge>
             </div>
             <p className="text-xs leading-relaxed text-sidebar-foreground/60">
               {entitlement.listingCap === null
-                ? "Unlimited listings are visible on the site."
-                : `${entitlement.publicListingCount} of ${entitlement.listingCap} listings are visible on the site.`}
+                ? t('listingsVisibleUnlimited')
+                : t('listingsVisibleCapped', {
+                    visible: entitlement.publicListingCount,
+                    cap: entitlement.listingCap,
+                  })}
             </p>
             {entitlement.canStartTrial ? (
               <Button
@@ -151,7 +162,7 @@ export function DashboardShell({
                 className="mt-3 w-full"
                 onClick={() => openAppUpgradePage(entitlement.instanceId)}
               >
-                Start free trial
+                {t('startFreeTrial')}
               </Button>
             ) : null}
           </div>
@@ -164,7 +175,7 @@ export function DashboardShell({
               >
                 <a href="mailto:admin@hikonsults.com">
                   <Mail aria-hidden="true" />
-                  <span>Contact app developer</span>
+                  <span>{t('contactDeveloper')}</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -173,14 +184,14 @@ export function DashboardShell({
       </Sidebar>
       <SidebarInset className="h-svh min-w-0 overflow-hidden bg-background">
         <header className="flex h-[4.5rem] shrink-0 items-center gap-3 border-b border-border/70 bg-white/90 px-4 backdrop-blur sm:px-8">
-          <SidebarTrigger className="-ml-1" aria-label="Toggle navigation" />
+          <SidebarTrigger className="-ml-1" aria-label={t('toggleNav')} />
           <Separator orientation="vertical" className="mr-1 h-5" />
           <div>
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              {currentSection.eyebrow}
+              {t(currentSection.eyebrowKey)}
             </p>
             <h1 className="text-sm font-semibold tracking-tight text-foreground">
-              {currentSection.title}
+              {t(currentSection.titleKey)}
             </h1>
           </div>
         </header>

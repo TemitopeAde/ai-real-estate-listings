@@ -24,6 +24,7 @@ import {
   type ListingInput,
 } from "@/lib/listings";
 import type { AppEntitlement } from "@/lib/entitlement";
+import { DashboardI18nProvider, useDt } from "@/lib/dashboard-i18n";
 import { DashboardShell, type DashboardSection } from "./dashboard-shell";
 import { ListingForm } from "./listing-form";
 import { ListingsView } from "./listings-view";
@@ -39,15 +40,31 @@ import { EntitlementProvider } from "./entitlement-context";
 type EditorMode = "new" | "edit" | null;
 
 export function DashboardApp() {
+  const [settings, setSettings] = useState<WorkspaceSettings>(
+    () => readWorkspaceSettings() ?? DEFAULT_WORKSPACE_SETTINGS,
+  );
+
+  return (
+    <DashboardI18nProvider language={settings.dashboardLanguage}>
+      <DashboardAppInner settings={settings} setSettings={setSettings} />
+    </DashboardI18nProvider>
+  );
+}
+
+function DashboardAppInner({
+  settings,
+  setSettings,
+}: {
+  settings: WorkspaceSettings;
+  setSettings: (settings: WorkspaceSettings) => void;
+}) {
+  const t = useDt();
   const [section, setSection] = useState<DashboardSection>("overview");
   const [editorMode, setEditorMode] = useState<EditorMode>(null);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [editorLoading, setEditorLoading] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
-  const [settings, setSettings] = useState<WorkspaceSettings>(
-    () => readWorkspaceSettings() ?? DEFAULT_WORKSPACE_SETTINGS,
-  );
   const [entitlement, setEntitlement] = useState<AppEntitlement | null>(null);
 
   useEffect(() => {
@@ -58,32 +75,33 @@ export function DashboardApp() {
       });
   }, [refreshToken]);
 
-  const openEditor = useCallback(async (id?: string) => {
-    setEditorError(null);
-    setEditorMode(id ? "edit" : "new");
-    setEditingListing(null);
-    setEditorLoading(Boolean(id));
+  const openEditor = useCallback(
+    async (id?: string) => {
+      setEditorError(null);
+      setEditorMode(id ? "edit" : "new");
+      setEditingListing(null);
+      setEditorLoading(Boolean(id));
 
-    if (!id) {
-      return;
-    }
+      if (!id) {
+        return;
+      }
 
-    try {
-      const listing = await getListing(id);
-      if (!listing) throw new Error("This listing could not be found.");
-      setEditingListing(listing);
-    } catch (error) {
-      console.error("Unable to open listing editor.", error);
-      const message =
-        error instanceof Error
-          ? error.message
-          : "This listing could not be loaded.";
-      setEditorError(message);
-      dashboard.showToast({ type: "error", message });
-    } finally {
-      setEditorLoading(false);
-    }
-  }, []);
+      try {
+        const listing = await getListing(id);
+        if (!listing) throw new Error(t("listingNotFound"));
+        setEditingListing(listing);
+      } catch (error) {
+        console.error("Unable to open listing editor.", error);
+        const message =
+          error instanceof Error ? error.message : t("listingLoadFailed");
+        setEditorError(message);
+        dashboard.showToast({ type: "error", message });
+      } finally {
+        setEditorLoading(false);
+      }
+    },
+    [t],
+  );
 
   const closeEditor = useCallback(() => {
     setEditorMode(null);
@@ -102,38 +120,37 @@ export function DashboardApp() {
         dashboard.showToast({
           type: "success",
           message: id
-            ? `${savedListing.title} was updated.`
-            : `${savedListing.title} was added.`,
+            ? t("listingUpdated", { title: savedListing.title })
+            : t("listingAdded", { title: savedListing.title }),
         });
       } catch (error) {
         const message =
-          error instanceof Error
-            ? error.message
-            : "The listing could not be saved.";
+          error instanceof Error ? error.message : t("listingSaveFailed");
         dashboard.showToast({ type: "error", message });
         throw error;
       }
     },
-    [closeEditor],
+    [closeEditor, t],
   );
 
-  const handleArchive = useCallback(async (id: string) => {
-    try {
-      const archivedListing = await archiveListing(id);
-      setRefreshToken((value) => value + 1);
-      dashboard.showToast({
-        type: "success",
-        message: `${archivedListing.title} was archived.`,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "The listing could not be archived.";
-      dashboard.showToast({ type: "error", message });
-      throw error;
-    }
-  }, []);
+  const handleArchive = useCallback(
+    async (id: string) => {
+      try {
+        const archivedListing = await archiveListing(id);
+        setRefreshToken((value) => value + 1);
+        dashboard.showToast({
+          type: "success",
+          message: t("listingArchived", { title: archivedListing.title }),
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : t("listingArchiveFailed");
+        dashboard.showToast({ type: "error", message });
+        throw error;
+      }
+    },
+    [t],
+  );
 
   const changeSection = (nextSection: DashboardSection) => {
     closeEditor();
@@ -164,16 +181,16 @@ export function DashboardApp() {
       />
     );
   } else if (section === "analytics") {
-      content = (
-        <AnalyticsView
-          refreshToken={refreshToken}
-          onOpenPricing={() => setSection("pricing")}
-        />
-      );
+    content = (
+      <AnalyticsView
+        refreshToken={refreshToken}
+        onOpenPricing={() => setSection("pricing")}
+      />
+    );
   } else if (section === "requests") {
     content = <RequestsView refreshToken={refreshToken} />;
   } else if (section === "writer") {
-      content = <AIWriterView onOpenPricing={() => setSection("pricing")} />;
+    content = <AIWriterView onOpenPricing={() => setSection("pricing")} />;
   } else if (section === "guide") {
     content = (
       <GuideView
@@ -203,11 +220,9 @@ export function DashboardApp() {
         <DialogContent className="flex h-[92vh] max-h-[92vh] max-w-6xl flex-col overflow-hidden">
           <DialogHeader className="shrink-0">
             <DialogTitle>
-              {editorMode === "edit" ? "Edit listing" : "Add listing"}
+              {editorMode === "edit" ? t("editorEdit") : t("editorAdd")}
             </DialogTitle>
-            <DialogDescription>
-              Keep your property information accurate and ready for publishing.
-            </DialogDescription>
+            <DialogDescription>{t("editorHint")}</DialogDescription>
           </DialogHeader>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6">
             {editorError ? (
@@ -215,7 +230,7 @@ export function DashboardApp() {
                 role="alert"
                 className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive"
               >
-                <p className="font-medium">Unable to open this listing</p>
+                <p className="font-medium">{t("editorOpenErrorTitle")}</p>
                 <p className="mt-1">{editorError}</p>
                 <Button
                   type="button"
@@ -223,7 +238,7 @@ export function DashboardApp() {
                   className="mt-4 h-auto p-0"
                   onClick={closeEditor}
                 >
-                  Return to listings
+                  {t("returnToListings")}
                 </Button>
               </div>
             ) : (
