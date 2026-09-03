@@ -285,7 +285,7 @@ export const zh = complete({
   guideStep2Summary: "向访客展示库存和财产详细信息。",
   guideStep2Item1: "将属性列表小部件添加到页面，例如 /properties。",
   guideStep2Item2: "将属性详细信息小部件添加到页面，例如 /property-details。",
-  guideStep2Item3: "在编辑器中，打开或关闭联系人、报价请求、共享和相关列表。",
+  guideStep2Item3: "在编辑器中更新样式、颜色和字体，并打开或关闭联系、报价请求、分享和相关房源。",
   guideStep2Item4: "从“设置”中嵌入 Saved Properties 启动器，以便成员可以为房屋添加书签。",
   openSettings: "打开设置",
   guideStep3Title: "处理访客询问",
@@ -542,8 +542,7 @@ export const zh = complete({
   faqCatSettings: "设置与语言",
   faqCatSupport: "支持",
   faqStartWhatQ: "此应用有什么作用？",
-  faqStartWhatA:
-    "EstateAI 是面向 Wix 的房源工作区。您可在此创建和管理房源，在网站上放置小组件供访客浏览，并在此仪表板跟进报价请求。",
+  faqStartWhatA: "EstateAI 是面向 Wix 的房源工作区。您在此创建和管理房源，将小组件放到网站上供访客浏览，并在此仪表板跟进报价请求。工作区支持前 20 种语言翻译，并可在编辑器中更新小组件样式、颜色和字体。",
   faqStartFirstQ: "我应该先做什么？",
   faqStartFirstA:
     "至少添加一条活跃房源，在网站上放置房源列表和房源详情小组件，然后发送一条测试报价请求。指南部分会逐步说明此流程。",
@@ -568,8 +567,7 @@ export const zh = complete({
   faqListImagesA:
     "从 Wix Media Manager 选择图片。第一张为卡片和房源页面的封面。可随时向图库添加更多照片。",
   faqSiteWidgetsQ: "需要哪些小组件？",
-  faqSiteWidgetsA:
-    "使用房源列表小组件展示库存网格或列表，使用房源详情小组件作为单个房源页面。在编辑器中可开启或关闭联系、报价请求、分享和相关房源。",
+  faqSiteWidgetsA: "使用房源列表小组件展示库存网格或列表，使用房源详情小组件展示单个房源页。可在编辑器中更新样式、颜色和字体，并打开或关闭联系、报价请求、分享和相关房源。",
   faqSiteSavedQ: "Saved Properties 如何工作？",
   faqSiteSavedA:
     "从设置嵌入 Saved Properties 启动器。已登录会员可收藏房源。如需恢复，可安全地多次嵌入。",
@@ -613,8 +611,7 @@ export const zh = complete({
   faqAnalyticsVisitorsA:
     "独立访客洞察显示查看过房源的用户（每人计一次）以及未登录浏览次数。在房源操作菜单中查看。此功能在 Pro 和 Business 提供。",
   faqSettingsLangQ: "如何更改仪表板语言？",
-  faqSettingsLangA:
-    "打开设置并选择“仪表板语言”。自动跟随 Wix 账户语言。也可选择 20 种支持的语言之一。阿拉伯语和乌尔都语为从右到左显示。",
+  faqSettingsLangA: "在侧边栏的“联系应用开发者”下方选择仪表板语言，或打开设置。自动跟随 Wix 账户语言。也可从 20 种支持的语言中选择。阿拉伯语和乌尔都语为从右到左显示。",
   faqSettingsArchivedQ: "如何查看已归档房源？",
   faqSettingsArchivedA: "在设置中启用“包含已归档房源”。它们将默认显示在房源视图中。",
   faqSupportPermsQ: "为什么页面加载失败？",

@@ -285,7 +285,7 @@ export const es = complete({
   guideStep2Summary: "Muestre el inventario y los detalles de la propiedad a los visitantes.",
   guideStep2Item1: "Agregue el widget de listados de propiedades a una página como /properties.",
   guideStep2Item2: "Agregue el widget de detalles de propiedad a una página como /property-details.",
-  guideStep2Item3: "En el editor, active o desactive Contacto, solicitud de cotización, compartir y listados relacionados.",
+  guideStep2Item3: "En el editor, actualice estilos, colores y fuentes, y active o desactive Contacto, solicitud de presupuesto, compartir y listados relacionados.",
   guideStep2Item4: "Incruste el iniciador Saved Properties desde Configuración para que los miembros puedan marcar casas como favoritos.",
   openSettings: "Abrir configuración",
   guideStep3Title: "Atender las consultas de los visitantes",
@@ -542,8 +542,7 @@ export const es = complete({
   faqCatSettings: "Configuración e idioma",
   faqCatSupport: "Soporte",
   faqStartWhatQ: "¿Qué hace esta aplicación?",
-  faqStartWhatA:
-    "EstateAI es un espacio de trabajo de listados para Wix. Creas y gestionas propiedades aquí, colocas widgets en tu sitio para que los visitantes las exploren y das seguimiento a las solicitudes de cotización desde este panel.",
+  faqStartWhatA: "EstateAI es un espacio de trabajo de listados para Wix. Crea y gestiona propiedades aquí, coloca widgets en tu sitio para que los visitantes las exploren y da seguimiento a las solicitudes de presupuesto desde este panel. El espacio de trabajo está traducido a los 20 idiomas principales, y puedes actualizar estilos, colores y fuentes de los widgets en el editor.",
   faqStartFirstQ: "¿Qué debo hacer primero?",
   faqStartFirstA:
     "Añade al menos un listado activo, coloca los widgets de listados y de detalle de propiedad en tu sitio y envía una solicitud de cotización de prueba. La sección Guía recorre este camino.",
@@ -569,8 +568,7 @@ export const es = complete({
   faqListImagesA:
     "Elige imágenes desde Wix Media Manager. La primera imagen es la portada en las tarjetas y en la página de la propiedad. Puedes añadir más fotos a la galería en cualquier momento.",
   faqSiteWidgetsQ: "¿Qué widgets necesito?",
-  faqSiteWidgetsA:
-    "Usa el widget de listados de propiedades para tu cuadrícula o lista de inventario, y el widget de detalle de propiedad para la página individual. En el editor puedes activar o desactivar Contacto, solicitud de cotización, compartir y listados relacionados.",
+  faqSiteWidgetsA: "Use el widget de listados para la cuadrícula o lista de inventario y el widget de detalle para la ficha de cada propiedad. En el editor puede actualizar estilos, colores y fuentes, y activar o desactivar Contacto, solicitud de presupuesto, compartir y listados relacionados.",
   faqSiteSavedQ: "¿Cómo funcionan Saved Properties?",
   faqSiteSavedA:
     "Incrusta el lanzador de Saved Properties desde Configuración. Los miembros registrados pueden guardar propiedades. Es seguro incrustarlo más de una vez si necesitas restaurarlo.",
@@ -614,8 +612,7 @@ export const es = complete({
   faqAnalyticsVisitorsA:
     "La información de visitantes únicos muestra personas que vieron un listado, contadas una vez cada una, más vistas sin sesión. Ábrelo desde el menú de acciones del listado. Esta función está en Pro y Business.",
   faqSettingsLangQ: "¿Cómo cambio el idioma del panel?",
-  faqSettingsLangA:
-    "Abre Configuración y elige Idioma del panel. Auto sigue el idioma de la cuenta Wix. También puedes elegir uno de los 20 idiomas admitidos. Árabe y urdu se muestran de derecha a izquierda.",
+  faqSettingsLangA: "Elija el idioma del panel en la barra lateral, debajo de Contactar al desarrollador, o abra Configuración. Automático sigue el idioma de la cuenta Wix. También puede elegir uno de los 20 idiomas compatibles. El árabe y el urdu se muestran de derecha a izquierda.",
   faqSettingsArchivedQ: "¿Cómo veo los listados archivados?",
   faqSettingsArchivedA:
     "Activa Incluir listados archivados en Configuración. Entonces aparecen de forma predeterminada en la vista Listados.",
