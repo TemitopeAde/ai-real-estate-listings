@@ -58,6 +58,34 @@ async function savedAction(action: "list" | "save" | "remove", listingId: string
   return response.json();
 }
 
+type InvoiceRequestFormProps = { listing: Listing; onClose: () => void };
+type InvoiceRequestFormState = { firstName: string; lastName: string; email: string; phone: string; country: string; state: string; city: string; postalCode: string; streetAddress: string; message: string };
+
+const InvoiceRequestForm: FC<InvoiceRequestFormProps> = ({ listing, onClose }) => {
+  const [form, setForm] = useState<InvoiceRequestFormState>({ firstName: '', lastName: '', email: '', phone: '', country: '', state: '', city: '', postalCode: '', streetAddress: '', message: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const update = (key: keyof InvoiceRequestFormState, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/invoice-requests`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, listingId: listing._id, listingTitle: listing.title }) });
+      const result = await response.json() as { message?: string };
+      if (!response.ok) throw new Error(result.message ?? 'Your invoice request could not be submitted.');
+      setSubmitted(true);
+    } catch (reason) {
+      console.error('Unable to submit invoice request.', reason);
+      setError(reason instanceof Error ? reason.message : 'Your invoice request could not be submitted.');
+    } finally { setSubmitting(false); }
+  };
+  const fields: Array<[keyof InvoiceRequestFormState, string, string]> = [['firstName', 'First name', 'text'], ['lastName', 'Last name', 'text'], ['email', 'Email', 'email'], ['phone', 'Phone', 'tel'], ['country', 'Country code', 'text'], ['state', 'State or province', 'text'], ['city', 'City', 'text'], ['postalCode', 'Postal code', 'text'], ['streetAddress', 'Street address', 'text']];
+  return <div className={styles.quoteOverlay} role="presentation"><section className={styles.quoteModal} role="dialog" aria-modal="true" aria-labelledby="invoice-request-title"><button type="button" className={styles.quoteClose} onClick={onClose} aria-label="Close invoice request">×</button>{submitted ? <div className={styles.quoteSuccess}><h2 id="invoice-request-title">Request received</h2><p>An agent will review your details and prepare an invoice for {listing.title}.</p><button type="button" className={styles.quoteSubmit} onClick={onClose}>Done</button></div> : <form onSubmit={(event) => void submit(event)}><h2 id="invoice-request-title">Request an invoice</h2><p className={styles.quoteIntro}>Provide your billing details for {listing.title}.</p><div className={styles.quoteFields}>{fields.map(([key, label, type]) => <label key={key}>{label}<input required value={form[key]} type={type} onChange={(event) => update(key, event.target.value)} /></label>)}<label className={styles.quoteMessage}>Message<textarea value={form.message} onChange={(event) => update('message', event.target.value)} /></label></div>{error ? <p className={styles.quoteError} role="alert">{error}</p> : null}<button type="submit" className={styles.quoteSubmit} disabled={submitting}>{submitting ? 'Submitting…' : 'Submit invoice request'}</button></form>}</section></div>;
+};
+
 const ImageCarousel: FC<{ listing: Listing; ratio: DetailWidgetConfig["imageRatio"]; showImageControls?: boolean; showImageDots?: boolean }> = ({ listing, ratio, showImageControls = true, showImageDots = true }) => {
   const images = getImageUrls(listing);
   const [index, setIndex] = useState(0);
@@ -239,6 +267,7 @@ const PropertyDetail: FC<Props> = ({ config: rawConfig }) => {
   const [viewCount, setViewCount] = useState<number | undefined>();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [invoiceRequestOpen, setInvoiceRequestOpen] = useState(false);
   const [state, setState] = useState<"loading" | "missing" | "not-found" | "error" | "ready">("loading");
   useEffect(() => {
     let mounted = true;
@@ -269,7 +298,7 @@ const PropertyDetail: FC<Props> = ({ config: rawConfig }) => {
       showSiteToast(next ? "Property saved" : "Property removed", next ? "You can find it in your saved properties." : "The property was removed from your saved list.");
     } catch (error) { console.error("Unable to update saved property.", error); showSiteToast(error instanceof Error && error.message === "login-required" ? "Sign in to save properties" : "Could not update saved property", "Please try again.", "error"); } finally { setSaving(false); }
   };
-  return <article className={styles.root} style={style}><div className={styles.detailCard} style={{ borderRadius: `${config.cardRadius}px` }}><ImageCarousel listing={listing} ratio={config.imageRatio} /><div className={styles.content}><button type="button" className={styles.backButton} onClick={() => void goToProperties()}><ArrowLeft /> Back to properties</button><div className={styles.heading}><div><h1 style={{ font: config.titleFont.font }}>{listing.title}</h1>{config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing)}</p> : null}</div><div className={styles.priceRow}><div className={styles.price}>{formatListingPrice(listing)}</div><button type="button" className={styles.saveButton} onClick={() => void handleSave()} disabled={saving} aria-label={saved ? "Remove property from saved properties" : "Save property"} aria-pressed={saved}>{saved ? <BookmarkCheck /> : <Bookmark />}</button></div></div>{config.showViewCount ? <div className={styles.views}><Eye /> {viewCount ?? listing.viewCount} views</div> : null}{listing.panoramaImage ? <section className={styles.section}><h2>360° virtual tour</h2><PanoramaViewer imageUrl={listing.panoramaImage} title={listing.title} /></section> : null}{config.showDescription && listing.description ? <div className={styles.description} dangerouslySetInnerHTML={{ __html: listing.description }} /> : null}<div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {listing.bedrooms} bedrooms</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {listing.bathrooms} bathrooms</span> : null}<span><Ruler /> {listing.area.toLocaleString()} {listing.areaUnit}</span></div>{config.showLocation ? <section className={styles.section}><h2>Location</h2><PropertyMap listing={listing} /></section> : null}{config.showAmenities && listing.amenities?.length ? <section className={styles.section}><h2>Amenities</h2><ul>{listing.amenities.map((amenity) => <li key={amenity}>{amenity}</li>)}</ul></section> : null}{config.showAgent && listing.agentName ? <section className={styles.section}><h2>Contact</h2><p className={styles.agent}>{listing.agentName}{listing.agentPhone ? ` · ${listing.agentPhone}` : ""}{listing.agentEmail ? ` · ${listing.agentEmail}` : ""}</p></section> : null}</div></div></article>;
+  return <article className={styles.root} style={style}><div className={styles.detailCard} style={{ borderRadius: `${config.cardRadius}px` }}><ImageCarousel listing={listing} ratio={config.imageRatio} /><div className={styles.content}><button type="button" className={styles.backButton} onClick={() => void goToProperties()}><ArrowLeft /> Back to properties</button><div className={styles.heading}><div><h1 style={{ font: config.titleFont.font }}>{listing.title}</h1>{config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing)}</p> : null}</div><div className={styles.priceRow}><div className={styles.price}>{formatListingPrice(listing)}</div><button type="button" className={styles.invoiceButton} onClick={() => setInvoiceRequestOpen(true)}>Request an invoice</button><button type="button" className={styles.saveButton} onClick={() => void handleSave()} disabled={saving} aria-label={saved ? "Remove property from saved properties" : "Save property"} aria-pressed={saved}>{saved ? <BookmarkCheck /> : <Bookmark />}</button></div></div>{config.showViewCount ? <div className={styles.views}><Eye /> {viewCount ?? listing.viewCount} views</div> : null}{listing.panoramaImage ? <section className={styles.section}><h2>360° virtual tour</h2><PanoramaViewer imageUrl={listing.panoramaImage} title={listing.title} /></section> : null}{config.showDescription && listing.description ? <div className={styles.description} dangerouslySetInnerHTML={{ __html: listing.description }} /> : null}<div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {listing.bedrooms} bedrooms</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {listing.bathrooms} bathrooms</span> : null}<span><Ruler /> {listing.area.toLocaleString()} {listing.areaUnit}</span></div>{config.showLocation ? <section className={styles.section}><h2>Location</h2><PropertyMap listing={listing} /></section> : null}{config.showAmenities && listing.amenities?.length ? <section className={styles.section}><h2>Amenities</h2><ul>{listing.amenities.map((amenity) => <li key={amenity}>{amenity}</li>)}</ul></section> : null}{config.showAgent && listing.agentName ? <section className={styles.section}><h2>Contact</h2><p className={styles.agent}>{listing.agentName}{listing.agentPhone ? ` · ${listing.agentPhone}` : ""}{listing.agentEmail ? ` · ${listing.agentEmail}` : ""}</p></section> : null}</div></div>{invoiceRequestOpen ? <InvoiceRequestForm listing={listing} onClose={() => setInvoiceRequestOpen(false)} /> : null}</article>;
 };
 
 export default reactToWebComponent(PropertyDetail, React, ReactDOM as any, { props: { config: "string" } });

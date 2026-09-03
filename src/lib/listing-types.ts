@@ -58,6 +58,13 @@ export const RENTAL_FREQUENCIES = [
   { value: "yearly", label: "Yearly" },
 ] as const;
 
+export const INVOICE_REQUEST_STATUSES = [
+  "new",
+  "in_progress",
+  "invoiced",
+  "closed",
+] as const;
+
 export type ListingStatus = (typeof LISTING_STATUSES)[number]["value"];
 export type TransactionType = (typeof TRANSACTION_TYPES)[number]["value"];
 export type PropertyType = (typeof PROPERTY_TYPES)[number]["value"];
@@ -66,6 +73,7 @@ export type PropertyCondition = (typeof PROPERTY_CONDITIONS)[number]["value"];
 export type FurnishingStatus = (typeof FURNISHING_STATUSES)[number]["value"];
 export type TenureType = (typeof TENURE_TYPES)[number]["value"];
 export type RentalFrequency = (typeof RENTAL_FREQUENCIES)[number]["value"];
+export type InvoiceRequestStatus = (typeof INVOICE_REQUEST_STATUSES)[number];
 
 export interface ListingImage {
   url: string;
@@ -133,6 +141,46 @@ export interface Listing extends ListingInput {
   _revision?: string;
   _createdDate?: Date;
   _updatedDate?: Date;
+}
+
+export interface InvoiceRequest {
+  _id: string;
+  _createdDate?: Date;
+  _updatedDate?: Date;
+  listingId: string;
+  listingTitle: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  country: string;
+  state: string;
+  city: string;
+  postalCode: string;
+  streetAddress: string;
+  message?: string;
+  status: InvoiceRequestStatus;
+  contactId?: string;
+  invoiceId?: string;
+  invoiceAmount?: number;
+  invoiceCurrency?: string;
+  invoiceIssueDate?: Date;
+  invoiceDueDate?: Date;
+}
+
+export interface InvoiceRequestInput {
+  listingId: string;
+  listingTitle: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  country: string;
+  state: string;
+  city: string;
+  postalCode: string;
+  streetAddress: string;
+  message?: string;
 }
 
 export interface ListingQuery {

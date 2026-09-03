@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BarChart3,
   Building2,
+  FileText,
   LayoutDashboard,
   Settings2,
   Sparkles,
@@ -28,7 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
-export type DashboardSection = 'overview' | 'listings' | 'analytics' | 'settings';
+export type DashboardSection = 'overview' | 'listings' | 'requests' | 'analytics' | 'settings';
 
 interface DashboardShellProps {
   section: DashboardSection;
@@ -43,6 +44,7 @@ const navigation: Array<{
 }> = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'listings', label: 'Listings', icon: Building2 },
+  { id: 'requests', label: 'Invoices', icon: FileText },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
@@ -50,6 +52,7 @@ const navigation: Array<{
 const sectionLabels: Record<DashboardSection, { title: string; eyebrow: string }> = {
   overview: { title: 'Overview', eyebrow: 'Workspace' },
   listings: { title: 'Listings', eyebrow: 'Property inventory' },
+  requests: { title: 'Invoices', eyebrow: 'Customer enquiries' },
   analytics: { title: 'Advanced analytics', eyebrow: 'Portfolio intelligence' },
   settings: { title: 'Settings', eyebrow: 'Workspace preferences' },
 };

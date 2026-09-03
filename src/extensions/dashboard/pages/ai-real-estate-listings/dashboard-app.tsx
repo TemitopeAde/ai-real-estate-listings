@@ -28,6 +28,7 @@ import { ListingsView } from "./listings-view";
 import { OverviewView } from "./overview-view";
 import { AnalyticsView } from "./analytics-view";
 import { SettingsView } from "./settings-view";
+import { RequestsView } from "./requests-view";
 
 type EditorMode = "new" | "edit" | null;
 
@@ -144,6 +145,8 @@ export function DashboardApp() {
     );
   } else if (section === "analytics") {
     content = <AnalyticsView refreshToken={refreshToken} />;
+  } else if (section === "requests") {
+    content = <RequestsView />;
   } else {
     content = (
       <SettingsView settings={settings} onSettingsChange={setSettings} />
