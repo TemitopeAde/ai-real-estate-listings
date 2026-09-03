@@ -77,6 +77,8 @@ import {
   type ListingViewEvent,
   type PropertyType,
 } from "@/lib/listings";
+import { openAppUpgradePage } from "@/lib/entitlement";
+import { useEntitlement } from "./entitlement-context";
 
 interface ListingsViewProps {
   refreshToken: number;
@@ -84,6 +86,7 @@ interface ListingsViewProps {
   onAddListing: () => void;
   onEditListing: (id: string) => void;
   onArchiveListing: (id: string) => Promise<void>;
+  onOpenPricing: () => void;
 }
 
 const PAGE_SIZE = 10;
@@ -146,7 +149,9 @@ export function ListingsView({
   onAddListing,
   onEditListing,
   onArchiveListing,
+  onOpenPricing,
 }: ListingsViewProps) {
+  const entitlement = useEntitlement();
   const [listings, setListings] = useState<Listing[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ListingStatus | "all">("all");
@@ -265,6 +270,9 @@ export function ListingsView({
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Search, organize, and keep every property ready for its next
               stage.
+              {entitlement.listingCap !== null
+                ? ` The live site shows the ${entitlement.publicListingCount} most recently updated active listing${entitlement.publicListingCount === 1 ? "" : "s"} of your ${entitlement.listingCap} plan cap.`
+                : ""}
             </p>
           </div>
           <Button onClick={onAddListing} className="w-full sm:w-auto">
@@ -462,6 +470,14 @@ export function ListingsView({
                               }}
                               onViewers={() => {
                                 console.info("[listings-actions] viewers selected", listing._id);
+                                if (!entitlement.features.uniqueVisitors) {
+                                  if (entitlement.canStartTrial) {
+                                    openAppUpgradePage(entitlement.instanceId);
+                                    return;
+                                  }
+                                  onOpenPricing();
+                                  return;
+                                }
                                 void openUniqueViewers(listing);
                               }}
                               onDelete={() => {

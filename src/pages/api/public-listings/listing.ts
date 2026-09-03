@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 import { isPropertyType, isTransactionType, type ListingViewEvent } from "@/lib/listing-types";
 import { getPublicListing, getPublicPriceRange, queryPublicListings, recordListingView } from "@/lib/server/listings";
+import { getAppEntitlement, publicAccessFor } from "@/lib/server/entitlement";
 import { withPublicOwnerContact } from "@/lib/server/site-owner";
 
 function json(data: unknown, status = 200): Response {
@@ -27,10 +28,12 @@ function pageParam(value: string | null, fallback: number, max: number): number 
 export const GET: APIRoute = async ({ url }) => {
   try {
     const id = url.searchParams.get("id")?.trim();
+    const entitlement = await getAppEntitlement();
+    const access = publicAccessFor(entitlement);
     if (id) {
       const listing = await getPublicListing(id);
       return listing
-        ? json(await withPublicOwnerContact(listing))
+        ? json({ ...(await withPublicOwnerContact(listing)), access })
         : json({ message: "Listing not found." }, 404);
     }
     if (url.searchParams.get("priceRange") === "1") return json(await getPublicPriceRange());
@@ -48,7 +51,7 @@ export const GET: APIRoute = async ({ url }) => {
       page,
       pageSize,
     });
-    return json({ ...result, page, pageSize }, 200);
+    return json({ ...result, page, pageSize, access }, 200);
   } catch (error) {
     console.error("Unable to load public listings.", error);
     return json({ message: "Listings are temporarily unavailable." }, 500);

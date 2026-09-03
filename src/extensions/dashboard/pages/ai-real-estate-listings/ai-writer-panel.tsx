@@ -73,8 +73,8 @@ export function AIWriterPanel({
             <label className="space-y-2 text-sm font-medium">Bathrooms<Input value={form.bathrooms} onChange={(event) => update('bathrooms', event.target.value)} /></label>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium">Location<Input value={form.location} onChange={(event) => update('location', event.target.value)} placeholder="Lekki, Lagos" /></label>
-            <label className="space-y-2 text-sm font-medium">Price<Input value={form.price} onChange={(event) => update('price', event.target.value)} placeholder="₦120M" /></label>
+            <label className="space-y-2 text-sm font-medium">Location<Input value={form.location} onChange={(event) => update('location', event.target.value)} placeholder="Austin, Texas" /></label>
+            <label className="space-y-2 text-sm font-medium">Price<Input value={form.price} onChange={(event) => update('price', event.target.value)} placeholder="$875,000" /></label>
           </div>
           <label className="space-y-2 text-sm font-medium">Property type<Input value={form.propertyType} onChange={(event) => update('propertyType', event.target.value)} /></label>
           <label className="space-y-2 text-sm font-medium">Amenities<Textarea value={form.amenities} onChange={(event) => update('amenities', event.target.value)} placeholder="Swimming pool, gym, parking" rows={3} /></label>

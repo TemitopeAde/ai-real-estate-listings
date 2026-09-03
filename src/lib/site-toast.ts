@@ -10,14 +10,14 @@ function ensureStyles(): void {
   styleAdded = true;
 }
 
-export function showSiteToast(title: string, description: string, tone: ToastTone = 'success'): void {
+export function showSiteToast(title: string, description: string, tone: ToastTone = 'success', dismissLabel = 'Dismiss notification'): void {
   if (typeof document === 'undefined') return;
   ensureStyles();
   let host = document.querySelector<HTMLDivElement>('.property-toast-host');
   if (!host) { host = document.createElement('div'); host.className = 'property-toast-host'; host.setAttribute('aria-live', 'polite'); host.setAttribute('aria-atomic', 'true'); document.body.append(host); }
   const toast = document.createElement('div'); toast.className = `property-toast property-toast--${tone}`; toast.setAttribute('role', tone === 'error' ? 'alert' : 'status');
   const content = document.createElement('div'); const titleNode = document.createElement('div'); titleNode.className = 'property-toast__title'; titleNode.textContent = title; const descriptionNode = document.createElement('div'); descriptionNode.className = 'property-toast__description'; descriptionNode.textContent = description; content.append(titleNode, descriptionNode);
-  const close = document.createElement('button'); close.className = 'property-toast__close'; close.type = 'button'; close.setAttribute('aria-label', 'Dismiss notification'); close.textContent = '×'; close.onclick = () => toast.remove();
+  const close = document.createElement('button'); close.className = 'property-toast__close'; close.type = 'button'; close.setAttribute('aria-label', dismissLabel); close.textContent = '×'; close.onclick = () => toast.remove();
   toast.append(Object.assign(document.createElement('div'), { className: 'property-toast__bar' }), content, close); host.append(toast);
   window.setTimeout(() => toast.remove(), 5000);
 }

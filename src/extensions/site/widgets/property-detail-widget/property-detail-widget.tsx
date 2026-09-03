@@ -9,12 +9,13 @@ import { location } from "@wix/site-location";
 import { ArrowLeft, Bath, BedDouble, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Eye, MapPin, Ruler } from "lucide-react";
 import { showSiteToast } from "../../../../lib/site-toast";
 import { useWidgetFonts } from "../widget-fonts";
-import { useSiteThemeStyles } from "../site-theme";
 import { getPanoramaImages, type Listing } from "../../../../lib/listing-types";
+import { LOCKED_PUBLIC_ACCESS, type PublicListingAccess } from "../../../../lib/entitlement";
 import { PropertyAssistant } from "./property-assistant";
 import { PanoramaViewer } from "./panorama-viewer";
 import { PropertySocialShare } from "./social-share";
-import { DEFAULT_DETAIL_WIDGET_CONFIG, formatListingPrice, getImageUrls, getListingLocation, parseWidgetJson, type DetailWidgetConfig } from "../../../../lib/site-widget";
+import { DEFAULT_DETAIL_WIDGET_CONFIG, formatListingPrice, getImageUrls, getListingLocation, normalizeDetailWidgetConfig, parseWidgetJson, type DetailWidgetConfig } from "../../../../lib/site-widget";
+import { t, useResolvedWidgetLanguage, useResolvedWidgetLocale, widgetTextDirection, type WidgetLangCode } from "../../../../lib/widget-i18n";
 import styles from "./property-detail-widget.module.css";
 
 const QuoteMessageEditor = lazy(() =>
@@ -39,7 +40,7 @@ async function goToListing(id: string): Promise<void> {
   await location.to(`${baseUrl.replace(/\/+$/, "")}/property-details?id=${encodeURIComponent(id)}`);
 }
 
-function ListingContact({ listing }: { listing: Listing }) {
+function ListingContact({ listing, lang }: { listing: Listing; lang: WidgetLangCode }) {
   const parts: React.ReactNode[] = [];
   if (listing.agentName) parts.push(<span key="name">{listing.agentName}</span>);
   if (listing.agentPhone) {
@@ -59,7 +60,7 @@ function ListingContact({ listing }: { listing: Listing }) {
   if (parts.length === 0) return null;
   return (
     <section className={styles.section}>
-      <h2>Contact</h2>
+      <h2>{t(lang, "contact")}</h2>
       <p className={styles.agent}>
         {parts.map((part, index) => (
           <Fragment key={index}>
@@ -72,10 +73,26 @@ function ListingContact({ listing }: { listing: Listing }) {
   );
 }
 
-async function loadListing(id: string): Promise<Listing> {
+function listingAccess(value: unknown): PublicListingAccess {
+  if (!value || typeof value !== "object") return LOCKED_PUBLIC_ACCESS;
+  const source = value as Record<string, unknown>;
+  return {
+    virtualTour: source.virtualTour === true,
+    multiSceneTour: source.multiSceneTour === true,
+    socialShare: source.socialShare === true,
+    assistant: source.assistant === true,
+    relatedListings: source.relatedListings === true,
+  };
+}
+
+async function loadListing(id: string): Promise<{ listing: Listing; access: PublicListingAccess }> {
   const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/listing?id=${encodeURIComponent(id)}`, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(response.status === 404 ? "not-found" : "load-failed");
-  return await response.json() as Listing;
+  const data: unknown = await response.json();
+  if (!data || typeof data !== "object") throw new Error("load-failed");
+  const record = data as Listing & { access?: unknown };
+  const { access: rawAccess, ...listing } = record;
+  return { listing, access: listingAccess(rawAccess) };
 }
 
 async function loadPublicListings(listing?: Listing, limit = 100): Promise<Listing[]> {
@@ -84,12 +101,16 @@ async function loadPublicListings(listing?: Listing, limit = 100): Promise<Listi
     params.set("propertyType", listing.propertyType);
     params.set("transactionType", listing.transactionType);
   }
+  params.set("pageSize", String(Math.min(100, Math.max(1, limit + 4))));
   const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/listing?${params.toString()}`, { headers: { Accept: "application/json" } });
   if (!response.ok) return [];
   const data: unknown = await response.json();
-  if (!Array.isArray(data)) return [];
+  const items =
+    data && typeof data === "object" && Array.isArray((data as { items?: unknown }).items)
+      ? ((data as { items: Listing[] }).items)
+      : [];
   const city = listing ? (listing.address?.city || listing.city).trim().toLowerCase() : "";
-  const candidates = (data as Listing[]).filter((item) => !listing || item._id !== listing._id).filter((item) => item.status === "active");
+  const candidates = items.filter((item) => !listing || item._id !== listing._id).filter((item) => item.status === "active");
   if (!listing) return candidates.slice(0, limit);
   const sameCity = candidates.filter((item) => (item.address?.city || item.city).trim().toLowerCase() === city);
   return [...sameCity, ...candidates.filter((item) => !sameCity.some((cityItem) => cityItem._id === item._id))].slice(0, limit);
@@ -117,39 +138,39 @@ async function savedAction(action: "list" | "save" | "remove", listingId: string
   return response.json();
 }
 
-const ImageCarousel: FC<{ listing: Listing; ratio: DetailWidgetConfig["imageRatio"]; showImageControls?: boolean; showImageDots?: boolean }> = ({ listing, ratio, showImageControls = true, showImageDots = true }) => {
+const ImageCarousel: FC<{ listing: Listing; ratio: DetailWidgetConfig["imageRatio"]; showImageControls?: boolean; showImageDots?: boolean; lang: WidgetLangCode }> = ({ listing, ratio, showImageControls = true, showImageDots = true, lang }) => {
   const images = getImageUrls(listing);
   const [index, setIndex] = useState(0);
   const current = images[index] ?? "";
   const move = (delta: number) => setIndex((value) => (value + delta + images.length) % images.length);
   return <div className={`${styles.imageFrame} ${styles[ratio]}`}>
-    {current ? <img src={current} alt={listing.title} /> : <div className={styles.imageFallback}>Property image</div>}
-    {images.length > 1 && showImageControls ? <><button type="button" className={`${styles.iconButton} ${styles.previous}`} onClick={() => move(-1)} aria-label="Previous property image"><ChevronLeft /></button><button type="button" className={`${styles.iconButton} ${styles.next}`} onClick={() => move(1)} aria-label="Next property image"><ChevronRight /></button>{showImageDots ? <div className={styles.dots} aria-label={`${index + 1} of ${images.length} images`}>{images.map((image, imageIndex) => <span key={image} className={imageIndex === index ? styles.activeDot : ""} />)}</div> : null}</> : null}
+    {current ? <img src={current} alt={listing.title} /> : <div className={styles.imageFallback}>{t(lang, "propertyImage")}</div>}
+    {images.length > 1 && showImageControls ? <><button type="button" className={`${styles.iconButton} ${styles.previous}`} onClick={() => move(-1)} aria-label={t(lang, "previousImage")}><ChevronLeft /></button><button type="button" className={`${styles.iconButton} ${styles.next}`} onClick={() => move(1)} aria-label={t(lang, "nextImage")}><ChevronRight /></button>{showImageDots ? <div className={styles.dots} aria-label={t(lang, "imageCount", { current: index + 1, total: images.length })}>{images.map((image, imageIndex) => <span key={image} className={imageIndex === index ? styles.activeDot : ""} />)}</div> : null}</> : null}
   </div>;
 };
 
-const FeaturedCard: FC<{ listing: Listing; config: DetailWidgetConfig; saved: boolean; onSave: (id: string) => void }> = ({ listing, config, saved, onSave }) => (
+const FeaturedCard: FC<{ listing: Listing; config: DetailWidgetConfig; saved: boolean; lang: WidgetLangCode; locale: string; onSave: (id: string) => void }> = ({ listing, config, saved, lang, locale, onSave }) => (
   <article className={styles.featuredCard} style={{ borderRadius: `${config.cardRadius}px` }}>
-    <button type="button" className={styles.featuredSave} onClick={() => onSave(listing._id)} aria-label={saved ? `Remove ${listing.title} from saved properties` : `Save ${listing.title}`} aria-pressed={saved}>
+    <button type="button" className={styles.featuredSave} onClick={() => onSave(listing._id)} aria-label={saved ? t(lang, "removeTitle", { title: listing.title }) : t(lang, "saveTitle", { title: listing.title })} aria-pressed={saved}>
       {saved ? <BookmarkCheck aria-hidden="true" /> : <Bookmark aria-hidden="true" />}
     </button>
     <div className={styles.featuredLink} role="link" tabIndex={0} onClick={(event) => { if (event.target instanceof HTMLElement && event.target.closest("button")) return; void goToListing(listing._id); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); void goToListing(listing._id); } }}>
-      <ImageCarousel listing={listing} ratio={config.imageRatio} showImageControls={config.showImageControls} showImageDots={config.showImageDots} />
+      <ImageCarousel listing={listing} ratio={config.imageRatio} showImageControls={config.showImageControls} showImageDots={config.showImageDots} lang={lang} />
       <div className={styles.featuredBody}>
-        <div className={styles.featuredTopline}>{config.featuredShowStatus ? <span className={styles.featuredStatus}>Available</span> : null}{config.featuredShowPrice ? <strong>{formatListingPrice(listing)}</strong> : null}</div>
+        <div className={styles.featuredTopline}>{config.featuredShowStatus ? <span className={styles.featuredStatus}>{t(lang, "available")}</span> : null}{config.featuredShowPrice ? <strong>{formatListingPrice(listing, locale)}</strong> : null}</div>
         <h3>{listing.title}</h3>
-        {config.featuredShowLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing)}</p> : null}
-        {config.featuredShowMetadata ? <div className={styles.featuredMetadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {listing.bedrooms} bd</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {listing.bathrooms} ba</span> : null}<span><Ruler /> {listing.area.toLocaleString()} {listing.areaUnit}</span></div> : null}
+        {config.featuredShowLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing, t(lang, "locationNotSet"))}</p> : null}
+        {config.featuredShowMetadata ? <div className={styles.featuredMetadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {t(lang, "bedroomsShort", { count: listing.bedrooms })}</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {t(lang, "bathroomsShort", { count: listing.bathrooms })}</span> : null}<span><Ruler /> {listing.area.toLocaleString(locale)} {listing.areaUnit}</span></div> : null}
       </div>
     </div>
   </article>
 );
 
-const DetailSkeleton: FC<{ config: DetailWidgetConfig; style: React.CSSProperties; rootRef: React.Ref<HTMLElement> }> = ({ config, style, rootRef }) => (
-    <article ref={rootRef} className={`${styles.root} ${styles.skeletonRoot}`} style={{
+const DetailSkeleton: FC<{ config: DetailWidgetConfig; style: React.CSSProperties; lang: WidgetLangCode; dir: "ltr" | "rtl" }> = ({ config, style, lang, dir }) => (
+    <article className={`${styles.root} ${styles.skeletonRoot}`} style={{
     ...style,
     "--detail-padding": `${config.contentPadding}px`,
-  } as React.CSSProperties} aria-label="Loading property" aria-busy="true">
+  } as React.CSSProperties} lang={lang} dir={dir} aria-label={t(lang, "loadingProperty")} aria-busy="true">
     <div className={styles.detailCard}>
       <div className={styles.skeletonImage} />
       <div className={styles.content}>
@@ -166,7 +187,7 @@ const DetailSkeleton: FC<{ config: DetailWidgetConfig; style: React.CSSPropertie
   </article>
 );
 
-const PropertyMap: FC<{ listing: Listing }> = ({ listing }) => {
+const PropertyMap: FC<{ listing: Listing; lang: WidgetLangCode }> = ({ listing, lang }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const searchButtonRef = useRef<HTMLButtonElement | null>(null);
   const coordinates =
@@ -226,12 +247,12 @@ const PropertyMap: FC<{ listing: Listing }> = ({ listing }) => {
   }, [coordinates, listing.title]);
 
   if (!coordinates) {
-    return <div className={styles.mapFallback}>Map location is not available for this property.</div>;
+    return <div className={styles.mapFallback}>{t(lang, "mapUnavailable")}</div>;
   }
-  return <div className={styles.mapWrap}><div ref={containerRef} className={styles.map} aria-label={`Map showing ${listing.title}`} /><button ref={searchButtonRef} type="button" className={styles.searchAreaButton}>Search this area</button></div>;
+  return <div className={styles.mapWrap}><div ref={containerRef} className={styles.map} aria-label={t(lang, "mapLabel", { title: listing.title })} /><button ref={searchButtonRef} type="button" className={styles.searchAreaButton}>{t(lang, "searchThisArea")}</button></div>;
 };
 
-const QuoteRequestModal: FC<{ listing: Listing; onClose: () => void }> = ({ listing, onClose }) => {
+const QuoteRequestModal: FC<{ listing: Listing; lang: WidgetLangCode; onClose: () => void }> = ({ listing, lang, onClose }) => {
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", message: "" });
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -246,17 +267,17 @@ const QuoteRequestModal: FC<{ listing: Listing; onClose: () => void }> = ({ list
 
   const validate = () => {
     const next: Partial<Record<keyof typeof form, string>> = {};
-    if (!form.firstName.trim()) next.firstName = "Enter your first name.";
-    if (!form.lastName.trim()) next.lastName = "Enter your last name.";
-    if (!form.email.trim()) next.email = "Enter your email address.";
+    if (!form.firstName.trim()) next.firstName = t(lang, "enterFirstName");
+    if (!form.lastName.trim()) next.lastName = t(lang, "enterLastName");
+    if (!form.email.trim()) next.email = t(lang, "enterEmail");
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      next.email = "Enter a valid email address.";
+      next.email = t(lang, "validEmail");
     }
-    if (!form.phone.trim()) next.phone = "Enter your phone number.";
+    if (!form.phone.trim()) next.phone = t(lang, "enterPhone");
     else if (!/^[+()\d\s.-]{7,30}$/.test(form.phone.trim())) {
-      next.phone = "Enter a valid phone number.";
+      next.phone = t(lang, "validPhone");
     }
-    if (plainFromHtml(form.message).length > 2000) next.message = "Keep the message under 2,000 characters.";
+    if (plainFromHtml(form.message).length > 2000) next.message = t(lang, "messageTooLong");
     return next;
   };
 
@@ -266,7 +287,7 @@ const QuoteRequestModal: FC<{ listing: Listing; onClose: () => void }> = ({ list
     setFieldErrors(nextErrors);
     setError("");
     if (Object.keys(nextErrors).length > 0) {
-      setError("Fix the highlighted fields before sending.");
+      setError(t(lang, "fixFields"));
       return;
     }
     setSubmitting(true);
@@ -277,10 +298,10 @@ const QuoteRequestModal: FC<{ listing: Listing; onClose: () => void }> = ({ list
         body: JSON.stringify({ listingId: listing._id, ...form }),
       });
       const result = await response.json() as { message?: string };
-      if (!response.ok) throw new Error(result.message ?? "The request could not be submitted.");
+      if (!response.ok) throw new Error(result.message ?? t(lang, "quoteFailed"));
       setSuccess(true);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "The request could not be submitted.");
+      setError(submitError instanceof Error ? submitError.message : t(lang, "quoteFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -322,34 +343,35 @@ const QuoteRequestModal: FC<{ listing: Listing; onClose: () => void }> = ({ list
       }}
     >
       <section className={styles.quoteModal} role="dialog" aria-modal="true" aria-labelledby="quote-request-title">
-        <button type="button" className={styles.quoteClose} onClick={onClose} aria-label="Close quote request">×</button>
+        <button type="button" className={styles.quoteClose} onClick={onClose} aria-label={t(lang, "closeQuote")}>×</button>
         {success ? (
           <div className={styles.quoteSuccess}>
-            <h2 id="quote-request-title">Request received</h2>
-            <p>Thank you. An agent will contact you about {listing.title}.</p>
-            <button type="button" className={styles.quoteSubmit} onClick={onClose}>Done</button>
+            <h2 id="quote-request-title">{t(lang, "requestReceived")}</h2>
+            <p>{t(lang, "thankYouQuote", { title: listing.title })}</p>
+            <button type="button" className={styles.quoteSubmit} onClick={onClose}>{t(lang, "done")}</button>
           </div>
         ) : (
           <>
-            <h2 id="quote-request-title">Request a quote</h2>
-            <p className={styles.quoteIntro}>Tell us how we can help with {listing.title}.</p>
+            <h2 id="quote-request-title">{t(lang, "requestQuote")}</h2>
+            <p className={styles.quoteIntro}>{t(lang, "quoteIntro", { title: listing.title })}</p>
             <form onSubmit={(event) => void submit(event)} noValidate>
               <div className={styles.quoteFields}>
-                {field("firstName", "First name", { autoComplete: "given-name" })}
-                {field("lastName", "Last name", { autoComplete: "family-name" })}
-                {field("email", "Email", { type: "text", inputMode: "email", autoComplete: "email" })}
-                {field("phone", "Phone", { type: "tel", autoComplete: "tel" })}
+                {field("firstName", t(lang, "firstName"), { autoComplete: "given-name" })}
+                {field("lastName", t(lang, "lastName"), { autoComplete: "family-name" })}
+                {field("email", t(lang, "email"), { type: "text", inputMode: "email", autoComplete: "email" })}
+                {field("phone", t(lang, "phone"), { type: "tel", autoComplete: "tel" })}
                 <label className={styles.quoteMessage}>
-                  Message
+                  {t(lang, "message")}
                   <div
                     className={`${styles.quoteEditor}${fieldErrors.message ? ` ${styles.quoteEditorInvalid}` : ""}`}
                     aria-invalid={Boolean(fieldErrors.message)}
                     aria-describedby={fieldErrors.message ? "quote-message-error" : undefined}
                   >
-                    <Suspense fallback={<div className={styles.quoteEditorFallback}>Loading editor…</div>}>
+                    <Suspense fallback={<div className={styles.quoteEditorFallback}>{t(lang, "loadingEditor")}</div>}>
                       <QuoteMessageEditor
                         value={form.message}
                         invalid={Boolean(fieldErrors.message)}
+                        lang={lang}
                         onChange={(value) => update("message", value)}
                       />
                     </Suspense>
@@ -363,7 +385,7 @@ const QuoteRequestModal: FC<{ listing: Listing; onClose: () => void }> = ({ list
               </div>
               {error ? <p className={styles.quoteError} role="alert">{error}</p> : null}
               <button type="submit" className={styles.quoteSubmit} disabled={submitting}>
-                {submitting ? "Sending…" : "Send request"}
+                {submitting ? t(lang, "sending") : t(lang, "sendRequest")}
               </button>
             </form>
           </>
@@ -374,14 +396,14 @@ const QuoteRequestModal: FC<{ listing: Listing; onClose: () => void }> = ({ list
 };
 
 const PropertyDetail: FC<Props> = ({ config: rawConfig }) => {
-  const config = useMemo(() => parseWidgetJson(rawConfig ?? null, DEFAULT_DETAIL_WIDGET_CONFIG), [rawConfig]);
-  const rootRef = useRef<HTMLElement | null>(null);
-  useSiteThemeStyles(rootRef);
-  const assignRootRef = (element: HTMLElement | null) => {
-    rootRef.current = element;
-  };
+  const config = useMemo(() => normalizeDetailWidgetConfig(parseWidgetJson(rawConfig ?? null, DEFAULT_DETAIL_WIDGET_CONFIG)), [rawConfig]);
+  const lang = useResolvedWidgetLanguage(config.language);
+  const locale = useResolvedWidgetLocale(lang);
+  const dir = widgetTextDirection(lang);
+  const dismissToast = t(lang, "dismissNotification");
   const fontStyles = useWidgetFonts(config.titleFont.font, config.bodyFont.font);
   const [listing, setListing] = useState<Listing | null>(null);
+  const [access, setAccess] = useState<PublicListingAccess>(LOCKED_PUBLIC_ACCESS);
   const [viewCount, setViewCount] = useState<number | undefined>();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -395,20 +417,20 @@ const PropertyDetail: FC<Props> = ({ config: rawConfig }) => {
       const queryRecord = typeof query === "object" && query !== null ? query as Record<string, unknown> : {};
       const id = queryRecord.id;
       if (typeof id !== "string" || !id) { if (mounted) setState("missing"); return; }
-      return loadListing(id).then(async (data) => { if (!mounted) return; setListing(data); setViewCount(data.viewCount); setState("ready"); try { const savedResponse = await savedAction("list", id); const value = typeof savedResponse === "object" && savedResponse !== null ? savedResponse as { items?: Array<{ id?: string }> } : {}; if (mounted) setSaved((value.items ?? []).some((item) => item.id === id)); } catch { /* Guests start unsaved. */ } return recordView(id); }).then((count) => { if (mounted && typeof count === "number") setViewCount(count); }).catch((reason: unknown) => { if (!mounted) return; setState(reason instanceof Error && reason.message === "not-found" ? "not-found" : "error"); });
+      return loadListing(id).then(async (data) => { if (!mounted) return; setListing(data.listing); setAccess(data.access); setViewCount(data.listing.viewCount); setState("ready"); try { const savedResponse = await savedAction("list", id); const value = typeof savedResponse === "object" && savedResponse !== null ? savedResponse as { items?: Array<{ id?: string }> } : {}; if (mounted) setSaved((value.items ?? []).some((item) => item.id === id)); } catch { /* Guests start unsaved. */ } return recordView(id); }).then((count) => { if (mounted && typeof count === "number") setViewCount(count); }).catch((reason: unknown) => { if (!mounted) return; setState(reason instanceof Error && reason.message === "not-found" ? "not-found" : "error"); });
     }).catch((reason: unknown) => { console.error("Unable to read property URL.", reason); if (mounted) setState("error"); });
     return () => { mounted = false; };
   }, []);
   useEffect(() => {
-    if (!listing || !config.showFeaturedListings) return;
+    if (!listing || !config.showFeaturedListings || !access.relatedListings) return;
     let mounted = true;
     void loadPublicListings(listing, Math.min(8, Math.max(1, Math.round(config.featuredCount)))).then((items) => { if (mounted) setFeaturedListings(items); }).catch((error: unknown) => console.error("Unable to load related properties.", error));
     return () => { mounted = false; };
-  }, [listing, config.showFeaturedListings, config.featuredCount]);
+  }, [listing, config.showFeaturedListings, config.featuredCount, access.relatedListings]);
   const style = { "--detail-background": config.backgroundColor, "--detail-card": config.cardColor, "--detail-text": config.textColor, "--detail-muted": config.mutedColor, "--detail-accent": config.accentColor, "--detail-padding": `${config.containerPadding.top}px ${config.containerPadding.right}px ${config.containerPadding.bottom}px ${config.containerPadding.left}px`, "--detail-margin": `${config.containerMargin.top}px ${config.containerMargin.right}px ${config.containerMargin.bottom}px ${config.containerMargin.left}px`, "--detail-border-width": `${config.cardBorderWidth}px`, "--detail-border-color": config.cardBorderColor, "--detail-shadow": config.cardShadow === "none" ? "none" : config.cardShadow === "strong" ? "0 18px 42px rgba(23,33,27,.16)" : "0 12px 30px rgba(23,33,27,.08)" } as React.CSSProperties;
   Object.assign(style, fontStyles, { "--detail-amenities-text": config.amenitiesTextColor, "--detail-amenities-background": config.amenitiesBackgroundColor, "--detail-share-facebook": config.shareFacebookColor, "--detail-share-instagram": config.shareInstagramColor, "--detail-share-whatsapp": config.shareWhatsappColor, "--detail-share-x": config.shareXColor, "--detail-share-linkedin": config.shareLinkedinColor });
-  if (state === "loading") return <DetailSkeleton config={config} style={style} rootRef={assignRootRef} />;
-  if (!listing) return <div ref={assignRootRef} className={`${styles.root} ${styles.message}`} style={style}>{state === "missing" ? "No property was selected." : state === "not-found" ? "This property is no longer available." : "The property is temporarily unavailable."}</div>;
+  if (state === "loading") return <DetailSkeleton config={config} style={style} lang={lang} dir={dir} />;
+  if (!listing) return <div className={`${styles.root} ${styles.message}`} style={style} lang={lang} dir={dir}>{state === "missing" ? t(lang, "noPropertySelected") : state === "not-found" ? t(lang, "propertyGone") : t(lang, "propertyUnavailable")}</div>;
   const handleSave = async () => {
     if (saving) return;
     const previous = saved;
@@ -423,11 +445,11 @@ const PropertyDetail: FC<Props> = ({ config: rawConfig }) => {
         setSaved(true);
       }
       window.dispatchEvent(new CustomEvent("saved-properties:changed", { detail: { listingId: listing._id, saved: next } }));
-      showSiteToast(next ? "Property saved" : "Property removed", next ? "You can find it in your saved properties." : "The property was removed from your saved list.");
+      showSiteToast(next ? t(lang, "propertySaved") : t(lang, "propertyRemoved"), next ? t(lang, "savedFind") : t(lang, "removedFromList"), "success", dismissToast);
     } catch (error) {
       setSaved(previous);
       console.error("Unable to update saved property.", error);
-      showSiteToast(error instanceof Error && error.message === "login-required" ? "Sign in to save properties" : "Could not update saved property", "Please try again.", "error");
+      showSiteToast(error instanceof Error && error.message === "login-required" ? t(lang, "signInToSave") : t(lang, "couldNotUpdateSaved"), t(lang, "tryAgain"), "error", dismissToast);
     } finally { setSaving(false); }
   };
   const handleFeaturedSave = (id: string) => {
@@ -444,11 +466,11 @@ const PropertyDetail: FC<Props> = ({ config: rawConfig }) => {
         return next;
       });
       console.error("Unable to update related saved property.", error);
-      showSiteToast("Sign in to save properties", "Please try again.", "error");
+      showSiteToast(t(lang, "signInToSave"), t(lang, "tryAgain"), "error", dismissToast);
     });
   };
   const panoramas = getPanoramaImages(listing);
-  return <article className={styles.root} style={style}><div className={styles.detailCard} style={{ borderRadius: `${config.cardRadius}px` }}><ImageCarousel listing={listing} ratio={config.imageRatio} /><div className={styles.content}><button type="button" className={styles.backButton} onClick={() => void goToProperties()}><ArrowLeft /> Back to properties</button><div className={styles.heading}><div><h1>{listing.title}</h1>{config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing)}</p> : null}</div><div className={styles.priceRow}><div className={styles.price}>{formatListingPrice(listing)}</div><button type="button" className={styles.quoteButton} onClick={() => setQuoteOpen(true)}>Request a quote</button><button type="button" className={styles.saveButton} onClick={() => void handleSave()} aria-busy={saving} aria-label={saved ? "Remove property from saved properties" : "Save property"} aria-pressed={saved}>{saved ? <BookmarkCheck /> : <Bookmark />}</button></div></div>{config.showViewCount ? <div className={styles.views}><Eye /> {viewCount ?? listing.viewCount} views</div> : null}{config.showSocialShare ? <PropertySocialShare listing={listing} /> : null}{config.showAiAssistant ? <PropertyAssistant listing={listing} /> : null}{panoramas.length ? <section className={styles.section}><h2>360° virtual tour</h2><PanoramaViewer images={panoramas} title={listing.title} /></section> : null}{config.showDescription && listing.description ? <div className={styles.description} dangerouslySetInnerHTML={{ __html: listing.description }} /> : null}<div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {listing.bedrooms} bedrooms</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {listing.bathrooms} bathrooms</span> : null}<span><Ruler /> {listing.area.toLocaleString()} {listing.areaUnit}</span></div>{config.showLocation ? <section className={styles.section}><h2>Location</h2><PropertyMap listing={listing} /></section> : null}{config.showAmenities && listing.amenities?.length ? <section className={styles.section}><h2>Amenities</h2><ul>{listing.amenities.map((amenity) => <li key={amenity}>{amenity}</li>)}</ul></section> : null}{config.showAgent ? <ListingContact listing={listing} /> : null}</div></div>{config.showFeaturedListings && featuredListings.length ? <section className={styles.featuredSection} aria-label={config.featuredTitle}><header className={styles.featuredHeader}><div><h2>{config.featuredTitle}</h2><p>{config.featuredSubtitle}</p></div><div className={styles.featuredControls}><button type="button" aria-label="Previous related properties" onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: -320, behavior: "smooth" })}><ChevronLeft /></button><button type="button" aria-label="Next related properties" onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: 320, behavior: "smooth" })}><ChevronRight /></button></div></header><div id="featured-properties" className={styles.featuredList} style={{ gap: `${config.featuredGap}px` }}>{featuredListings.map((item) => <FeaturedCard key={item._id} listing={item} config={config} saved={featuredSavedIds.has(item._id)} onSave={handleFeaturedSave} />)}</div></section> : null}{quoteOpen ? <QuoteRequestModal listing={listing} onClose={() => setQuoteOpen(false)} /> : null}</article>;
+  return <article className={styles.root} style={style} lang={lang} dir={dir}><div className={styles.detailCard} style={{ borderRadius: `${config.cardRadius}px` }}><ImageCarousel listing={listing} ratio={config.imageRatio} showImageControls={config.showImageControls} showImageDots={config.showImageDots} lang={lang} /><div className={styles.content}><button type="button" className={styles.backButton} onClick={() => void goToProperties()}><ArrowLeft /> {t(lang, "backToProperties")}</button><div className={styles.heading}><div><h1>{listing.title}</h1>{config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing, t(lang, "locationNotSet"))}</p> : null}</div><div className={styles.priceRow}><div className={styles.price}>{formatListingPrice(listing, locale)}</div><button type="button" className={styles.quoteButton} onClick={() => setQuoteOpen(true)}>{t(lang, "requestQuote")}</button><button type="button" className={styles.saveButton} onClick={() => void handleSave()} aria-busy={saving} aria-label={saved ? t(lang, "removeProperty") : t(lang, "saveProperty")} aria-pressed={saved}>{saved ? <BookmarkCheck /> : <Bookmark />}</button></div></div>{config.showViewCount ? <div className={styles.views}><Eye /> {t(lang, "views", { count: viewCount ?? listing.viewCount ?? 0 })}</div> : null}{config.showSocialShare && access.socialShare ? <PropertySocialShare listing={listing} lang={lang} locale={locale} /> : null}{config.showAiAssistant && access.assistant ? <PropertyAssistant listing={listing} lang={lang} /> : null}{panoramas.length ? <section className={styles.section}><h2>{t(lang, "virtualTour")}</h2><PanoramaViewer images={panoramas} title={listing.title} lang={lang} /></section> : null}{config.showDescription && listing.description ? <div className={styles.description} dangerouslySetInnerHTML={{ __html: listing.description }} /> : null}<div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {t(lang, "bedrooms", { count: listing.bedrooms })}</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {t(lang, "bathrooms", { count: listing.bathrooms })}</span> : null}<span><Ruler /> {listing.area.toLocaleString(locale)} {listing.areaUnit}</span></div>{config.showLocation ? <section className={styles.section}><h2>{t(lang, "location")}</h2><PropertyMap listing={listing} lang={lang} /></section> : null}{config.showAmenities && listing.amenities?.length ? <section className={styles.section}><h2>{t(lang, "amenities")}</h2><ul>{listing.amenities.map((amenity) => <li key={amenity}>{amenity}</li>)}</ul></section> : null}{config.showAgent ? <ListingContact listing={listing} lang={lang} /> : null}</div></div>{config.showFeaturedListings && access.relatedListings && featuredListings.length ? <section className={styles.featuredSection} aria-label={config.featuredTitle}><header className={styles.featuredHeader}><div><h2>{config.featuredTitle}</h2><p>{config.featuredSubtitle}</p></div><div className={styles.featuredControls}><button type="button" aria-label={t(lang, "previousRelated")} onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: -320, behavior: "smooth" })}><ChevronLeft /></button><button type="button" aria-label={t(lang, "nextRelated")} onClick={() => document.getElementById("featured-properties")?.scrollBy({ left: 320, behavior: "smooth" })}><ChevronRight /></button></div></header><div id="featured-properties" className={styles.featuredList} style={{ gap: `${config.featuredGap}px` }}>{featuredListings.map((item) => <FeaturedCard key={item._id} listing={item} config={config} saved={featuredSavedIds.has(item._id)} lang={lang} locale={locale} onSave={handleFeaturedSave} />)}</div></section> : null}{quoteOpen ? <QuoteRequestModal listing={listing} lang={lang} onClose={() => setQuoteOpen(false)} /> : null}</article>;
 };
 
 export default reactToWebComponent(PropertyDetail, React, ReactDOM as any, { props: { config: "string" } });

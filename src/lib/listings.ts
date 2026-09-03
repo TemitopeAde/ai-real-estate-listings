@@ -50,6 +50,7 @@ import type {
   ListingPage,
   ListingQuery,
 } from "./listing-types";
+import type { AppEntitlement } from "./entitlement";
 
 class ListingsApiError extends Error {
   constructor(
@@ -191,6 +192,10 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
 
 export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
   return request<AnalyticsSnapshot>("/api/listings/analytics");
+}
+
+export async function getAppEntitlement(): Promise<AppEntitlement> {
+  return request<AppEntitlement>("/api/listings/entitlement");
 }
 
 export async function getSiteOwnerContact(): Promise<{

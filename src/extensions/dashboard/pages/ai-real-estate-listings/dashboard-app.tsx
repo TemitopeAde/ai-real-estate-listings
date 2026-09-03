@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "@wix/design-system/styles.global.css";
 import { dashboard } from "@wix/dashboard";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,13 @@ import {
 } from "@/lib/settings";
 import {
   archiveListing,
+  getAppEntitlement,
   getListing,
   saveListing,
   type Listing,
   type ListingInput,
 } from "@/lib/listings";
+import type { AppEntitlement } from "@/lib/entitlement";
 import { DashboardShell, type DashboardSection } from "./dashboard-shell";
 import { ListingForm } from "./listing-form";
 import { ListingsView } from "./listings-view";
@@ -31,6 +33,8 @@ import { SettingsView } from "./settings-view";
 import { RequestsView } from "./requests-view";
 import { AIWriterView } from "./ai-writer-view";
 import { GuideView } from "./guide-view";
+import { PricingView } from "./pricing-view";
+import { EntitlementProvider } from "./entitlement-context";
 
 type EditorMode = "new" | "edit" | null;
 
@@ -44,6 +48,15 @@ export function DashboardApp() {
   const [settings, setSettings] = useState<WorkspaceSettings>(
     () => readWorkspaceSettings() ?? DEFAULT_WORKSPACE_SETTINGS,
   );
+  const [entitlement, setEntitlement] = useState<AppEntitlement | null>(null);
+
+  useEffect(() => {
+    void getAppEntitlement()
+      .then(setEntitlement)
+      .catch((error: unknown) => {
+        console.error("Unable to load plan entitlement.", error);
+      });
+  }, [refreshToken]);
 
   const openEditor = useCallback(async (id?: string) => {
     setEditorError(null);
@@ -136,6 +149,7 @@ export function DashboardApp() {
         onViewListings={() => setSection("listings")}
         onOpenWriter={() => setSection("writer")}
         onOpenGuide={() => setSection("guide")}
+        onOpenPricing={() => setSection("pricing")}
       />
     );
   } else if (section === "listings") {
@@ -146,14 +160,20 @@ export function DashboardApp() {
         onAddListing={() => void openEditor()}
         onEditListing={(id) => void openEditor(id)}
         onArchiveListing={handleArchive}
+        onOpenPricing={() => setSection("pricing")}
       />
     );
   } else if (section === "analytics") {
-    content = <AnalyticsView refreshToken={refreshToken} />;
+      content = (
+        <AnalyticsView
+          refreshToken={refreshToken}
+          onOpenPricing={() => setSection("pricing")}
+        />
+      );
   } else if (section === "requests") {
     content = <RequestsView refreshToken={refreshToken} />;
   } else if (section === "writer") {
-    content = <AIWriterView />;
+      content = <AIWriterView onOpenPricing={() => setSection("pricing")} />;
   } else if (section === "guide") {
     content = (
       <GuideView
@@ -161,6 +181,8 @@ export function DashboardApp() {
         onAddListing={() => void openEditor()}
       />
     );
+  } else if (section === "pricing") {
+    content = <PricingView />;
   } else {
     content = (
       <SettingsView settings={settings} onSettingsChange={setSettings} />
@@ -168,7 +190,7 @@ export function DashboardApp() {
   }
 
   return (
-    <>
+    <EntitlementProvider value={entitlement}>
       <DashboardShell section={section} onSectionChange={changeSection}>
         {content}
       </DashboardShell>
@@ -218,6 +240,6 @@ export function DashboardApp() {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </EntitlementProvider>
   );
 }

@@ -25,7 +25,12 @@ import {
   type ListingQuery,
 } from "@/lib/listing-types";
 import { normalizeRichText } from "@/lib/server/listing-validation";
+import {
+  applyPublicListingGates,
+  getAppEntitlement,
+} from "@/lib/server/entitlement";
 import { getSiteOwnerContact } from "@/lib/server/site-owner";
+import type { AppEntitlement } from "@/lib/entitlement";
 
 type WixDataRecord = { _id?: string; [key: string]: unknown };
 
@@ -418,15 +423,108 @@ export async function updateListing(
   return saveListing({ ...listingToInput(listing), ...patch }, id, listing._revision);
 }
 
+async function newestActiveListings(limit: number): Promise<Listing[]> {
+  const result = await auth
+    .elevate(items.query)(LISTINGS_COLLECTION_ID)
+    .eq("status", "active")
+    .descending("_updatedDate")
+    .limit(limit)
+    .find();
+  return result.items.map(normalizeListing);
+}
+
+function matchesPublicFilters(
+  listing: Listing,
+  queryOptions: Pick<
+    ListingQuery,
+    | "search"
+    | "transactionType"
+    | "propertyType"
+    | "minPrice"
+    | "maxPrice"
+    | "minBedrooms"
+  >,
+): boolean {
+  const search = queryOptions.search?.trim().toLowerCase();
+  if (search) {
+    const haystack = [
+      listing.title,
+      listing.city,
+      listing.description ?? "",
+      listing.address?.formatted ?? "",
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!haystack.includes(search)) return false;
+  }
+  if (
+    queryOptions.transactionType &&
+    listing.transactionType !== queryOptions.transactionType
+  ) {
+    return false;
+  }
+  if (
+    queryOptions.propertyType &&
+    listing.propertyType !== queryOptions.propertyType
+  ) {
+    return false;
+  }
+  if (
+    queryOptions.minPrice !== undefined &&
+    listing.price < queryOptions.minPrice
+  ) {
+    return false;
+  }
+  if (
+    queryOptions.maxPrice !== undefined &&
+    listing.price > queryOptions.maxPrice
+  ) {
+    return false;
+  }
+  if (
+    queryOptions.minBedrooms !== undefined &&
+    (listing.bedrooms ?? 0) < queryOptions.minBedrooms
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function gatePublicItems(
+  listings: Listing[],
+  entitlement: AppEntitlement,
+): Listing[] {
+  return listings.map((listing) =>
+    applyPublicListingGates(listing, entitlement),
+  );
+}
+
 export async function getPublicPriceRange(): Promise<ListingPriceRange> {
   try {
-    const baseQuery = () => auth.elevate(items.query)(LISTINGS_COLLECTION_ID).eq("status", "active");
+    const entitlement = await getAppEntitlement();
+    if (entitlement.listingCap !== null) {
+      const listings = await newestActiveListings(entitlement.listingCap);
+      const prices = listings.map((listing) => listing.price);
+      const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+      const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+      return {
+        minPrice,
+        maxPrice: Math.max(minPrice, maxPrice),
+        currency: listings[0]?.currency ?? "USD",
+      };
+    }
+    const baseQuery = () =>
+      auth.elevate(items.query)(LISTINGS_COLLECTION_ID).eq("status", "active");
     const [lowest, highest] = await Promise.all([
       baseQuery().ascending("price").limit(1).find(),
       baseQuery().descending("price").limit(1).find(),
     ]);
-    const cheapest = lowest.items[0] ? normalizeListing(lowest.items[0]) : undefined;
-    const priciest = highest.items[0] ? normalizeListing(highest.items[0]) : undefined;
+    const cheapest = lowest.items[0]
+      ? normalizeListing(lowest.items[0])
+      : undefined;
+    const priciest = highest.items[0]
+      ? normalizeListing(highest.items[0])
+      : undefined;
     const minPrice = cheapest?.price ?? 0;
     const maxPrice = priciest?.price ?? 0;
     return {
@@ -441,19 +539,51 @@ export async function getPublicPriceRange(): Promise<ListingPriceRange> {
 }
 
 export async function queryPublicListings(
-  queryOptions: Pick<ListingQuery, "search" | "transactionType" | "propertyType" | "minPrice" | "maxPrice" | "minBedrooms" | "page" | "pageSize"> = {},
+  queryOptions: Pick<
+    ListingQuery,
+    | "search"
+    | "transactionType"
+    | "propertyType"
+    | "minPrice"
+    | "maxPrice"
+    | "minBedrooms"
+    | "page"
+    | "pageSize"
+  > = {},
 ): Promise<ListingPage> {
   const page = Math.max(0, queryOptions.page ?? 0);
   const pageSize = Math.min(100, Math.max(1, queryOptions.pageSize ?? 12));
-  let query = auth.elevate(items.query)(LISTINGS_COLLECTION_ID).eq("status", "active");
+  const entitlement = await getAppEntitlement();
+
+  if (entitlement.listingCap !== null) {
+    const allowed = (await newestActiveListings(entitlement.listingCap)).filter(
+      (listing) => matchesPublicFilters(listing, queryOptions),
+    );
+    const start = page * pageSize;
+    const pageItems = allowed.slice(start, start + pageSize);
+    return {
+      items: gatePublicItems(pageItems, entitlement),
+      totalCount: allowed.length,
+      hasNext: start + pageSize < allowed.length,
+    };
+  }
+
+  let query = auth
+    .elevate(items.query)(LISTINGS_COLLECTION_ID)
+    .eq("status", "active");
   const search = queryOptions.search?.trim();
 
   if (search) query = query.and(listingSearchFilter(search));
-  if (queryOptions.transactionType) query = query.eq("transactionType", queryOptions.transactionType);
-  if (queryOptions.propertyType) query = query.eq("propertyType", queryOptions.propertyType);
-  if (queryOptions.minPrice !== undefined) query = query.ge("price", queryOptions.minPrice);
-  if (queryOptions.maxPrice !== undefined) query = query.le("price", queryOptions.maxPrice);
-  if (queryOptions.minBedrooms !== undefined) query = query.ge("bedrooms", queryOptions.minBedrooms);
+  if (queryOptions.transactionType)
+    query = query.eq("transactionType", queryOptions.transactionType);
+  if (queryOptions.propertyType)
+    query = query.eq("propertyType", queryOptions.propertyType);
+  if (queryOptions.minPrice !== undefined)
+    query = query.ge("price", queryOptions.minPrice);
+  if (queryOptions.maxPrice !== undefined)
+    query = query.le("price", queryOptions.maxPrice);
+  if (queryOptions.minBedrooms !== undefined)
+    query = query.ge("bedrooms", queryOptions.minBedrooms);
 
   const result = await query
     .descending("_updatedDate")
@@ -461,15 +591,29 @@ export async function queryPublicListings(
     .limit(pageSize)
     .find({ returnTotalCount: true });
   return {
-    items: result.items.map(normalizeListing),
+    items: gatePublicItems(result.items.map(normalizeListing), entitlement),
     totalCount: result.totalCount ?? result.items.length,
     hasNext: result.hasNext(),
   };
 }
 
-export async function getPublicListing(id: string): Promise<Listing | null> {
+export async function getVisibleActiveListing(id: string): Promise<Listing | null> {
   const listing = await getListing(id);
-  return listing?.status === "active" ? listing : null;
+  if (!listing || listing.status !== "active") return null;
+
+  const entitlement = await getAppEntitlement();
+  if (entitlement.listingCap !== null) {
+    const allowed = await newestActiveListings(entitlement.listingCap);
+    if (!allowed.some((item) => item._id === id)) return null;
+  }
+
+  return listing;
+}
+
+export async function getPublicListing(id: string): Promise<Listing | null> {
+  const listing = await getVisibleActiveListing(id);
+  if (!listing) return null;
+  return applyPublicListingGates(listing, await getAppEntitlement());
 }
 
 export async function recordListingView(
@@ -477,7 +621,7 @@ export async function recordListingView(
   viewEvent: ListingViewEvent,
 ): Promise<Listing | null> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const listing = await getPublicListing(id);
+    const listing = await getVisibleActiveListing(id);
     if (!listing) return null;
 
     try {

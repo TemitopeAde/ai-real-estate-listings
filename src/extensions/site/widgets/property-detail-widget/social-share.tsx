@@ -2,6 +2,7 @@ import React, { useState, type FC, type ReactNode } from "react";
 
 import type { Listing } from "../../../../lib/listing-types";
 import { formatListingPrice } from "../../../../lib/site-widget";
+import { t, type WidgetLangCode } from "../../../../lib/widget-i18n";
 import styles from "./property-detail-widget.module.css";
 
 type SharePlatform = "facebook" | "instagram" | "whatsapp" | "x" | "linkedin";
@@ -69,8 +70,8 @@ const shareButtonClass: Record<SharePlatform, string> = {
   linkedin: styles.shareLinkedin,
 };
 
-function shareText(listing: Listing, pageUrl: string): string {
-  return `${listing.title} · ${formatListingPrice(listing)}\n${pageUrl}`;
+function shareText(listing: Listing, pageUrl: string, locale: string): string {
+  return `${listing.title} · ${formatListingPrice(listing, locale)}\n${pageUrl}`;
 }
 
 function shareUrl(platform: SharePlatform, text: string, pageUrl: string): string | null {
@@ -98,12 +99,12 @@ async function copyText(value: string): Promise<void> {
   await navigator.clipboard.writeText(value);
 }
 
-export const PropertySocialShare: FC<{ listing: Listing }> = ({ listing }) => {
+export const PropertySocialShare: FC<{ listing: Listing; lang: WidgetLangCode; locale: string }> = ({ listing, lang, locale }) => {
   const [copied, setCopied] = useState(false);
 
   const share = async (channel: ShareChannel) => {
     const pageUrl = window.location.href;
-    const text = shareText(listing, pageUrl);
+    const text = shareText(listing, pageUrl, locale);
     const url = shareUrl(channel.id, text, pageUrl);
     try {
       if (channel.copyFirst) {
@@ -121,7 +122,7 @@ export const PropertySocialShare: FC<{ listing: Listing }> = ({ listing }) => {
 
   return (
     <div className={styles.share}>
-      <p className={styles.shareLabel}>{copied ? "Link copied — paste it in Instagram" : "Share this property"}</p>
+      <p className={styles.shareLabel}>{copied ? t(lang, "linkCopiedInstagram") : t(lang, "shareProperty")}</p>
       <ul className={styles.shareList}>
         {channels.map((channel) => (
           <li key={channel.id}>
@@ -129,7 +130,7 @@ export const PropertySocialShare: FC<{ listing: Listing }> = ({ listing }) => {
               type="button"
               className={`${styles.shareButton} ${shareButtonClass[channel.id]}`}
               onClick={() => void share(channel)}
-              aria-label={`Share on ${channel.label}`}
+              aria-label={t(lang, "shareOn", { label: channel.label })}
             >
               {channel.icon}
             </button>

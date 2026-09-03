@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 
 import { getPublicListing } from "@/lib/server/listings";
+import { requireFeature } from "@/lib/server/entitlement";
 import type { Listing } from "@/lib/listing-types";
 
 const MAX_QUESTION_LENGTH = 500;
@@ -89,6 +90,12 @@ export const POST: APIRoute = async ({ request }) => {
 
   const listing = await getPublicListing(listingId);
   if (!listing) return json({ message: "This property is no longer available." }, 404);
+
+  const { error } = await requireFeature(
+    "assistant",
+    "The on-site property assistant is available on Business.",
+  );
+  if (error) return error;
 
   const apiKey = import.meta.env.DEEPSEEK_API_KEY;
   if (!apiKey) return json({ message: "The property assistant is not configured." }, 503);

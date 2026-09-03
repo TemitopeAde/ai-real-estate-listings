@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 
 import { requireDashboardAccess } from '@/lib/server/access';
+import { requireFeature } from '@/lib/server/entitlement';
 
 const STYLES = new Set(['professional', 'luxury', 'short', 'seo', 'social']);
 
@@ -15,6 +16,12 @@ function text(value: unknown, fallback = ''): string {
 export const POST: APIRoute = async ({ request }) => {
   const accessError = await requireDashboardAccess();
   if (accessError) return accessError;
+
+  const { error } = await requireFeature(
+    "aiWriter",
+    "AI Listing Writer is available on Pro and Business.",
+  );
+  if (error) return error;
 
   let body: unknown;
   try {

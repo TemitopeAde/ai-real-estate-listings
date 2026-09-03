@@ -30,6 +30,8 @@ import {
   getImageUrl,
 } from '@/lib/formatters';
 import { getDashboardSnapshot, type DashboardSnapshot } from '@/lib/listings';
+import { openAppUpgradePage } from '@/lib/entitlement';
+import { useEntitlement } from './entitlement-context';
 
 interface OverviewViewProps {
   refreshToken: number;
@@ -37,6 +39,7 @@ interface OverviewViewProps {
   onViewListings: () => void;
   onOpenWriter: () => void;
   onOpenGuide: () => void;
+  onOpenPricing: () => void;
 }
 
 function MetricCard({
@@ -120,7 +123,8 @@ function RecentListings({ listings, onViewListings }: { listings: DashboardSnaps
   );
 }
 
-export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpenWriter, onOpenGuide }: OverviewViewProps) {
+export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpenWriter, onOpenGuide, onOpenPricing }: OverviewViewProps) {
+  const entitlement = useEntitlement();
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -207,8 +211,27 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="secondary" size="sm" onClick={onOpenWriter}>
-              Open AI writer <ArrowRight className="size-4" aria-hidden="true" />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                if (entitlement.features.aiWriter) {
+                  onOpenWriter();
+                  return;
+                }
+                if (entitlement.canStartTrial) {
+                  openAppUpgradePage(entitlement.instanceId);
+                  return;
+                }
+                onOpenPricing();
+              }}
+            >
+              {entitlement.features.aiWriter
+                ? "Open AI writer"
+                : entitlement.canStartTrial
+                  ? "Start free trial"
+                  : "Unlock AI writer"}{" "}
+              <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
           </CardContent>
         </Card>

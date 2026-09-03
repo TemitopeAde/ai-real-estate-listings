@@ -2,10 +2,13 @@ import { useMemo } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
+import { t, type WidgetLangCode } from "../../../../lib/widget-i18n";
+
 interface QuoteMessageEditorProps {
   value: string;
   onChange: (value: string) => void;
   invalid?: boolean;
+  lang: WidgetLangCode;
 }
 
 const formats = [
@@ -25,6 +28,7 @@ export function QuoteMessageEditor({
   value,
   onChange,
   invalid = false,
+  lang,
 }: QuoteMessageEditorProps) {
   const modules = useMemo(
     () => ({
@@ -46,8 +50,8 @@ export function QuoteMessageEditor({
       onChange={onChange}
       modules={modules}
       formats={formats}
-      placeholder="Tell us what you need, preferred dates, or questions about this property…"
-      aria-label="Message"
+      placeholder={t(lang, "quotePlaceholder")}
+      aria-label={t(lang, "message")}
       aria-invalid={invalid}
     />
   );

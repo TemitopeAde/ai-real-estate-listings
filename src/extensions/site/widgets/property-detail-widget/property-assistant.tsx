@@ -2,14 +2,10 @@ import React, { useEffect, useState, type FC } from "react";
 import { httpClient } from "@wix/essentials";
 import { Bot, Send, Sparkles } from "lucide-react";
 import type { Listing } from "../../../../lib/listing-types";
+import { t, type WidgetLangCode } from "../../../../lib/widget-i18n";
 import styles from "./property-detail-widget.module.css";
 
 const apiOrigin = new URL(import.meta.url).origin;
-const SUGGESTED_QUESTIONS = [
-  "Does this property have enough space for a family of five?",
-  "What are the main advantages of this property?",
-  "What amenities does this property offer?",
-];
 
 interface Message {
   role: "user" | "assistant";
@@ -18,6 +14,7 @@ interface Message {
 
 interface PropertyAssistantProps {
   listing: Listing;
+  lang: WidgetLangCode;
 }
 
 async function askAssistant(listingId: string, question: string, history: Message[]): Promise<string> {
@@ -32,11 +29,12 @@ async function askAssistant(listingId: string, question: string, history: Messag
   return result.answer.trim();
 }
 
-export const PropertyAssistant: FC<PropertyAssistantProps> = ({ listing }) => {
+export const PropertyAssistant: FC<PropertyAssistantProps> = ({ listing, lang }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const suggestions = [t(lang, "suggestFamily"), t(lang, "suggestAdvantages"), t(lang, "suggestAmenities")];
 
   useEffect(() => {
     setMessages([]);
@@ -56,8 +54,8 @@ export const PropertyAssistant: FC<PropertyAssistantProps> = ({ listing }) => {
     try {
       const answer = await askAssistant(listing._id, nextQuestion, history);
       setMessages((current) => [...current, { role: "assistant", content: answer }]);
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "The assistant is temporarily unavailable. Please try again.");
+    } catch {
+      setError(t(lang, "assistantUnavailable"));
     } finally {
       setLoading(false);
     }
@@ -66,10 +64,10 @@ export const PropertyAssistant: FC<PropertyAssistantProps> = ({ listing }) => {
   return <section className={styles.assistant} aria-labelledby="property-assistant-title">
     <div className={styles.assistantHeader}>
       <div className={styles.assistantIcon}><Bot aria-hidden="true" /></div>
-      <div><h2 id="property-assistant-title">Ask about this property</h2><p>Get answers based only on the information in this listing.</p></div>
+      <div><h2 id="property-assistant-title">{t(lang, "assistantTitle")}</h2><p>{t(lang, "assistantIntro")}</p></div>
     </div>
-    {messages.length === 0 ? <div className={styles.suggestions}><span><Sparkles aria-hidden="true" /> Try asking</span><div>{SUGGESTED_QUESTIONS.map((suggestion) => <button key={suggestion} type="button" onClick={() => void submit(suggestion)} disabled={loading}>{suggestion}</button>)}</div></div> : <div className={styles.assistantMessages} aria-live="polite">{messages.map((message, index) => <div className={`${styles.assistantMessage} ${message.role === "user" ? styles.assistantUser : styles.assistantReply}`} key={`${message.role}-${index}`}><span>{message.role === "user" ? "You" : "Assistant"}</span><p>{message.content}</p></div>)}{loading ? <div className={`${styles.assistantMessage} ${styles.assistantReply}`}><span>Assistant</span><p>Checking the listing details…</p></div> : null}</div>}
+    {messages.length === 0 ? <div className={styles.suggestions}><span><Sparkles aria-hidden="true" /> {t(lang, "tryAsking")}</span><div>{suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void submit(suggestion)} disabled={loading}>{suggestion}</button>)}</div></div> : <div className={styles.assistantMessages} aria-live="polite">{messages.map((message, index) => <div className={`${styles.assistantMessage} ${message.role === "user" ? styles.assistantUser : styles.assistantReply}`} key={`${message.role}-${index}`}><span>{message.role === "user" ? t(lang, "you") : t(lang, "assistant")}</span><p>{message.content}</p></div>)}{loading ? <div className={`${styles.assistantMessage} ${styles.assistantReply}`}><span>{t(lang, "assistant")}</span><p>{t(lang, "checkingListing")}</p></div> : null}</div>}
     {error ? <p className={styles.assistantError} role="alert">{error}</p> : null}
-    <form className={styles.assistantForm} onSubmit={(event) => { event.preventDefault(); void submit(); }}><label className={styles.visuallyHidden} htmlFor="property-assistant-question">Ask a question</label><input id="property-assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask a question about this property" maxLength={500} disabled={loading} /><button type="submit" disabled={loading || !question.trim()} aria-label="Ask assistant"><Send aria-hidden="true" /> <span>Ask</span></button></form>
+    <form className={styles.assistantForm} onSubmit={(event) => { event.preventDefault(); void submit(); }}><label className={styles.visuallyHidden} htmlFor="property-assistant-question">{t(lang, "askQuestion")}</label><input id="property-assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={t(lang, "askPlaceholder")} maxLength={500} disabled={loading} /><button type="submit" disabled={loading || !question.trim()} aria-label={t(lang, "askAssistant")}><Send aria-hidden="true" /> <span>{t(lang, "ask")}</span></button></form>
   </section>;
 };

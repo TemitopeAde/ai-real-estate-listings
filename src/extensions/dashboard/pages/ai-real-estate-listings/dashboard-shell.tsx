@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
+  BadgeDollarSign,
   BarChart3,
   BookOpen,
   Building2,
   LayoutDashboard,
+  Lock,
   Mail,
   Settings2,
   Sparkles,
@@ -27,11 +29,15 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { APP_PLANS } from '@/lib/pricing-plans';
+import { openAppUpgradePage } from '@/lib/entitlement';
+import { useEntitlement } from './entitlement-context';
 
-export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'guide' | 'settings';
+export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'guide' | 'pricing' | 'settings';
 
 interface DashboardShellProps {
   section: DashboardSection;
@@ -49,6 +55,7 @@ const navigation: Array<{
   { id: 'writer', label: 'AI Listing Writer', icon: WandSparkles },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'guide', label: 'Guide', icon: BookOpen },
+  { id: 'pricing', label: 'Pricing', icon: BadgeDollarSign },
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
 
@@ -59,6 +66,7 @@ const sectionLabels: Record<DashboardSection, { title: string; eyebrow: string }
   requests: { title: 'Quote requests', eyebrow: 'Lead management' },
   analytics: { title: 'Advanced analytics', eyebrow: 'Portfolio intelligence' },
   guide: { title: 'Guide', eyebrow: 'Getting started' },
+  pricing: { title: 'Pricing', eyebrow: 'Plans' },
   settings: { title: 'Settings', eyebrow: 'Workspace preferences' },
 };
 
@@ -68,6 +76,13 @@ export function DashboardShell({
   children,
 }: DashboardShellProps) {
   const currentSection = sectionLabels[section];
+  const entitlement = useEntitlement();
+  const planName =
+    APP_PLANS.find((plan) => plan.id === entitlement.planId)?.name ?? "Basic";
+  const lockedSections: Partial<Record<DashboardSection, boolean>> = {
+    writer: !entitlement.features.aiWriter,
+    analytics: !entitlement.features.analytics,
+  };
 
   return (
     <TooltipProvider>
@@ -105,6 +120,9 @@ export function DashboardShell({
                       >
                         <Icon aria-hidden="true" />
                         <span>{item.label}</span>
+                        {lockedSections[item.id] ? (
+                          <Lock className="ml-auto size-3.5 opacity-60" aria-hidden="true" />
+                        ) : null}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -116,14 +134,26 @@ export function DashboardShell({
         <SidebarFooter className="p-3">
           <div className="rounded-2xl border border-sidebar-border bg-sidebar-accent/55 p-4">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-xs font-medium">AI-ready foundation</span>
+              <span className="text-xs font-medium">{planName}</span>
               <Badge variant="secondary" className="border-0 bg-sidebar-primary/10 text-[10px] text-sidebar-primary">
-                v1
+                {entitlement.isTrial ? "Trial" : entitlement.isWixStaff ? "Wix" : "Plan"}
               </Badge>
             </div>
             <p className="text-xs leading-relaxed text-sidebar-foreground/60">
-              Keep property content organized and ready for assisted publishing.
+              {entitlement.listingCap === null
+                ? "Unlimited listings are visible on the site."
+                : `${entitlement.publicListingCount} of ${entitlement.listingCap} listings are visible on the site.`}
             </p>
+            {entitlement.canStartTrial ? (
+              <Button
+                type="button"
+                size="sm"
+                className="mt-3 w-full"
+                onClick={() => openAppUpgradePage(entitlement.instanceId)}
+              >
+                Start free trial
+              </Button>
+            ) : null}
           </div>
           <SidebarMenu>
             <SidebarMenuItem>

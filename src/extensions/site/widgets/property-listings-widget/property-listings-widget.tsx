@@ -9,8 +9,8 @@ import { ArrowRight, Bath, BedDouble, Bookmark, BookmarkCheck, ChevronLeft, Chev
 import { type Listing, type ListingPage, type ListingPriceRange } from "../../../../lib/listing-types";
 import { showSiteToast } from "../../../../lib/site-toast";
 import { DEFAULT_LISTING_WIDGET_CONFIG, DETAIL_PAGE_PATH, formatListingPrice, getImageUrls, getListingLocation, normalizeListingWidgetConfig, parseWidgetJson, type ListingWidgetConfig } from "../../../../lib/site-widget";
+import { t, useResolvedWidgetLanguage, useResolvedWidgetLocale, widgetTextDirection, type WidgetLangCode } from "../../../../lib/widget-i18n";
 import { useDebouncedValue } from "../use-debounced-value";
-import { useSiteThemeStyles } from "../site-theme";
 import { useWidgetFonts } from "../widget-fonts";
 import { EMPTY_LISTING_FILTERS, ListingFiltersBar, usablePriceRange, type ListingFilters } from "./listing-filters";
 import styles from "./property-listings-widget.module.css";
@@ -77,46 +77,46 @@ async function savedAction(action: "list" | "save" | "remove", listingId?: strin
   return response.json();
 }
 
-const ImageCarousel: FC<{ listing: Listing; ratio: ListingWidgetConfig["imageRatio"]; showImageControls: boolean; showImageDots: boolean }> = ({ listing, ratio, showImageControls, showImageDots }) => {
+const ImageCarousel: FC<{ listing: Listing; ratio: ListingWidgetConfig["imageRatio"]; showImageControls: boolean; showImageDots: boolean; lang: WidgetLangCode }> = ({ listing, ratio, showImageControls, showImageDots, lang }) => {
   const images = getImageUrls(listing);
   const [index, setIndex] = useState(0);
   const current = images[index] ?? "";
   const move = (delta: number) => setIndex((value) => (value + delta + images.length) % images.length);
   return <div className={`${styles.imageFrame} ${styles[ratio]}`}>
-    {current ? <img src={current} alt={listing.title} loading="lazy" /> : <div className={styles.imageFallback}>Property image</div>}
+    {current ? <img src={current} alt={listing.title} loading="lazy" /> : <div className={styles.imageFallback}>{t(lang, "propertyImage")}</div>}
     {images.length > 1 && showImageControls ? <>
-      <button className={`${styles.iconButton} ${styles.previous}`} type="button" onClick={(event) => { event.stopPropagation(); move(-1); }} aria-label="Previous property image"><ChevronLeft /></button>
-      <button className={`${styles.iconButton} ${styles.next}`} type="button" onClick={(event) => { event.stopPropagation(); move(1); }} aria-label="Next property image"><ChevronRight /></button>
-      {showImageDots ? <div className={styles.dots} aria-label={`${index + 1} of ${images.length} images`}>{images.map((image, imageIndex) => <span key={image} className={imageIndex === index ? styles.activeDot : ""} />)}</div> : null}
+      <button className={`${styles.iconButton} ${styles.previous}`} type="button" onClick={(event) => { event.stopPropagation(); move(-1); }} aria-label={t(lang, "previousImage")}><ChevronLeft /></button>
+      <button className={`${styles.iconButton} ${styles.next}`} type="button" onClick={(event) => { event.stopPropagation(); move(1); }} aria-label={t(lang, "nextImage")}><ChevronRight /></button>
+      {showImageDots ? <div className={styles.dots} aria-label={t(lang, "imageCount", { current: index + 1, total: images.length })}>{images.map((image, imageIndex) => <span key={image} className={imageIndex === index ? styles.activeDot : ""} />)}</div> : null}
     </> : null}
   </div>;
 };
 
-const PropertyCard: FC<{ listing: Listing; config: ListingWidgetConfig; saved: boolean; onSave: (listingId: string) => Promise<void> }> = ({ listing, config, saved, onSave }) => {
+const PropertyCard: FC<{ listing: Listing; config: ListingWidgetConfig; saved: boolean; lang: WidgetLangCode; locale: string; onSave: (listingId: string) => Promise<void> }> = ({ listing, config, saved, lang, locale, onSave }) => {
   const openDetails = async () => {
     const baseUrl = await location.baseUrl();
     const path = config.detailPagePath.replace(/^\/+|\/+$/g, "") || DETAIL_PAGE_PATH;
     await location.to(`${baseUrl.replace(/\/+$/, "")}/${path}?id=${encodeURIComponent(listing._id)}`);
   };
   return <article className={styles.card} style={{ borderRadius: `${config.cardRadius}px` }}>
-    <button type="button" className={styles.saveButton} onClick={(event) => { event.stopPropagation(); void onSave(listing._id); }} aria-label={saved ? `Remove ${listing.title} from saved properties` : `Save ${listing.title}`} aria-pressed={saved}>
+    <button type="button" className={styles.saveButton} onClick={(event) => { event.stopPropagation(); void onSave(listing._id); }} aria-label={saved ? t(lang, "removeTitle", { title: listing.title }) : t(lang, "saveTitle", { title: listing.title })} aria-pressed={saved}>
       {saved ? <BookmarkCheck aria-hidden="true" /> : <Bookmark aria-hidden="true" />}
     </button>
-    <div className={styles.cardButton} role="link" tabIndex={0} onClick={() => void openDetails()} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); void openDetails(); } }} aria-label={`View ${listing.title}`}>
-      <ImageCarousel listing={listing} ratio={config.imageRatio} showImageControls={config.showImageControls} showImageDots={config.showImageDots} />
+    <div className={styles.cardButton} role="link" tabIndex={0} onClick={() => void openDetails()} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); void openDetails(); } }} aria-label={t(lang, "viewTitle", { title: listing.title })}>
+      <ImageCarousel listing={listing} ratio={config.imageRatio} showImageControls={config.showImageControls} showImageDots={config.showImageDots} lang={lang} />
       <div className={styles.cardBody}>
-        {config.showPrice ? <div className={styles.cardTopline}><strong>{formatListingPrice(listing)}</strong></div> : null}
+        {config.showPrice ? <div className={styles.cardTopline}><strong>{formatListingPrice(listing, locale)}</strong></div> : null}
         <h3>{listing.title}</h3>
-        {config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing)}</p> : null}
-        {config.showMetadata ? <div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {listing.bedrooms} bd</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {listing.bathrooms} ba</span> : null}<span><Ruler /> {listing.area.toLocaleString()} {listing.areaUnit}</span></div> : null}
-        <span className={styles.detailsLink}>View property <ArrowRight /></span>
+        {config.showLocation ? <p className={styles.location}><MapPin /> {getListingLocation(listing, t(lang, "locationNotSet"))}</p> : null}
+        {config.showMetadata ? <div className={styles.metadata}>{listing.bedrooms !== undefined ? <span><BedDouble /> {t(lang, "bedroomsShort", { count: listing.bedrooms })}</span> : null}{listing.bathrooms !== undefined ? <span><Bath /> {t(lang, "bathroomsShort", { count: listing.bathrooms })}</span> : null}<span><Ruler /> {listing.area.toLocaleString(locale)} {listing.areaUnit}</span></div> : null}
+        <span className={styles.detailsLink}>{t(lang, "viewProperty")} <ArrowRight /></span>
       </div>
     </div>
   </article>;
 };
 
-const ListingsGridSkeleton: FC<{ count: number }> = ({ count }) => (
-  <div className={styles.list} aria-label="Loading properties" aria-busy="true">
+const ListingsGridSkeleton: FC<{ count: number; lang: WidgetLangCode }> = ({ count, lang }) => (
+  <div className={styles.list} aria-label={t(lang, "loadingProperties")} aria-busy="true">
     {Array.from({ length: Math.max(1, count) }, (_, index) => (
       <article className={styles.skeletonCard} key={index}>
         <div className={styles.skeletonImage} />
@@ -137,9 +137,10 @@ const PagingControls: FC<{
   totalPages: number;
   hasNext: boolean;
   loading: boolean;
+  lang: WidgetLangCode;
   onLoadMore: () => void;
   onPageChange: (page: number) => void;
-}> = ({ config, page, totalPages, hasNext, loading, onLoadMore, onPageChange }) => {
+}> = ({ config, page, totalPages, hasNext, loading, lang, onLoadMore, onPageChange }) => {
   if (config.loadingMode === "infinite" || (config.loadingMode === "load-more" && !hasNext)) return null;
   const buttonStyle = {
     backgroundColor: config.controlBackgroundColor,
@@ -147,12 +148,12 @@ const PagingControls: FC<{
     borderColor: config.controlBorderColor,
     borderRadius: `${config.controlBorderRadius}px`,
   };
-  if (config.loadingMode === "load-more") return <div className={styles.pagingControls} style={{ justifyContent: config.controlAlignment, marginTop: `${config.controlSpacing}px` }}><button type="button" className={styles.pagingButton} style={buttonStyle} onClick={onLoadMore} disabled={loading} aria-busy={loading}>{loading ? "Loading…" : config.loadMoreLabel}</button></div>;
-  return <nav className={styles.pagingControls} style={{ justifyContent: config.controlAlignment, marginTop: `${config.controlSpacing}px` }} aria-label="Property results pagination">
+  if (config.loadingMode === "load-more") return <div className={styles.pagingControls} style={{ justifyContent: config.controlAlignment, marginTop: `${config.controlSpacing}px` }}><button type="button" className={styles.pagingButton} style={buttonStyle} onClick={onLoadMore} disabled={loading} aria-busy={loading}>{loading ? t(lang, "loading") : config.loadMoreLabel}</button></div>;
+  return <nav className={styles.pagingControls} style={{ justifyContent: config.controlAlignment, marginTop: `${config.controlSpacing}px` }} aria-label={t(lang, "pagination")}>
     <button type="button" className={styles.pagingButton} style={buttonStyle} onClick={() => onPageChange(page - 1)} disabled={page === 0 || loading} aria-label={config.previousLabel}>
       {config.showPaginationIcons ? <ChevronLeft aria-hidden="true" /> : null}{config.previousLabel}
     </button>
-    <div className={styles.pageNumbers} aria-label={`Page ${page + 1} of ${totalPages}`}>
+    <div className={styles.pageNumbers} aria-label={t(lang, "pageOf", { current: page + 1, total: totalPages })}>
       {Array.from({ length: totalPages }, (_, index) => <button key={index} type="button" className={`${styles.pageButton} ${index === page ? styles.currentPage : ""}`} style={index === page ? buttonStyle : undefined} onClick={() => onPageChange(index)} disabled={loading} aria-current={index === page ? "page" : undefined}>{index + 1}</button>)}
     </div>
     <button type="button" className={styles.pagingButton} style={buttonStyle} onClick={() => onPageChange(page + 1)} disabled={!hasNext || loading} aria-label={config.nextLabel}>
@@ -163,11 +164,10 @@ const PagingControls: FC<{
 
 const PropertyListings: FC<Props> = (props) => {
   const config = useMemo(() => getConfig(props), [props.config, props.detailPagePath, props.layout]);
-  const rootRef = useRef<HTMLElement | null>(null);
-  useSiteThemeStyles(rootRef);
-  const assignRootRef = (element: HTMLElement | null) => {
-    rootRef.current = element;
-  };
+  const lang = useResolvedWidgetLanguage(config.language);
+  const locale = useResolvedWidgetLocale(lang);
+  const dir = widgetTextDirection(lang);
+  const dismissToast = t(lang, "dismissNotification");
   const fontStyles = useWidgetFonts(config.titleFont.font, config.bodyFont.font);
   const [listings, setListings] = useState<Listing[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -216,12 +216,12 @@ const PropertyListings: FC<Props> = (props) => {
     }).catch((reason: unknown) => {
       console.error("Unable to load public listings.", reason);
       if (mounted && version === requestVersion.current) {
-        setError("Properties are temporarily unavailable.");
+        setError(t(lang, "propertiesUnavailable"));
         setLoading(false);
       }
     });
     return () => { mounted = false; };
-  }, [activeFilters, config.pageSize]);
+  }, [activeFilters, config.pageSize, lang]);
   const loadPage = async (targetPage: number, replace: boolean) => {
     if (loadingMore || (!replace && !hasNext)) return;
     const version = replace ? ++requestVersion.current : requestVersion.current;
@@ -240,7 +240,7 @@ const PropertyListings: FC<Props> = (props) => {
       setError(null);
     } catch (reason: unknown) {
       console.error("Unable to load another listings page.", reason);
-      if (version === requestVersion.current) setError("More properties could not be loaded.");
+      if (version === requestVersion.current) setError(t(lang, "moreUnavailable"));
     } finally {
       if (version === requestVersion.current) { setLoading(false); setLoadingMore(false); }
     }
@@ -276,7 +276,7 @@ const PropertyListings: FC<Props> = (props) => {
         }
       } else await savedAction("remove", listingId);
       window.dispatchEvent(new CustomEvent("saved-properties:changed", { detail: { listingId, saved: nextSaved } }));
-      showSiteToast(nextSaved ? "Property saved" : "Property removed", nextSaved ? "You can find it in your saved properties." : "The property was removed from your saved list.");
+      showSiteToast(nextSaved ? t(lang, "propertySaved") : t(lang, "propertyRemoved"), nextSaved ? t(lang, "savedFind") : t(lang, "removedFromList"), "success", dismissToast);
     } catch (error) {
       setSavedIds((current) => {
         const next = new Set(current);
@@ -284,7 +284,7 @@ const PropertyListings: FC<Props> = (props) => {
         return next;
       });
       console.error("Unable to update saved property.", error);
-      showSiteToast(error instanceof Error && error.message === "login-required" ? "Sign in to save properties" : "Could not update saved property", "Please try again.", "error");
+      showSiteToast(error instanceof Error && error.message === "login-required" ? t(lang, "signInToSave") : t(lang, "couldNotUpdateSaved"), t(lang, "tryAgain"), "error", dismissToast);
     } finally {
       savingIds.current.delete(listingId);
     }
@@ -293,15 +293,15 @@ const PropertyListings: FC<Props> = (props) => {
   const resetFilters = () => setFilters(EMPTY_LISTING_FILTERS);
   const style = { "--listing-gap": `${config.gap}px`, "--listing-columns": String(config.columns), "--listing-tablet-columns": String(config.tabletColumns), "--listing-mobile-columns": String(config.mobileColumns), "--listing-background": config.backgroundColor, "--listing-card": config.cardColor, "--listing-text": config.textColor, "--listing-muted": config.mutedColor, "--listing-accent": config.accentColor, "--listing-filter-card": config.filterBackgroundColor, "--listing-filter-text": config.filterTextColor, "--listing-filter-border": config.filterBorderColor, "--listing-padding": `${config.containerPadding.top}px ${config.containerPadding.right}px ${config.containerPadding.bottom}px ${config.containerPadding.left}px`, "--listing-margin": `${config.containerMargin.top}px ${config.containerMargin.right}px ${config.containerMargin.bottom}px ${config.containerMargin.left}px`, "--listing-border-width": `${config.cardBorderWidth}px`, "--listing-border-color": config.cardBorderColor, "--listing-shadow": config.cardShadow === "none" ? "none" : config.cardShadow === "strong" ? "0 18px 42px rgba(23,33,27,.16)" : "0 12px 30px rgba(23,33,27,.08)", font: config.bodyFont.font } as React.CSSProperties;
   Object.assign(style, fontStyles);
-  if (error && listings.length === 0 && !loading) return <div ref={assignRootRef} className={`${styles.root} ${styles.message}`} style={style} role="alert">{error}</div>;
-  return <section ref={assignRootRef} className={`${styles.root} ${config.layout === "carousel" ? styles.carouselLayout : styles.gridLayout}`} style={style} aria-label={config.title} aria-busy={loading}>
+  if (error && listings.length === 0 && !loading) return <div className={`${styles.root} ${styles.message}`} style={style} lang={lang} dir={dir} role="alert">{error}</div>;
+  return <section className={`${styles.root} ${config.layout === "carousel" ? styles.carouselLayout : styles.gridLayout}`} style={style} lang={lang} dir={dir} aria-label={config.title} aria-busy={loading}>
     {config.showHeader ? <header className={styles.header}><div><h2 style={{ font: config.titleFont.font }}>{config.title}</h2><p>{config.subtitle}</p></div></header> : null}
-    <ListingFiltersBar filters={filters} config={config} priceRange={sliderRange} onChange={updateFilter} onReset={resetFilters} />
-    {loading && !loadingMore ? <ListingsGridSkeleton count={config.columns} /> : listings.length === 0 ? <div className={styles.message}>{Object.values(filters).some(Boolean) ? "No properties match your filters." : "No properties are available right now."}</div> : <div className={styles.list}>{listings.map((listing) => <PropertyCard key={listing._id} listing={listing} config={config} saved={savedIds.has(listing._id)} onSave={onSave} />)}</div>}
-    {loadingMore ? <div className={styles.inlineLoading} role="status" aria-live="polite">Loading more properties…</div> : null}
+    <ListingFiltersBar filters={filters} config={config} priceRange={sliderRange} lang={lang} locale={locale} onChange={updateFilter} onReset={resetFilters} />
+    {loading && !loadingMore ? <ListingsGridSkeleton count={config.columns} lang={lang} /> : listings.length === 0 ? <div className={styles.message}>{Object.values(filters).some(Boolean) ? t(lang, "noMatch") : t(lang, "noProperties")}</div> : <div className={styles.list}>{listings.map((listing) => <PropertyCard key={listing._id} listing={listing} config={config} saved={savedIds.has(listing._id)} lang={lang} locale={locale} onSave={onSave} />)}</div>}
+    {loadingMore ? <div className={styles.inlineLoading} role="status" aria-live="polite">{t(lang, "loadingMore")}</div> : null}
     {error ? <div className={styles.inlineError} role="alert">{error}</div> : null}
     <div ref={sentinelRef} className={styles.scrollSentinel} aria-hidden="true" />
-    {listings.length > 0 && !(loading && !loadingMore) ? <PagingControls config={config} page={page} totalPages={Math.max(1, Math.ceil(totalCount / config.pageSize))} hasNext={hasNext} loading={loading || loadingMore} onLoadMore={() => void loadPage(page + 1, false)} onPageChange={(nextPage) => { if (nextPage >= 0 && nextPage < Math.ceil(totalCount / config.pageSize) && nextPage !== page) void loadPage(nextPage, true); }} /> : null}
+    {listings.length > 0 && !(loading && !loadingMore) ? <PagingControls config={config} page={page} totalPages={Math.max(1, Math.ceil(totalCount / config.pageSize))} hasNext={hasNext} loading={loading || loadingMore} lang={lang} onLoadMore={() => void loadPage(page + 1, false)} onPageChange={(nextPage) => { if (nextPage >= 0 && nextPage < Math.ceil(totalCount / config.pageSize) && nextPage !== page) void loadPage(nextPage, true); }} /> : null}
   </section>;
 };
 

@@ -4,6 +4,7 @@ import { notificationsV3 } from '@wix/notifications';
 
 import { QUOTE_REQUESTS_COLLECTION_ID, QUOTE_REQUEST_STATUSES, type QuoteRequest, type QuoteRequestStatus } from '@/lib/listing-types';
 import { getPublicListing } from '@/lib/server/listings';
+import { getAppEntitlement } from '@/lib/server/entitlement';
 import { normalizeRichText } from '@/lib/server/listing-validation';
 import { getSiteOwnerContact } from '@/lib/server/site-owner';
 
@@ -27,6 +28,8 @@ function status(value: unknown): QuoteRequestStatus { return QUOTE_REQUEST_STATU
 function date(value: unknown): Date | undefined { const result = value instanceof Date ? value : new Date(String(value ?? '')); return Number.isNaN(result.getTime()) ? undefined : result; }
 
 async function notifyQuoteRequest(request: QuoteRequest, agentEmail?: string): Promise<void> {
+  const entitlement = await getAppEntitlement();
+  if (!entitlement.features.quoteEmail) return;
   const templateId = import.meta.env.QUOTE_REQUEST_NOTIFICATION_TEMPLATE_ID?.trim();
   if (!templateId) return;
   const ownerEmail = (await getSiteOwnerContact()).email ?? '';

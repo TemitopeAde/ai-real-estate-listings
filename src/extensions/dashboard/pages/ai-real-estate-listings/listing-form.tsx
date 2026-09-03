@@ -59,6 +59,7 @@ import {
 } from "@/lib/listings";
 import { htmlFromPlainDescription, type ListingCopyInput } from "@/lib/ai-writer";
 import { AIWriterPanel } from "./ai-writer-panel";
+import { useEntitlement } from "./entitlement-context";
 
 const RichTextEditor = lazy(() =>
   import("./rich-text-editor").then((module) => ({
@@ -142,16 +143,16 @@ function createInitialState(
   return {
     title:
       listing?.title ??
-      (isNewListing ? "Contemporary 3-bedroom apartment in Lekki" : ""),
+      (isNewListing ? "Contemporary 3-bedroom house in Austin, TX" : ""),
     description:
       listing?.description ??
       (isNewListing
-        ? "<p>Bright and spacious apartment with modern finishes, excellent natural light, and secure parking. Located close to shops, restaurants, and major commuter routes.</p><p>Ideal for professionals or a growing family looking for a comfortable home in a well-connected neighbourhood.</p>"
+        ? "<p>Bright and spacious home with modern finishes, excellent natural light, and a two-car garage. Located close to shops, restaurants, and major commuter routes.</p><p>Ideal for professionals or a growing family looking for a comfortable home in a well-connected neighborhood.</p>"
         : ""),
     transactionType: listing?.transactionType ?? "sale",
     propertyType: listing?.propertyType ?? "house",
     status: listing?.status ?? defaults.defaultStatus,
-    price: listing ? String(listing.price) : "85000000",
+    price: listing ? String(listing.price) : "875000",
     currency: listing?.currency ?? defaults.defaultCurrency,
     area: listing ? String(listing.area) : "1850",
     areaUnit: listing?.areaUnit ?? defaults.defaultAreaUnit,
@@ -185,13 +186,13 @@ function createInitialState(
     serviceCharge:
       listing?.serviceCharge === undefined
         ? isNewListing
-          ? "250000"
+          ? "350"
           : ""
         : String(listing.serviceCharge),
     securityDeposit:
       listing?.securityDeposit === undefined
         ? isNewListing
-          ? "5000000"
+          ? "8750"
           : ""
         : String(listing.securityDeposit),
     agentName: listing?.agentName ?? "",
@@ -200,13 +201,13 @@ function createInitialState(
     latitude:
       listing?.latitude === undefined
         ? isNewListing
-          ? "6.4341"
+          ? "30.2672"
           : ""
         : String(listing.latitude),
     longitude:
       listing?.longitude === undefined
         ? isNewListing
-          ? "3.4703"
+          ? "-97.7431"
           : ""
         : String(listing.longitude),
     panoramaImages: getPanoramaImages(listing ?? {}),
@@ -225,25 +226,25 @@ function createInitialState(
     furnished: listing?.furnished ?? isNewListing,
     amenities:
       listing?.amenities?.join(", ") ??
-      (isNewListing ? "Swimming pool, Gym, 24/7 security, BQ" : ""),
+      (isNewListing ? "Swimming pool, Gym, Garage, Central air" : ""),
     country:
       matchCountryCode(
         fallbackCountries,
-        listing?.address?.country ?? (isNewListing ? "NG" : ""),
+        listing?.address?.country ?? (isNewListing ? "US" : ""),
       ) ??
       listing?.address?.country ??
-      (isNewListing ? "NG" : ""),
+      (isNewListing ? "US" : ""),
     state:
       listing?.address?.state ??
       listing?.address?.subdivision ??
-      (isNewListing ? "LA" : ""),
+      (isNewListing ? "TX" : ""),
     address:
       listing?.address?.address ??
       listing?.address?.streetAddress ??
       listing?.address?.formatted ??
-      (isNewListing ? "12 Admiralty Way" : ""),
+      (isNewListing ? "412 Maple Street" : ""),
     city:
-      listing?.address?.city ?? listing?.city ?? (isNewListing ? "Lekki" : ""),
+      listing?.address?.city ?? listing?.city ?? (isNewListing ? "Austin" : ""),
     primaryImage: listing?.primaryImage ?? "",
     gallery:
       listing?.gallery && listing.gallery.length > 0
@@ -316,6 +317,7 @@ export function ListingForm({
   onBack,
   onSave,
 }: ListingFormProps) {
+  const entitlement = useEntitlement();
   const [form, setForm] = useState(() =>
     createInitialState(listing, {
       defaultCurrency,
@@ -769,7 +771,7 @@ export function ListingForm({
                 value={form.title}
                 onChange={(event) => update("title", event.target.value)}
                 aria-invalid={Boolean(errors.title)}
-                placeholder="Light-filled three-bedroom townhouse"
+                placeholder="Light-filled 3-bedroom house in Austin, TX"
               />
               {errors.title ? (
                 <span className="block text-xs font-normal text-destructive">
@@ -786,12 +788,14 @@ export function ListingForm({
                   variant="outline"
                   size="sm"
                   onClick={() => {
+                    if (!entitlement.features.aiWriter) return;
                     setWriterKey((current) => current + 1);
                     setWriterOpen(true);
                   }}
+                  disabled={!entitlement.features.aiWriter}
                 >
                   <WandSparkles className="size-4" aria-hidden="true" />
-                  Write with AI
+                  {entitlement.features.aiWriter ? "Write with AI" : "AI writer (Pro)"}
                 </Button>
               </div>
               <div className="listing-rich-editor overflow-hidden rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/30">
@@ -951,7 +955,12 @@ export function ListingForm({
           <CardHeader>
             <CardTitle>360° virtual tour</CardTitle>
             <CardDescription>
-              Add equirectangular 360° photos for the interactive Three.js viewer. Visitors can switch between rooms and viewpoints.
+              Add equirectangular 360° photos for the interactive Three.js viewer.
+              {!entitlement.features.virtualTour
+                ? " Virtual tours are included on Pro and Business; extra images stay in the dashboard if you add them now."
+                : entitlement.features.multiSceneTour
+                  ? " Visitors can switch between rooms and viewpoints."
+                  : " Pro sites show the first scene; additional scenes go live on Business."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm font-medium">

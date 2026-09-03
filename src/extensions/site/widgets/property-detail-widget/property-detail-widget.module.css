@@ -27,6 +27,14 @@
 .panorama { width: 100%; height: min(55svh, 520px); min-height: 220px; overflow: hidden; border-radius: 14px; background: #17211b; cursor: grab; }.panorama:active { cursor: grabbing; }.panorama canvas { display: block; width: 100%; height: 100%; }
 .panoramaLayout { display: grid; gap: .75rem; min-width: 0; }
 .panoramaWrap { position: relative; min-width: 0; }.panoramaWrap .iconButton { z-index: 2; }
+.panoramaHint { position: absolute; z-index: 3; left: .75rem; right: .75rem; bottom: .75rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .7rem .85rem; border-radius: 12px; background: rgba(23, 33, 27, .78); color: #fff; pointer-events: none; }
+.panoramaHint p { display: flex; align-items: flex-start; gap: .45rem; margin: 0; font-size: .78rem; line-height: 1.4; font-weight: 600; }
+.panoramaHint p svg { flex: 0 0 1rem; width: 1rem; height: 1rem; margin-top: .1rem; }
+.panoramaHint button { pointer-events: auto; flex-shrink: 0; border: 0; border-radius: 999px; padding: .4rem .7rem; background: #fff; color: #17211b; cursor: pointer; font: inherit; font-size: .72rem; font-weight: 700; }
+.panoramaHint button:focus-visible { outline: 3px solid var(--detail-accent); outline-offset: 2px; }
+.panoramaHintToggle { position: absolute; z-index: 3; top: .75rem; right: .75rem; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border: 0; border-radius: 999px; background: rgba(23, 33, 27, .72); color: #fff; cursor: pointer; }
+.panoramaHintToggle svg { width: 1.05rem; height: 1.05rem; }
+.panoramaHintToggle:focus-visible { outline: 3px solid var(--detail-accent); outline-offset: 2px; }
 .panoramaScenes { display: flex; gap: .55rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: .25rem; }
 .panoramaScene, .panoramaSceneActive { flex: 0 0 7.5rem; min-width: 0; padding: 0; border: 2px solid color-mix(in srgb, var(--detail-muted) 28%, transparent); border-radius: 10px; background: var(--detail-card); color: var(--detail-text); cursor: pointer; text-align: left; font: inherit; }
 .panoramaSceneActive { border-color: var(--detail-accent); }

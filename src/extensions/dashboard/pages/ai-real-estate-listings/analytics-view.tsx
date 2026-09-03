@@ -21,9 +21,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatPrice } from '@/lib/formatters';
 import { getAnalyticsSnapshot, type AnalyticsSnapshot } from '@/lib/listings';
+import { useEntitlement } from './entitlement-context';
+import { PlanGate } from './plan-gate';
 
 interface AnalyticsViewProps {
   refreshToken: number;
+  onOpenPricing: () => void;
 }
 
 const activityConfig = {
@@ -77,11 +80,13 @@ function PricingTable({ items }: { items: AnalyticsSnapshot['averagePriceByCurre
   );
 }
 
-export function AnalyticsView({ refreshToken }: AnalyticsViewProps) {
+export function AnalyticsView({ refreshToken, onOpenPricing }: AnalyticsViewProps) {
+  const entitlement = useEntitlement();
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (!entitlement.features.analytics) return;
     setError(null);
     try {
       setAnalytics(await getAnalyticsSnapshot());
@@ -89,7 +94,7 @@ export function AnalyticsView({ refreshToken }: AnalyticsViewProps) {
       console.error('Unable to load analytics.', loadError);
       setError('We could not calculate analytics. Check the collection permissions and try again.');
     }
-  }, []);
+  }, [entitlement.features.analytics]);
 
   useEffect(() => {
     void load();
@@ -106,9 +111,20 @@ export function AnalyticsView({ refreshToken }: AnalyticsViewProps) {
         <Button variant="outline" onClick={() => void load()}><RefreshCw className="size-4" aria-hidden="true" /> Refresh</Button>
       </div>
 
-      {error ? <Card className="border-destructive/30 bg-destructive/5"><CardContent className="flex items-center justify-between gap-4 p-5"><p className="text-sm text-destructive">{error}</p><Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></CardContent></Card> : null}
-
-      {!analytics ? (
+      {!entitlement.features.analytics ? (
+        <PlanGate
+          title="Analytics is on Pro and Business"
+          description="Upgrade to see inventory mix, activity, and content readiness."
+          onUpgrade={onOpenPricing}
+        />
+      ) : error ? (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="flex items-center justify-between gap-4 p-5">
+            <p className="text-sm text-destructive">{error}</p>
+            <Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button>
+          </CardContent>
+        </Card>
+      ) : !analytics ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-36 rounded-xl" />)}</div>
       ) : (
         <>

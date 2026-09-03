@@ -3,6 +3,7 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 
 import { PROPERTY_TYPES, TRANSACTION_TYPES, type ListingPriceRange } from "../../../../lib/listing-types";
 import type { ListingWidgetConfig } from "../../../../lib/site-widget";
+import { t, type WidgetLangCode, type WidgetMessageKey } from "../../../../lib/widget-i18n";
 import styles from "./property-listings-widget.module.css";
 
 export interface ListingFilters {
@@ -23,11 +24,11 @@ export const EMPTY_LISTING_FILTERS: ListingFilters = {
   bedrooms: "",
 };
 
-function formatFilterPrice(value: number, currency: string): string {
+function formatFilterPrice(value: number, currency: string, locale?: string): string {
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat(locale || undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
   } catch {
-    return `${currency} ${value.toLocaleString()}`;
+    return `${currency} ${value.toLocaleString(locale || undefined)}`;
   }
 }
 
@@ -69,8 +70,10 @@ function sliderPercent(value: number, min: number, max: number): number {
 const PriceSlider: FC<{
   filters: ListingFilters;
   range: ListingPriceRange;
+  lang: WidgetLangCode;
+  locale: string;
   onChange: (key: keyof ListingFilters, value: string) => void;
-}> = ({ filters, range, onChange }) => {
+}> = ({ filters, range, lang, locale, onChange }) => {
   const minValue = filters.minPrice ? Number(filters.minPrice) : range.minPrice;
   const maxValue = filters.maxPrice ? Number(filters.maxPrice) : range.maxPrice;
   const step = priceStep(range.minPrice, range.maxPrice);
@@ -131,8 +134,8 @@ const PriceSlider: FC<{
   return (
     <div className={styles.priceFilter}>
       <div className={styles.priceFilterLabels}>
-        <span>Price</span>
-        <span>{formatFilterPrice(minValue, range.currency)} – {formatFilterPrice(maxValue, range.currency)}</span>
+        <span>{t(lang, "price")}</span>
+        <span>{formatFilterPrice(minValue, range.currency, locale)} – {formatFilterPrice(maxValue, range.currency, locale)}</span>
       </div>
       <div
         className={styles.priceSlider}
@@ -148,7 +151,7 @@ const PriceSlider: FC<{
           <span className={styles.priceSliderThumb} data-thumb="max" style={{ left: `${right}%` }} />
         </div>
         <label>
-          <span className={styles.visuallyHidden}>Minimum price</span>
+          <span className={styles.visuallyHidden}>{t(lang, "minPrice")}</span>
           <input
             type="range"
             min={range.minPrice}
@@ -165,7 +168,7 @@ const PriceSlider: FC<{
           />
         </label>
         <label>
-          <span className={styles.visuallyHidden}>Maximum price</span>
+          <span className={styles.visuallyHidden}>{t(lang, "maxPrice")}</span>
           <input
             type="range"
             min={range.minPrice}
@@ -190,50 +193,52 @@ export const ListingFiltersBar: FC<{
   filters: ListingFilters;
   config: ListingWidgetConfig;
   priceRange: ListingPriceRange | null;
+  lang: WidgetLangCode;
+  locale: string;
   onChange: (key: keyof ListingFilters, value: string) => void;
   onReset: () => void;
-}> = ({ filters, config, priceRange, onChange, onReset }) => {
+}> = ({ filters, config, priceRange, lang, locale, onChange, onReset }) => {
   const hasFilters = Object.values(filters).some(Boolean);
   const sliderRange = priceRange ?? FALLBACK_PRICE_RANGE;
 
   return (
-    <div className={styles.filters} style={{ background: config.filterBackgroundColor, color: config.filterTextColor }} role="search" aria-label="Filter properties">
+    <div className={styles.filters} style={{ background: config.filterBackgroundColor, color: config.filterTextColor }} role="search" aria-label={t(lang, "filterProperties")}>
       {config.showSearch ? (
         <label className={styles.searchField}>
           <Search aria-hidden="true" />
-          <span className={styles.visuallyHidden}>Search properties</span>
-          <input value={filters.search} onChange={(event) => onChange("search", event.target.value)} placeholder="Search properties" />
+          <span className={styles.visuallyHidden}>{t(lang, "searchProperties")}</span>
+          <input value={filters.search} onChange={(event) => onChange("search", event.target.value)} placeholder={t(lang, "searchProperties")} />
         </label>
       ) : null}
       {config.showTransactionFilter ? (
         <label>
-          <span className={styles.visuallyHidden}>Transaction type</span>
+          <span className={styles.visuallyHidden}>{t(lang, "transactionType")}</span>
           <select value={filters.transactionType} onChange={(event) => onChange("transactionType", event.target.value)}>
-            <option value="">Any listing type</option>
-            {TRANSACTION_TYPES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            <option value="">{t(lang, "anyListingType")}</option>
+            {TRANSACTION_TYPES.map((option) => <option key={option.value} value={option.value}>{t(lang, `transaction.${option.value}` as WidgetMessageKey)}</option>)}
           </select>
         </label>
       ) : null}
       {config.showPropertyTypeFilter ? (
         <label>
-          <span className={styles.visuallyHidden}>Property type</span>
+          <span className={styles.visuallyHidden}>{t(lang, "propertyType")}</span>
           <select value={filters.propertyType} onChange={(event) => onChange("propertyType", event.target.value)}>
-            <option value="">Any property type</option>
-            {PROPERTY_TYPES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            <option value="">{t(lang, "anyPropertyType")}</option>
+            {PROPERTY_TYPES.map((option) => <option key={option.value} value={option.value}>{t(lang, `type.${option.value}` as WidgetMessageKey)}</option>)}
           </select>
         </label>
       ) : null}
       {config.showBedroomsFilter ? (
         <label>
-          <span className={styles.visuallyHidden}>Minimum bedrooms</span>
+          <span className={styles.visuallyHidden}>{t(lang, "minBedrooms")}</span>
           <select value={filters.bedrooms} onChange={(event) => onChange("bedrooms", event.target.value)}>
-            <option value="">Any bedrooms</option>
-            {[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count}+ bedrooms</option>)}
+            <option value="">{t(lang, "anyBedrooms")}</option>
+            {[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{t(lang, "bedroomsPlus", { count })}</option>)}
           </select>
         </label>
       ) : null}
-      {config.showPriceFilter ? <PriceSlider filters={filters} range={sliderRange} onChange={onChange} /> : null}
-      {hasFilters ? <button className={styles.resetFilters} type="button" onClick={onReset}><X aria-hidden="true" /> Clear</button> : <SlidersHorizontal className={styles.filterIcon} aria-hidden="true" />}
+      {config.showPriceFilter ? <PriceSlider filters={filters} range={sliderRange} lang={lang} locale={locale} onChange={onChange} /> : null}
+      {hasFilters ? <button className={styles.resetFilters} type="button" onClick={onReset}><X aria-hidden="true" /> {t(lang, "clear")}</button> : <SlidersHorizontal className={styles.filterIcon} aria-hidden="true" />}
     </div>
   );
 };

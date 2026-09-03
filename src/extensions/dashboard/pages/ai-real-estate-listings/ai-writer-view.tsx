@@ -1,6 +1,10 @@
 import { AIWriterPanel } from './ai-writer-panel';
+import { useEntitlement } from './entitlement-context';
+import { PlanGate } from './plan-gate';
 
-export function AIWriterView() {
+export function AIWriterView({ onOpenPricing }: { onOpenPricing: () => void }) {
+  const entitlement = useEntitlement();
+
   return (
     <div className="space-y-6">
       <div>
@@ -10,7 +14,15 @@ export function AIWriterView() {
           Add the property facts once and let AI turn them into polished marketing copy. Review every detail before publishing.
         </p>
       </div>
-      <AIWriterPanel />
+      {entitlement.features.aiWriter ? (
+        <AIWriterPanel />
+      ) : (
+        <PlanGate
+          title="AI Listing Writer is on Pro and Business"
+          description="Upgrade to generate professional listing copy from your property facts."
+          onUpgrade={onOpenPricing}
+        />
+      )}
     </div>
   );
 }

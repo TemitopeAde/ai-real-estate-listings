@@ -24,10 +24,10 @@ export const LISTING_COPY_STYLES: Array<{ value: ListingCopyStyle; label: string
 export const DEFAULT_LISTING_COPY_INPUT: ListingCopyInput = {
   bedrooms: '3',
   bathrooms: '2',
-  location: 'Lekki, Lagos',
+  location: 'Austin, Texas',
   amenities: 'Swimming pool',
   furnishing: 'Furnished',
-  price: '₦120M',
+  price: '$875,000',
   propertyType: 'Apartment',
   style: 'professional',
 };

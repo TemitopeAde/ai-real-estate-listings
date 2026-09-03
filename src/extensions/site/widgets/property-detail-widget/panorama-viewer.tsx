@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type FC } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 
 import type { ListingImage } from "../../../../lib/listing-types";
+import { t, type WidgetLangCode } from "../../../../lib/widget-i18n";
 import styles from "./property-detail-widget.module.css";
 
-export const PanoramaViewer: FC<{ images: ListingImage[]; title: string }> = ({ images, title }) => {
+export const PanoramaViewer: FC<{ images: ListingImage[]; title: string; lang: WidgetLangCode }> = ({ images, title, lang }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [index, setIndex] = useState(0);
+  const [hintOpen, setHintOpen] = useState(true);
   const current = images[index];
   const imageUrl = current?.url ?? "";
 
@@ -36,6 +38,8 @@ export const PanoramaViewer: FC<{ images: ListingImage[]; title: string }> = ({ 
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       container.replaceChildren();
       container.appendChild(renderer.domElement);
+      const dismissHint = () => setHintOpen(false);
+      renderer.domElement.addEventListener("pointerdown", dismissHint);
 
       const controls = new controlsModule.OrbitControls(camera, renderer.domElement);
       controls.enablePan = false;
@@ -76,6 +80,7 @@ export const PanoramaViewer: FC<{ images: ListingImage[]; title: string }> = ({ 
         texture.dispose();
         material.dispose();
         renderer.dispose();
+        renderer.domElement.removeEventListener("pointerdown", dismissHint);
         renderer.domElement.remove();
       };
     }).catch((error: unknown) => {
@@ -97,7 +102,7 @@ export const PanoramaViewer: FC<{ images: ListingImage[]; title: string }> = ({ 
   return (
     <div className={styles.panoramaLayout}>
       {images.length > 1 ? (
-        <div className={styles.panoramaScenes} role="list" aria-label="360° scenes">
+        <div className={styles.panoramaScenes} role="list" aria-label={t(lang, "scenes")}>
           {images.map((image, imageIndex) => (
             <button
               key={`${image.url}-${imageIndex}`}
@@ -106,10 +111,10 @@ export const PanoramaViewer: FC<{ images: ListingImage[]; title: string }> = ({ 
               className={imageIndex === index ? styles.panoramaSceneActive : styles.panoramaScene}
               onClick={() => setIndex(imageIndex)}
               aria-pressed={imageIndex === index}
-              aria-label={image.title ?? `Scene ${imageIndex + 1}`}
+              aria-label={image.title ?? t(lang, "scene", { count: imageIndex + 1 })}
             >
               <img src={image.url} alt="" />
-              <span>{image.title ?? `Scene ${imageIndex + 1}`}</span>
+              <span>{image.title ?? t(lang, "scene", { count: imageIndex + 1 })}</span>
             </button>
           ))}
         </div>
@@ -118,18 +123,43 @@ export const PanoramaViewer: FC<{ images: ListingImage[]; title: string }> = ({ 
         <div
           ref={containerRef}
           className={styles.panorama}
-          aria-label={`Interactive 360° panorama of ${current.title ?? title}`}
+          aria-label={t(lang, "panoramaOf", { title: current.title ?? title })}
         />
         {images.length > 1 ? (
           <>
-            <button className={`${styles.iconButton} ${styles.previous}`} type="button" onClick={() => move(-1)} aria-label="Previous 360° scene">
+            <button className={`${styles.iconButton} ${styles.previous}`} type="button" onClick={() => move(-1)} aria-label={t(lang, "previousScene")}>
               <ChevronLeft />
             </button>
-            <button className={`${styles.iconButton} ${styles.next}`} type="button" onClick={() => move(1)} aria-label="Next 360° scene">
+            <button className={`${styles.iconButton} ${styles.next}`} type="button" onClick={() => move(1)} aria-label={t(lang, "nextScene")}>
               <ChevronRight />
             </button>
           </>
         ) : null}
+        {hintOpen ? (
+          <div className={styles.panoramaHint}>
+            <p>
+              <Info aria-hidden="true" />
+              <span>
+                {t(lang, "tourHintDrag")}
+                {" "}
+                {t(lang, "tourHintZoom")}
+                {images.length > 1 ? ` ${t(lang, "tourHintScenes")}` : ""}
+              </span>
+            </p>
+            <button type="button" onClick={() => setHintOpen(false)}>
+              {t(lang, "tourHintDismiss")}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className={styles.panoramaHintToggle}
+            onClick={() => setHintOpen(true)}
+            aria-label={t(lang, "tourHintShow")}
+          >
+            <Info aria-hidden="true" />
+          </button>
+        )}
       </div>
     </div>
   );

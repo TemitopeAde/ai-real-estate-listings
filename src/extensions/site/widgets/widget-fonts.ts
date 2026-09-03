@@ -2,8 +2,8 @@ import { useEffect, type CSSProperties } from 'react';
 import { fontFamilyFromShorthand } from '../../../lib/site-widget';
 
 export function useWidgetFonts(titleFont: string, bodyFont: string): CSSProperties {
-  const titleFamily = fontFamilyFromShorthand(titleFont) || 'Inter';
-  const bodyFamily = fontFamilyFromShorthand(bodyFont) || 'Inter';
+  const titleFamily = fontFamilyFromShorthand(titleFont) || 'Helvetica';
+  const bodyFamily = fontFamilyFromShorthand(bodyFont) || 'Helvetica';
   useEffect(() => {
     if (typeof document === 'undefined' || !document.fonts) return;
     for (const [family, shorthand] of [[titleFamily, titleFont], [bodyFamily, bodyFont]] as const) {

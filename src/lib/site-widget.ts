@@ -1,4 +1,5 @@
 import type { Listing } from "./listing-types";
+import { normalizeWidgetLanguage, type WidgetLanguageSetting } from "./widget-i18n";
 
 export const LISTINGS_COLLECTION_ID = "@admin14744/ai-real-estate-listings/listings";
 export const DETAIL_PAGE_PATH = "property-details";
@@ -76,6 +77,7 @@ export interface ListingWidgetConfig {
   titleFont: WidgetFont;
   bodyFont: WidgetFont;
   detailPagePath: string;
+  language: WidgetLanguageSetting;
 }
 
 export interface DetailWidgetConfig {
@@ -119,6 +121,7 @@ export interface DetailWidgetConfig {
   cardShadow: "none" | "soft" | "strong";
   showImageControls: boolean;
   showImageDots: boolean;
+  language: WidgetLanguageSetting;
 }
 
 export const DEFAULT_LISTING_WIDGET_CONFIG: ListingWidgetConfig = {
@@ -170,9 +173,10 @@ export const DEFAULT_LISTING_WIDGET_CONFIG: ListingWidgetConfig = {
   cardShadow: "soft",
   showImageControls: true,
   showImageDots: true,
-  titleFont: { font: "var(--wst-font-style-h2, 700 2rem Inter, sans-serif)" },
-  bodyFont: { font: "var(--wst-font-style-paragraph, 400 1rem Inter, sans-serif)" },
+  titleFont: { font: 'normal normal bold 28px "Helvetica Neue", Helvetica, Arial, sans-serif' },
+  bodyFont: { font: 'normal normal normal 16px "Helvetica Neue", Helvetica, Arial, sans-serif' },
   detailPagePath: DETAIL_PAGE_PATH,
+  language: "auto",
 };
 
 export const DEFAULT_DETAIL_WIDGET_CONFIG: DetailWidgetConfig = {
@@ -216,9 +220,19 @@ export const DEFAULT_DETAIL_WIDGET_CONFIG: DetailWidgetConfig = {
   cardShadow: "soft",
   showImageControls: true,
   showImageDots: true,
+  language: "auto",
 };
 
 const PREVIOUS_DEFAULT_FILL = "var(--wst-color-fill-background-secondary, #ffffff)";
+const PREVIOUS_DEFAULT_TITLE_FONT = "var(--wst-font-style-h2, 700 2rem Inter, sans-serif)";
+const PREVIOUS_DEFAULT_BODY_FONT = "var(--wst-font-style-paragraph, 400 1rem Inter, sans-serif)";
+
+function isPreviousDefaultFont(value: unknown, kind: "title" | "body"): boolean {
+  if (typeof value !== "string") return false;
+  return kind === "title"
+    ? value === PREVIOUS_DEFAULT_TITLE_FONT || value.includes("--wst-font-style-h2")
+    : value === PREVIOUS_DEFAULT_BODY_FONT || value.includes("--wst-font-style-paragraph");
+}
 
 function withTransparentDefaultSurfaces<T extends object>(config: T): T {
   const record = config as T & { backgroundColor?: string; filterBackgroundColor?: string };
@@ -229,11 +243,22 @@ function withTransparentDefaultSurfaces<T extends object>(config: T): T {
   };
 }
 
+function withHelveticaDefaultFonts<T extends object>(config: T): T {
+  const record = config as T & { titleFont?: WidgetFont; bodyFont?: WidgetFont };
+  return {
+    ...record,
+    ...(isPreviousDefaultFont(record.titleFont?.font, "title") ? { titleFont: DEFAULT_LISTING_WIDGET_CONFIG.titleFont } : {}),
+    ...(isPreviousDefaultFont(record.bodyFont?.font, "body") ? { bodyFont: DEFAULT_LISTING_WIDGET_CONFIG.bodyFont } : {}),
+  };
+}
+
 export function parseWidgetJson<T extends object>(value: string | null, fallback: T): T {
   if (!value) return fallback;
   try {
     const parsed: unknown = JSON.parse(value);
-    return parsed && typeof parsed === "object" ? withTransparentDefaultSurfaces({ ...fallback, ...parsed } as T) : fallback;
+    return parsed && typeof parsed === "object"
+      ? withHelveticaDefaultFonts(withTransparentDefaultSurfaces({ ...fallback, ...parsed } as T))
+      : fallback;
   } catch {
     return fallback;
   }
@@ -262,6 +287,15 @@ export function normalizeListingWidgetConfig(config: Partial<ListingWidgetConfig
     controlSpacing: spacing(merged.controlSpacing, DEFAULT_LISTING_WIDGET_CONFIG.controlSpacing, 48),
     controlBorderRadius: spacing(merged.controlBorderRadius, DEFAULT_LISTING_WIDGET_CONFIG.controlBorderRadius, 40),
     showPaginationIcons: merged.showPaginationIcons !== false,
+    language: normalizeWidgetLanguage(merged.language),
+  };
+}
+
+export function normalizeDetailWidgetConfig(config: Partial<DetailWidgetConfig>): DetailWidgetConfig {
+  return {
+    ...DEFAULT_DETAIL_WIDGET_CONFIG,
+    ...config,
+    language: normalizeWidgetLanguage(config.language ?? DEFAULT_DETAIL_WIDGET_CONFIG.language),
   };
 }
 
@@ -270,16 +304,16 @@ export function getImageUrls(listing: Listing): string[] {
   return [...new Set([listing.primaryImage, ...gallery].filter((url): url is string => Boolean(url)))];
 }
 
-export function formatListingPrice(listing: Listing): string {
+export function formatListingPrice(listing: Listing, locale?: string): string {
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: listing.currency }).format(listing.price);
+    return new Intl.NumberFormat(locale || undefined, { style: "currency", currency: listing.currency }).format(listing.price);
   } catch {
-    return `${listing.currency} ${listing.price.toLocaleString()}`;
+    return `${listing.currency} ${listing.price.toLocaleString(locale || undefined)}`;
   }
 }
 
-export function getListingLocation(listing: Listing): string {
-  return [listing.address?.city, listing.address?.state, listing.address?.country].filter(Boolean).join(", ") || listing.city || "Location not set";
+export function getListingLocation(listing: Listing, fallback = "Location not set"): string {
+  return [listing.address?.city, listing.address?.state, listing.address?.country].filter(Boolean).join(", ") || listing.city || fallback;
 }
 
 export function escapeHtml(value: string): string {

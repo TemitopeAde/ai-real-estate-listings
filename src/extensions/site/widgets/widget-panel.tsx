@@ -3,7 +3,8 @@ import { inputs, widget } from "@wix/editor";
 import { Box, Button, Divider, Dropdown, FillPreview, FormField, Input, listItemSelectBuilder, SidePanel, Slider, Text, ToggleSwitch, WixDesignSystemProvider } from "@wix/design-system";
 import "@wix/design-system/styles.global.css";
 
-import { DEFAULT_DETAIL_WIDGET_CONFIG, DEFAULT_LISTING_WIDGET_CONFIG, fontFamilyFromShorthand, normalizeListingWidgetConfig, parseWidgetJson, type DetailWidgetConfig, type ListingWidgetConfig, type WidgetFont, type WidgetSpacing } from "../../../lib/site-widget";
+import { DEFAULT_DETAIL_WIDGET_CONFIG, DEFAULT_LISTING_WIDGET_CONFIG, fontFamilyFromShorthand, normalizeDetailWidgetConfig, normalizeListingWidgetConfig, parseWidgetJson, type DetailWidgetConfig, type ListingWidgetConfig, type WidgetFont, type WidgetSpacing } from "../../../lib/site-widget";
+import { WIDGET_LANGUAGE_OPTIONS } from "../../../lib/widget-i18n";
 
 type PanelConfig = ListingWidgetConfig | DetailWidgetConfig;
 type PanelKind = "listings" | "detail";
@@ -108,8 +109,8 @@ export const WidgetPanel: FC<WidgetPanelProps> = ({ kind }) => {
   const [config, setConfig] = useState<PanelConfig>(defaults);
   const [loaded, setLoaded] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-  useEffect(() => { void widget.getProp("config").then((value) => { const parsed = parseWidgetJson(value, defaults); setConfig(kind === "listings" ? normalizeListingWidgetConfig(parsed as Partial<ListingWidgetConfig>) : parsed); setLoaded(true); }).catch((error: unknown) => { console.error("Unable to load widget settings.", error); setLoaded(true); }); }, [defaults, kind]);
-  const update = useCallback((key: string, value: unknown) => { setConfig((current) => { const merged = { ...current, [key]: value } as PanelConfig; const next = kind === "listings" ? normalizeListingWidgetConfig(merged as Partial<ListingWidgetConfig>) : merged; void widget.setProp("config", JSON.stringify(next)).catch((error: unknown) => console.error("Unable to save widget setting.", error)); return next; }); }, [kind]);
+  useEffect(() => { void widget.getProp("config").then((value) => { const parsed = parseWidgetJson(value, defaults); setConfig(kind === "listings" ? normalizeListingWidgetConfig(parsed as Partial<ListingWidgetConfig>) : normalizeDetailWidgetConfig(parsed as Partial<DetailWidgetConfig>)); setLoaded(true); }).catch((error: unknown) => { console.error("Unable to load widget settings.", error); setLoaded(true); }); }, [defaults, kind]);
+  const update = useCallback((key: string, value: unknown) => { setConfig((current) => { const merged = { ...current, [key]: value } as PanelConfig; const next = kind === "listings" ? normalizeListingWidgetConfig(merged as Partial<ListingWidgetConfig>) : normalizeDetailWidgetConfig(merged as Partial<DetailWidgetConfig>); void widget.setProp("config", JSON.stringify(next)).catch((error: unknown) => console.error("Unable to save widget setting.", error)); return next; }); }, [kind]);
   const updateSpacing = useCallback((key: "containerMargin" | "containerPadding", side: keyof WidgetSpacing, value: number) => { setConfig((current) => { const next = { ...current, [key]: { ...current[key], [side]: value } } as PanelConfig; void widget.setProp("config", JSON.stringify(next)).catch((error: unknown) => console.error("Unable to save widget spacing.", error)); return next; }); }, []);
   const updateFont = useCallback((key: "titleFont" | "bodyFont", font: WidgetFont) => { update(key, font); const otherFont = key === "titleFont" ? config.bodyFont.font : config.titleFont.font; const fonts = [fontFamilyFromShorthand(font.font), fontFamilyFromShorthand(otherFont)].filter((value, index, values) => Boolean(value) && values.indexOf(value) === index); void widget.setPreloadFonts(fonts).catch((error: unknown) => console.error("Unable to preload widget font.", error)); }, [config.bodyFont.font, config.titleFont.font, update]);
   const toggleSection = useCallback((section: string) => {
@@ -137,6 +138,7 @@ export const WidgetPanel: FC<WidgetPanelProps> = ({ kind }) => {
           {loaded ? (
             <>
               <AccordionSection title="Content" isOpen={Boolean(openSections.content)} onToggle={() => toggleSection("content")}>
+                <SelectField label="Language" value={config.language} options={WIDGET_LANGUAGE_OPTIONS.map((option) => ({ id: option.id, label: option.label }))} onChange={(value) => update("language", value)} />
                 {listingConfig ? (
                   <>
                     <TextField label="Heading" value={listingConfig.title} onChange={(value) => update("title", value)} />
