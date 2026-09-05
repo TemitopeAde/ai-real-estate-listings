@@ -47,7 +47,11 @@ function resolvePlanId(packageName: string | undefined): AppPlanId {
 async function countListings(status?: "active"): Promise<number> {
   try {
     const query = auth.elevate(items.query)(LISTINGS_COLLECTION_ID);
-    return await (status ? query.eq("status", status) : query).count();
+    const counted = await (status
+      ? query.eq("status", status)
+      : query.ne("status", "archived")
+    ).count();
+    return typeof counted === "number" && counted >= 0 ? counted : 0;
   } catch (error) {
     console.error("Unable to count listings for entitlement.", error);
     return 0;

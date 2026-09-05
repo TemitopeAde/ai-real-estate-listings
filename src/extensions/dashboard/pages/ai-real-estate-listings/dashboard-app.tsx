@@ -81,7 +81,17 @@ function DashboardAppInner({
 
   const openEditor = useCallback(
     async (id?: string) => {
-      if (id && entitlement && !entitlement.features.editListings) {
+      let current = entitlement;
+      if (!id) {
+        try {
+          current = await getAppEntitlement();
+          setEntitlement(current);
+        } catch (error) {
+          console.error("Unable to load plan entitlement.", error);
+        }
+      }
+
+      if (id && current && !current.features.editListings) {
         dashboard.showToast({
           type: "error",
           message: t("listingEditLocked"),
@@ -90,10 +100,10 @@ function DashboardAppInner({
         return;
       }
 
-      if (!id && entitlement && isListingCapReached(entitlement)) {
+      if (!id && current && isListingCapReached(current)) {
         dashboard.showToast({
           type: "error",
-          message: t("listingCapReached", { cap: entitlement.listingCap ?? 0 }),
+          message: t("listingCapReached", { cap: current.listingCap ?? 0 }),
         });
         setSection("pricing");
         return;
