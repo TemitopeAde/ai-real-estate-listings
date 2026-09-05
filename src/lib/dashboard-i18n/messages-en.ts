@@ -27,6 +27,7 @@ export const EN = {
   listingsVisibleUnlimited: "Unlimited listings are visible on the site.",
   listingsVisibleCapped:
     "{visible} of {cap} listings are visible on the site.",
+  listingsUsedCapped: "{used} of {cap} listings used on your plan.",
   startFreeTrial: "Start free trial",
   viewPlans: "View plans",
 
@@ -36,6 +37,14 @@ export const EN = {
     "Keep your inventory organized, spot movement quickly, and prepare every listing for assisted publishing. New here? Follow the {guide}.",
   workspaceGuide: "workspace guide",
   addListing: "Add listing",
+  listingCapReached:
+    "Your plan allows up to {cap} listings. Upgrade to add more.",
+  listingCapReachedBody:
+    "Delete a listing or upgrade your plan to continue adding inventory.",
+  listingEditLocked:
+    "Editing listings is available on Pro and Business.",
+  listingEditLockedBody:
+    "Upgrade your plan to change existing listings. You can still add new listings and delete ones you no longer need.",
   retry: "Retry",
   overviewLoadError:
     "We could not load your overview. Check the collection permissions and try again.",
@@ -67,7 +76,7 @@ export const EN = {
   listingsIntro:
     "Search, organize, and keep every property ready for its next stage.",
   listingsCapNote:
-    "The live site shows the {visible} most recently updated active listing(s) of your {cap} plan cap.",
+    "Your plan includes up to {cap} listings. The live site shows the {visible} most recently updated active listing(s).",
   propertyInventory: "Property inventory",
   listingsCount: "{count} listing in this workspace",
   listingsCountPlural: "{count} listings in this workspace",
@@ -217,7 +226,7 @@ export const EN = {
   planBusinessSummary:
     "Unlimited listings, on-site AI assistant, and full marketing tools.",
   featActiveListings: "Active listings",
-  featActiveBasic: "Up to 10",
+  featActiveBasic: "Up to 5",
   featActivePro: "Up to 50",
   featActiveBusiness: "Unlimited",
   featWidgets: "Listings and property detail widgets",
@@ -601,7 +610,7 @@ export const EN = {
     "Add at least one active listing, place the listings and property detail widgets on your site, then send a test quote request. The Guide section walks through this path.",
   faqStartPublishQ: "How do listings appear on my live site?",
   faqStartPublishA:
-    "Only listings with Active status are shown. Add the property listings widget to a page such as /properties and the property detail widget to a page such as /property-details. After your free trial, Basic shows up to 10 of your most recently updated active listings, Pro up to 50, and Business shows all of them.",
+    "Only listings with Active status are shown. Add the property listings widget to a page such as /properties and the property detail widget to a page such as /property-details. After your free trial, Basic shows up to 5 of your most recently updated active listings, Pro up to 50, and Business shows all of them.",
   faqListStatusQ: "What do listing statuses mean?",
   faqListStatusA:
     "Draft is not public. Active is available on the site (within your plan cap). Under offer means a deal is in progress. Sold marks a completed transaction. Archived hides the listing from the default inventory unless you turn on archived listings in Settings.",
@@ -611,6 +620,9 @@ export const EN = {
   faqListArchiveQ: "What happens when I delete a listing?",
   faqListArchiveA:
     "Delete archives the listing so it is no longer active. You can still find it when Include archived listings is enabled in Settings. It will not appear on the live site while it is archived.",
+  faqListEditQ: "Why can't I edit a listing?",
+  faqListEditA:
+    "Editing existing listings is included on Pro and Business, and during a free trial. On Basic you can add listings up to your cap and delete listings to free a slot. Start a trial or open Pricing to upgrade.",
   faqListCoordsQ: "Can longitude or latitude be negative?",
   faqListCoordsA:
     "Yes. Latitude must be between -90 and 90, and longitude between -180 and 180. Western longitudes (for example -74.0060) are valid and are used for the map on the property page.",
@@ -631,13 +643,13 @@ export const EN = {
     "Related listings and the on-site AI assistant are Business features. Social sharing and 360° tours are on Pro and Business. Also confirm those options are enabled on the widget in the editor.",
   faqPlansDiffQ: "What is included on each plan?",
   faqPlansDiffA:
-    "Basic publishes a small inventory and collects quotes. Pro adds AI Listing Writer, 360° tours, unique visitor insights, analytics, social sharing, and quote email notifications. Business adds unlimited public listings, multiple tour scenes, related listings, and the on-site assistant. Open Pricing for the full comparison.",
+    "Basic publishes a small inventory and collects quotes. Pro adds editing existing listings, AI Listing Writer, 360° tours, unique visitor insights, analytics, social sharing, and quote email notifications. Business adds unlimited public listings, multiple tour scenes, related listings, and the on-site assistant. Open Pricing for the full comparison.",
   faqPlansTrialQ: "How does the free trial work?",
   faqPlansTrialA:
     "While the trial is in progress you have every Business feature. Use Start free trial from the sidebar or Pricing. After it ends, the live site and gated tools follow your active plan.",
   faqPlansCapQ: "How does the listing cap work?",
   faqPlansCapA:
-    "The dashboard can hold all of your records. The live site shows the most recently updated Active listings up to your plan cap: 10 on Basic, 50 on Pro, and unlimited on Business or during a trial.",
+    "Each plan limits how many listings you can create: 5 on Basic, 50 on Pro, and unlimited on Business or during a trial. Delete a listing or upgrade to add more once you reach the cap.",
   faqWriterHowQ: "How do I generate listing copy?",
   faqWriterHowA:
     "Open AI Listing Writer, or use Write with AI inside a listing. Confirm the property facts, choose a style (professional, luxury, short, SEO, or social), then review the copy before you save.",

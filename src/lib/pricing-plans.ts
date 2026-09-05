@@ -42,12 +42,13 @@ export const APP_PLANS: AppPlan[] = [
 export const APP_PLAN_IDS: AppPlanId[] = ["basic", "pro", "business"];
 
 export const APP_PLAN_LISTING_CAPS: Record<AppPlanId, number | null> = {
-  basic: 10,
+  basic: 5,
   pro: 50,
   business: null,
 };
 
 export type PlanFeatureFlag =
+  | "editListings"
   | "aiWriter"
   | "virtualTour"
   | "uniqueVisitors"
@@ -68,6 +69,7 @@ export function featuresForPlan(planId: AppPlanId): PlanFeatureFlags {
   const paid = planId !== "basic";
   const business = planId === "business";
   return {
+    editListings: paid,
     aiWriter: paid,
     virtualTour: paid,
     uniqueVisitors: paid,
@@ -83,7 +85,7 @@ export function featuresForPlan(planId: AppPlanId): PlanFeatureFlags {
 export const APP_PLAN_FEATURES: PlanFeatureRow[] = [
   {
     name: "Active listings",
-    values: { basic: "Up to 10", pro: "Up to 50", business: "Unlimited" },
+    values: { basic: "Up to 5", pro: "Up to 50", business: "Unlimited" },
   },
   {
     name: "Listings and property detail widgets",
@@ -100,6 +102,10 @@ export const APP_PLAN_FEATURES: PlanFeatureRow[] = [
   {
     name: "Saved properties for members",
     values: { basic: true, pro: true, business: true },
+  },
+  {
+    name: "Edit listings in the dashboard",
+    values: { basic: false, pro: true, business: true },
   },
   {
     name: "AI Listing Writer",

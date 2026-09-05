@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Eye,
   Loader2,
+  Lock,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -80,7 +81,7 @@ import {
   type ListingViewEvent,
   type PropertyType,
 } from "@/lib/listings";
-import { openAppUpgradePage } from "@/lib/entitlement";
+import { isListingCapReached, openAppUpgradePage } from "@/lib/entitlement";
 import { useEntitlement } from "./entitlement-context";
 
 interface ListingsViewProps {
@@ -193,11 +194,6 @@ export function ListingsView({
       setListings(result.items);
       setTotalCount(result.totalCount);
       setHasNext(result.hasNext);
-      console.info("[listings-view] loaded", {
-        count: result.items.length,
-        totalCount: result.totalCount,
-        ids: result.items.map((item) => item._id),
-      });
     } catch (loadError) {
       console.error("Unable to load listings.", loadError);
       setError(t("listingsLoadError"));
@@ -234,26 +230,11 @@ export function ListingsView({
   };
 
   const openUniqueViewers = async (listing: Listing) => {
-    console.info("[listings-viewers] open", {
-      listingId: listing._id,
-      title: listing.title,
-      localViewEvents: listing.viewEvents?.length ?? 0,
-    });
     setViewersListing(listing);
     setViewersError(null);
     setViewersLoading(true);
     try {
       const fullListing = await getListing(listing._id);
-      console.info("[listings-viewers] fetched", {
-        listingId: listing._id,
-        found: Boolean(fullListing),
-        viewCount: fullListing?.viewCount,
-        viewEvents: fullListing?.viewEvents,
-        unique: uniqueViewersFromEvents(
-          fullListing?.viewEvents ?? listing.viewEvents,
-          t("signedInVisitor"),
-        ),
-      });
       setViewersListing(fullListing ?? listing);
     } catch (error) {
       console.error("[listings-viewers] fetch failed", error);
@@ -286,9 +267,16 @@ export function ListingsView({
                 : ""}
             </p>
           </div>
-          <Button onClick={onAddListing} className="w-full sm:w-auto">
-            <Plus className="size-4" aria-hidden="true" /> {t("addListing")}
-          </Button>
+          <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+            <Button onClick={onAddListing} className="w-full sm:w-auto">
+              <Plus className="size-4" aria-hidden="true" /> {t("addListing")}
+            </Button>
+            {isListingCapReached(entitlement) ? (
+              <p className="max-w-xs text-xs leading-5 text-muted-foreground">
+                {t("listingCapReachedBody")}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <Card className="border-border/70 bg-card/90 shadow-sm">
@@ -384,6 +372,11 @@ export function ListingsView({
                 <Button size="sm" onClick={onAddListing}>
                   <Plus className="size-4" aria-hidden="true" /> {t("addListing")}
                 </Button>
+                {isListingCapReached(entitlement) ? (
+                  <p className="max-w-md text-xs text-muted-foreground">
+                    {t("listingCapReachedBody")}
+                  </p>
+                ) : null}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -474,12 +467,11 @@ export function ListingsView({
                             <ListingActionsMenu
                               listing={listing}
                               archiving={archivingId === listing._id}
+                              canEdit={entitlement.features.editListings}
                               onEdit={() => {
-                                console.info("[listings-actions] edit selected", listing._id);
                                 onEditListing(listing._id);
                               }}
                               onViewers={() => {
-                                console.info("[listings-actions] viewers selected", listing._id);
                                 if (!entitlement.features.uniqueVisitors) {
                                   if (entitlement.canStartTrial) {
                                     openAppUpgradePage(entitlement.instanceId);
@@ -491,7 +483,6 @@ export function ListingsView({
                                 void openUniqueViewers(listing);
                               }}
                               onDelete={() => {
-                                console.info("[listings-actions] delete selected", listing._id);
                                 setArchiveCandidate(listing);
                               }}
                             />
@@ -595,12 +586,14 @@ export function ListingsView({
 function ListingActionsMenu({
   listing,
   archiving,
+  canEdit,
   onEdit,
   onViewers,
   onDelete,
 }: {
   listing: Listing;
   archiving: boolean;
+  canEdit: boolean;
   onEdit: () => void;
   onViewers: () => void;
   onDelete: () => void;
@@ -616,14 +609,12 @@ function ListingActionsMenu({
   const placeMenu = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) {
-      console.info("[listings-actions] missing trigger rect", listing._id);
       return false;
     }
     const next = {
       top: rect.bottom + 6,
       right: Math.max(8, window.innerWidth - rect.right),
     };
-    console.info("[listings-actions] place", { listingId: listing._id, rect: rect.toJSON(), next });
     setPosition(next);
     return true;
   };
@@ -678,7 +669,12 @@ function ListingActionsMenu({
               onEdit();
             }}
           >
-            <Pencil className="size-4" aria-hidden="true" /> {t("edit")}
+            {canEdit ? (
+              <Pencil className="size-4" aria-hidden="true" />
+            ) : (
+              <Lock className="size-4" aria-hidden="true" />
+            )}{" "}
+            {t("edit")}
           </button>
           <button
             type="button"
@@ -759,12 +755,6 @@ function UniqueViewersList({
     listing?.viewEvents,
     t("signedInVisitor"),
   );
-  console.info("[listings-viewers] render list", {
-    listingId: listing?._id,
-    viewEvents: listing?.viewEvents,
-    viewers,
-    anonymousViews,
-  });
   if (viewers.length === 0 && anonymousViews === 0) {
     return (
       <p className="py-4 text-sm text-muted-foreground">{t("noViewersYet")}</p>

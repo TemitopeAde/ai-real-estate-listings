@@ -45,6 +45,7 @@ const CATEGORIES: Array<{
       { q: "faqListStatusQ", a: "faqListStatusA" },
       { q: "faqListVisibleQ", a: "faqListVisibleA" },
       { q: "faqListArchiveQ", a: "faqListArchiveA" },
+      { q: "faqListEditQ", a: "faqListEditA" },
       { q: "faqListCoordsQ", a: "faqListCoordsA" },
       { q: "faqListDefaultsQ", a: "faqListDefaultsA" },
       { q: "faqListImagesQ", a: "faqListImagesA" },
@@ -82,15 +83,6 @@ const CATEGORIES: Array<{
     items: [
       { q: "faqToursWhatQ", a: "faqToursWhatA" },
       { q: "faqToursPlanQ", a: "faqToursPlanA" },
-    ],
-  },
-  {
-    id: "leads",
-    titleKey: "faqCatLeads",
-    items: [
-      { q: "faqLeadsWhereQ", a: "faqLeadsWhereA" },
-      { q: "faqLeadsStatusQ", a: "faqLeadsStatusA" },
-      { q: "faqLeadsEmailQ", a: "faqLeadsEmailA" },
     ],
   },
   {

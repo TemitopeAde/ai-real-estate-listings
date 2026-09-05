@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 
 import { requireDashboardAccess } from '@/lib/server/access';
+import { ListingLimitError } from '@/lib/server/entitlement';
 import { parseListingInput } from '@/lib/server/listing-validation';
 import { queryListings, saveListing } from '@/lib/server/listings';
 import {
@@ -69,6 +70,18 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     return json(await saveListing(parsed.value), 201);
   } catch (error) {
+    if (error instanceof ListingLimitError) {
+      return json(
+        {
+          message: error.message,
+          code: error.code,
+          planId: error.planId,
+          listingCap: error.listingCap,
+          listingCount: error.listingCount,
+        },
+        error.status,
+      );
+    }
     console.error('Unable to create listing.', error);
     return json({ message: errorMessage(error) }, 500);
   }

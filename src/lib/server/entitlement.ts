@@ -10,7 +10,11 @@ import {
   publicAccessFromFeatures,
   publicListingCount,
 } from "@/lib/entitlement";
-import { LISTINGS_COLLECTION_ID, type Listing } from "@/lib/listing-types";
+import {
+  LISTINGS_COLLECTION_ID,
+  type Listing,
+  type ListingInput,
+} from "@/lib/listing-types";
 import {
   featuresForPlan,
   isAppPlanId,
@@ -40,13 +44,12 @@ function resolvePlanId(packageName: string | undefined): AppPlanId {
   return isAppPlanId(value) ? value : "basic";
 }
 
-async function countActiveListings(): Promise<number> {
+async function countListings(status?: "active"): Promise<number> {
   try {
-    return await auth.elevate(items.query)(LISTINGS_COLLECTION_ID)
-      .eq("status", "active")
-      .count();
+    const query = auth.elevate(items.query)(LISTINGS_COLLECTION_ID);
+    return await (status ? query.eq("status", status) : query).count();
   } catch (error) {
-    console.error("Unable to count active listings for entitlement.", error);
+    console.error("Unable to count listings for entitlement.", error);
     return 0;
   }
 }
@@ -56,7 +59,6 @@ export async function getAppEntitlement(): Promise<AppEntitlement> {
   let packageName = "basic";
   let instanceId = "";
   let isTrial = false;
-  let isWixStaff = false;
 
   try {
     const response = await auth.elevate(appInstances.getAppInstance)();
@@ -68,35 +70,93 @@ export async function getAppEntitlement(): Promise<AppEntitlement> {
     packageName = text(billing?.packageName)?.toLowerCase() ?? "basic";
     planId = resolvePlanId(packageName);
     instanceId = text(instance?.instanceId) ?? "";
-    const ownerEmail = text(record(record(response.site)?.ownerInfo)?.email);
-    isWixStaff = Boolean(ownerEmail?.toLowerCase().endsWith("@wix.com"));
   } catch (error) {
     console.error("Unable to resolve app billing entitlement.", error);
   }
 
-  const fullAccess = isTrial || isWixStaff;
+  const fullAccess = isTrial;
   const features = featuresForPlan(fullAccess ? "business" : planId);
   const listingCap = listingCapForPlan(planId, fullAccess);
-  const activeListingCount = await countActiveListings();
+  const [listingCount, activeListingCount] = await Promise.all([
+    countListings(),
+    countListings("active"),
+  ]);
 
   return {
     planId,
     packageName: isAppPlanId(packageName) ? packageName : "basic",
     instanceId,
     isTrial,
-    isWixStaff,
     canStartTrial: canStartFreeTrial({
       isTrial,
       planId,
-      isWixStaff,
       instanceId,
     }),
     fullAccess,
     listingCap,
     features,
+    listingCount,
     activeListingCount,
     publicListingCount: publicListingCount(activeListingCount, listingCap),
   };
+}
+
+export class ListingLimitError extends Error {
+  readonly code = "listing_cap_reached";
+  readonly status = 403;
+
+  constructor(
+    readonly planId: AppPlanId,
+    readonly listingCap: number,
+    readonly listingCount: number,
+  ) {
+    super(
+      `Your plan allows up to ${listingCap} listings. Upgrade to add more.`,
+    );
+    this.name = "ListingLimitError";
+  }
+}
+
+export function assertCanCreateListing(entitlement: AppEntitlement): void {
+  if (entitlement.listingCap === null) return;
+  if (entitlement.listingCount < entitlement.listingCap) return;
+  throw new ListingLimitError(
+    entitlement.planId,
+    entitlement.listingCap,
+    entitlement.listingCount,
+  );
+}
+
+export class ListingEditError extends Error {
+  readonly code = "upgrade_required";
+  readonly status = 403;
+
+  constructor(readonly planId: AppPlanId) {
+    super("Editing listings is available on Pro and Business.");
+    this.name = "ListingEditError";
+  }
+}
+
+export function isArchiveOnlyPatch(patch: Partial<ListingInput>): boolean {
+  const keys = Object.keys(patch);
+  return keys.length === 1 && patch.status === "archived";
+}
+
+export function isViewMetricsPatch(patch: Partial<ListingInput>): boolean {
+  const keys = Object.keys(patch);
+  return (
+    keys.length > 0 &&
+    keys.every((key) => key === "viewCount" || key === "viewEvents")
+  );
+}
+
+export function assertCanEditListing(
+  entitlement: AppEntitlement,
+  patch: Partial<ListingInput>,
+): void {
+  if (entitlement.features.editListings) return;
+  if (isArchiveOnlyPatch(patch) || isViewMetricsPatch(patch)) return;
+  throw new ListingEditError(entitlement.planId);
 }
 
 export async function requireFeature(

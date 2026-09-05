@@ -163,14 +163,14 @@ export function DashboardShell({
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="text-xs font-medium">{planName}</span>
               <Badge variant="secondary" className="border-0 bg-sidebar-primary/10 text-[10px] text-sidebar-primary">
-                {entitlement.isTrial ? t('badgeTrial') : entitlement.isWixStaff ? t('badgeWix') : t('badgePlan')}
+                {entitlement.isTrial ? t('badgeTrial') : t('badgePlan')}
               </Badge>
             </div>
             <p className="text-xs leading-relaxed text-sidebar-foreground/60">
               {entitlement.listingCap === null
                 ? t('listingsVisibleUnlimited')
-                : t('listingsVisibleCapped', {
-                    visible: entitlement.publicListingCount,
+                : t('listingsUsedCapped', {
+                    used: entitlement.listingCount,
                     cap: entitlement.listingCap,
                   })}
             </p>

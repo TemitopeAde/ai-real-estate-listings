@@ -30,6 +30,7 @@ import {
   PROPERTY_TYPE_MESSAGE_KEYS,
   STATUS_MESSAGE_KEYS,
 } from '@/lib/dashboard-i18n/labels';
+import { isListingCapReached } from '@/lib/entitlement';
 import { useEntitlement } from './entitlement-context';
 
 interface OverviewViewProps {
@@ -176,10 +177,17 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">{t('overviewTitle')}</h2>
           <GuideIntro onOpenGuide={onOpenGuide} />
         </div>
-        <Button onClick={onAddListing} className="w-full sm:w-auto">
-          <Plus className="size-4" aria-hidden="true" />
-          {t('addListing')}
-        </Button>
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+          <Button onClick={onAddListing} className="w-full sm:w-auto">
+            <Plus className="size-4" aria-hidden="true" />
+            {t('addListing')}
+          </Button>
+          {isListingCapReached(entitlement) ? (
+            <p className="max-w-xs text-xs leading-5 text-muted-foreground">
+              {t('listingCapReachedBody')}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {error ? (

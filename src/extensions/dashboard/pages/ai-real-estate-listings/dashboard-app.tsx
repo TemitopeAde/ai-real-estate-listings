@@ -21,11 +21,12 @@ import {
   archiveListing,
   getAppEntitlement,
   getListing,
+  ListingsApiError,
   saveListing,
   type Listing,
   type ListingInput,
 } from "@/lib/listings";
-import type { AppEntitlement } from "@/lib/entitlement";
+import { isListingCapReached, type AppEntitlement } from "@/lib/entitlement";
 import { DashboardI18nProvider, useDt } from "@/lib/dashboard-i18n";
 import { DashboardShell, type DashboardSection } from "./dashboard-shell";
 import { ListingForm } from "./listing-form";
@@ -80,6 +81,24 @@ function DashboardAppInner({
 
   const openEditor = useCallback(
     async (id?: string) => {
+      if (id && entitlement && !entitlement.features.editListings) {
+        dashboard.showToast({
+          type: "error",
+          message: t("listingEditLocked"),
+        });
+        setSection("pricing");
+        return;
+      }
+
+      if (!id && entitlement && isListingCapReached(entitlement)) {
+        dashboard.showToast({
+          type: "error",
+          message: t("listingCapReached", { cap: entitlement.listingCap ?? 0 }),
+        });
+        setSection("pricing");
+        return;
+      }
+
       setEditorError(null);
       setEditorMode(id ? "edit" : "new");
       setEditingListing(null);
@@ -103,7 +122,7 @@ function DashboardAppInner({
         setEditorLoading(false);
       }
     },
-    [t],
+    [entitlement, t],
   );
 
   const closeEditor = useCallback(() => {
@@ -127,13 +146,30 @@ function DashboardAppInner({
             : t("listingAdded", { title: savedListing.title }),
         });
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : t("listingSaveFailed");
+        const atCap =
+          error instanceof ListingsApiError &&
+          error.code === "listing_cap_reached";
+        const editLocked =
+          error instanceof ListingsApiError &&
+          error.code === "upgrade_required";
+        const message = atCap
+          ? t("listingCapReached", {
+              cap: entitlement?.listingCap ?? 0,
+            })
+          : editLocked
+            ? t("listingEditLocked")
+            : error instanceof Error
+              ? error.message
+              : t("listingSaveFailed");
         dashboard.showToast({ type: "error", message });
+        if (atCap || editLocked) {
+          closeEditor();
+          setSection("pricing");
+        }
         throw error;
       }
     },
-    [closeEditor, t],
+    [closeEditor, entitlement, t],
   );
 
   const handleArchive = useCallback(

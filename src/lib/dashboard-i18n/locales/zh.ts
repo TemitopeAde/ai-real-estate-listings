@@ -193,7 +193,7 @@ export const zh = complete({
   planProSummary: "AI 文案、360° 旅游、游客洞察和投资组合分析。",
   planBusinessSummary: "无限列表、现场AI助手、全套营销工具。",
   featActiveListings: "活跃列表",
-  featActiveBasic: "最多 10 个",
+  featActiveBasic: "最多 5 个",
   featActivePro: "最多 50 个",
   featActiveBusiness: "无限",
   featWidgets: "列表和属性详细信息小部件",
@@ -548,7 +548,7 @@ export const zh = complete({
     "至少添加一条活跃房源，在网站上放置房源列表和房源详情小组件，然后发送一条测试报价请求。指南部分会逐步说明此流程。",
   faqStartPublishQ: "房源如何显示在实时网站上？",
   faqStartPublishA:
-    "仅状态为“活跃”的房源会显示。将房源列表小组件添加到如 /properties 的页面，将房源详情小组件添加到如 /property-details 的页面。免费试用结束后，Basic 最多显示 10 条最近更新的活跃房源，Pro 最多 50 条，Business 显示全部。",
+    "仅状态为“活跃”的房源会显示。将房源列表小组件添加到如 /properties 的页面，将房源详情小组件添加到如 /property-details 的页面。免费试用结束后，Basic 最多显示 5 条最近更新的活跃房源，Pro 最多 50 条，Business 显示全部。",
   faqListStatusQ: "房源状态分别表示什么？",
   faqListStatusA:
     "草稿不公开。活跃表示在网站上可见（受套餐上限限制）。洽谈中表示交易进行中。已售表示交易完成。已归档会从默认库存中隐藏，除非在设置中开启“包含已归档房源”。",
@@ -582,7 +582,7 @@ export const zh = complete({
     "试用期间可使用全部 Business 功能。从侧边栏或定价页点击“开始免费试用”。试用结束后，实时网站和受限工具将按当前套餐执行。",
   faqPlansCapQ: "房源上限如何计算？",
   faqPlansCapA:
-    "仪表板可保存全部记录。实时网站显示最近更新的活跃房源，数量不超过套餐上限：Basic 10 条、Pro 50 条，Business 或试用期间无限制。",
+    "仪表板可保存全部记录。实时网站显示最近更新的活跃房源，数量不超过套餐上限：Basic 5 条、Pro 50 条，Business 或试用期间无限制。",
   faqWriterHowQ: "如何生成房源文案？",
   faqWriterHowA:
     "打开 AI Listing Writer，或在房源内使用“使用 AI 撰写”。确认房源信息后选择风格（专业、奢华、简短、SEO 或社交），保存前请审阅文案。",

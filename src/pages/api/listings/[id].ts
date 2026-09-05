@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 
 import { requireDashboardAccess } from '@/lib/server/access';
+import { ListingEditError } from '@/lib/server/entitlement';
 import { parseListingPatch } from '@/lib/server/listing-validation';
 import { getListing, updateListing } from '@/lib/server/listings';
 
@@ -54,6 +55,16 @@ export const PATCH: APIRoute = async ({ params, request }) => {
     const listing = await updateListing(id, parsed.value);
     return listing ? json(listing) : json({ message: 'Listing not found.' }, 404);
   } catch (error) {
+    if (error instanceof ListingEditError) {
+      return json(
+        {
+          message: error.message,
+          code: error.code,
+          planId: error.planId,
+        },
+        error.status,
+      );
+    }
     console.error('Unable to update listing.', error);
     return json({ message: errorMessage(error) }, 500);
   }

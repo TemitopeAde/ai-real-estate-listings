@@ -148,107 +148,57 @@ function createInitialState(
     ListingFormProps,
     "defaultCurrency" | "defaultAreaUnit" | "defaultStatus"
   >,
-  loading = false,
 ): ListingFormState {
   const availabilityDate = listing?.availabilityDate;
-  const isNewListing = !listing?._id && !loading;
   return {
     title: listing?.title ?? "",
     description: listing?.description ?? "",
     transactionType: listing?.transactionType ?? "sale",
     propertyType: listing?.propertyType ?? "house",
     status: listing?.status ?? defaults.defaultStatus,
-    price: listing ? String(listing.price) : "875000",
+    price: listing ? String(listing.price) : "",
     currency: listing?.currency ?? defaults.defaultCurrency,
-    area: listing ? String(listing.area) : "1850",
+    area: listing ? String(listing.area) : "",
     areaUnit: listing?.areaUnit ?? defaults.defaultAreaUnit,
-    bedrooms:
-      listing?.bedrooms === undefined
-        ? isNewListing
-          ? "3"
-          : ""
-        : String(listing.bedrooms),
-    bathrooms:
-      listing?.bathrooms === undefined
-        ? isNewListing
-          ? "3"
-          : ""
-        : String(listing.bathrooms),
+    bedrooms: listing?.bedrooms === undefined ? "" : String(listing.bedrooms),
+    bathrooms: listing?.bathrooms === undefined ? "" : String(listing.bathrooms),
     propertyCondition: listing?.propertyCondition ?? "good",
     furnishingStatus:
       listing?.furnishingStatus ??
-      (listing?.furnished
-        ? "furnished"
-        : isNewListing
-          ? "furnished"
-          : "unfurnished"),
+      (listing?.furnished ? "furnished" : "unfurnished"),
     tenure: listing?.tenure ?? "freehold",
     rentalFrequency: listing?.rentalFrequency ?? "monthly",
     availabilityDate: availabilityDate
       ? availabilityDate.toISOString().slice(0, 10)
-      : isNewListing
-        ? "2026-10-01"
-        : "",
+      : "",
     serviceCharge:
-      listing?.serviceCharge === undefined
-        ? isNewListing
-          ? "350"
-          : ""
-        : String(listing.serviceCharge),
+      listing?.serviceCharge === undefined ? "" : String(listing.serviceCharge),
     securityDeposit:
       listing?.securityDeposit === undefined
-        ? isNewListing
-          ? "8750"
-          : ""
+        ? ""
         : String(listing.securityDeposit),
     agentName: listing?.agentName ?? "",
     agentPhone: listing?.agentPhone ?? "",
     agentEmail: listing?.agentEmail ?? "",
-    latitude:
-      listing?.latitude === undefined
-        ? isNewListing
-          ? "30.2672"
-          : ""
-        : String(listing.latitude),
-    longitude:
-      listing?.longitude === undefined
-        ? isNewListing
-          ? "-97.7431"
-          : ""
-        : String(listing.longitude),
+    latitude: listing?.latitude === undefined ? "" : String(listing.latitude),
+    longitude: listing?.longitude === undefined ? "" : String(listing.longitude),
     panoramaImages: getPanoramaImages(listing ?? {}),
-    yearBuilt:
-      listing?.yearBuilt === undefined
-        ? isNewListing
-          ? "2022"
-          : ""
-        : String(listing.yearBuilt),
+    yearBuilt: listing?.yearBuilt === undefined ? "" : String(listing.yearBuilt),
     parkingSpaces:
-      listing?.parkingSpaces === undefined
-        ? isNewListing
-          ? "2"
-          : ""
-        : String(listing.parkingSpaces),
-    furnished: listing?.furnished ?? isNewListing,
+      listing?.parkingSpaces === undefined ? "" : String(listing.parkingSpaces),
+    furnished: listing?.furnished ?? false,
     amenities: listing?.amenities?.join(", ") ?? "",
     country:
-      matchCountryCode(
-        fallbackCountries,
-        listing?.address?.country ?? (isNewListing ? "US" : ""),
-      ) ??
+      matchCountryCode(fallbackCountries, listing?.address?.country ?? "") ??
       listing?.address?.country ??
-      (isNewListing ? "US" : ""),
-    state:
-      listing?.address?.state ??
-      listing?.address?.subdivision ??
-      (isNewListing ? "TX" : ""),
+      "",
+    state: listing?.address?.state ?? listing?.address?.subdivision ?? "",
     address:
       listing?.address?.address ??
       listing?.address?.streetAddress ??
       listing?.address?.formatted ??
-      (isNewListing ? "412 Maple Street" : ""),
-    city:
-      listing?.address?.city ?? listing?.city ?? (isNewListing ? "Austin" : ""),
+      "",
+    city: listing?.address?.city ?? listing?.city ?? "",
     primaryImage: listing?.primaryImage ?? "",
     gallery:
       listing?.gallery && listing.gallery.length > 0
@@ -331,7 +281,7 @@ export function ListingForm({
       defaultCurrency,
       defaultAreaUnit,
       defaultStatus,
-    }, loading),
+    }),
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -345,6 +295,7 @@ export function ListingForm({
   const [writerOpen, setWriterOpen] = useState(false);
   const [writerKey, setWriterKey] = useState(0);
   const isEditing = Boolean(listing?._id);
+  const canEditListing = !isEditing || entitlement.features.editListings;
 
   const editorLabel = isEditing ? t("editListingDetails") : t("createListing");
 
@@ -419,29 +370,11 @@ export function ListingForm({
         defaultCurrency,
         defaultAreaUnit,
         defaultStatus,
-      }, loading),
+      }),
     );
     setErrors({});
     setSubmitError(null);
   }, [defaultAreaUnit, defaultCurrency, defaultStatus, listing, loading]);
-
-  useEffect(() => {
-    if (listing?._id || loading) return;
-    setForm((current) => {
-      const needsTitle = !current.title.trim();
-      const needsDescription = !current.description.trim();
-      const needsAmenities = !current.amenities.trim();
-      if (!needsTitle && !needsDescription && !needsAmenities) return current;
-      return {
-        ...current,
-        title: needsTitle ? t("sampleListingTitle") : current.title,
-        description: needsDescription ? t("sampleListingDescription") : current.description,
-        amenities: needsAmenities ? t("sampleAmenities") : current.amenities,
-      };
-    });
-    // Seed sample copy once for new listings; omit `t` so language changes do not reset edits.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listing?._id, loading]);
 
   useEffect(() => {
     if (listing?._id || loading) return;
@@ -785,6 +718,15 @@ export function ListingForm({
         (form.gallery[0]?.url ?? form.primaryImage.trim()) || undefined,
       gallery: form.gallery.length > 0 ? form.gallery : undefined,
     };
+
+    if (!canEditListing) {
+      dashboard.showToast({
+        type: "error",
+        message: t("listingEditLocked"),
+      });
+      setSubmitError(t("listingEditLocked"));
+      return;
+    }
 
     setSaving(true);
     try {
@@ -1404,7 +1346,7 @@ export function ListingForm({
         <Button type="button" variant="outline" onClick={onBack}>
           {t("cancel")}
         </Button>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving || !canEditListing}>
           {saving ? (
             t("saving")
           ) : (

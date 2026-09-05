@@ -52,10 +52,11 @@ import type {
 } from "./listing-types";
 import type { AppEntitlement } from "./entitlement";
 
-class ListingsApiError extends Error {
+export class ListingsApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code?: string,
   ) {
     super(message);
     this.name = "ListingsApiError";
@@ -76,7 +77,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   const payload = (await response.json().catch(() => null)) as
-    { message?: string } | T | null;
+    { message?: string; code?: string } | T | null;
 
   if (!response.ok) {
     const message =
@@ -86,7 +87,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       typeof payload.message === "string"
         ? payload.message
         : "The listings request failed.";
-    throw new ListingsApiError(message, response.status);
+    const code =
+      payload &&
+      typeof payload === "object" &&
+      "code" in payload &&
+      typeof payload.code === "string"
+        ? payload.code
+        : undefined;
+    throw new ListingsApiError(message, response.status, code);
   }
 
   return payload as T;

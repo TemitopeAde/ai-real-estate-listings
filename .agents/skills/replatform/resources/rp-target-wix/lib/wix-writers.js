@@ -143,7 +143,7 @@ function safeEmailLocalPartComponent(value, label, { allowHyphen = false } = {})
 function mockEmailForEntity(entityType, entityId) {
   const safeEntityType = safeEmailLocalPartComponent(entityType, 'entityType');
   const safeEntityId = safeEmailLocalPartComponent(entityId, 'entityId', { allowHyphen: true });
-  return `replatform+${safeEntityType}_${safeEntityId}@wix.com`;
+  return `replatform+${safeEntityType}_${safeEntityId}`;
 }
 
 function deepClone(value) {

@@ -17,11 +17,11 @@ export interface AppEntitlement {
   packageName: string;
   instanceId: string;
   isTrial: boolean;
-  isWixStaff: boolean;
   canStartTrial: boolean;
   fullAccess: boolean;
   listingCap: number | null;
   features: PlanFeatureFlags;
+  listingCount: number;
   activeListingCount: number;
   publicListingCount: number;
 }
@@ -42,6 +42,13 @@ export function publicListingCount(
     : Math.min(activeListingCount, listingCap);
 }
 
+export function isListingCapReached(entitlement: AppEntitlement): boolean {
+  return (
+    entitlement.listingCap !== null &&
+    entitlement.listingCount >= entitlement.listingCap
+  );
+}
+
 export const APP_ID = "c00de2bd-7278-4471-8292-52e8b7a7158c";
 
 export function appUpgradeUrl(instanceId: string): string {
@@ -55,11 +62,10 @@ export function openAppUpgradePage(instanceId: string): void {
 export function canStartFreeTrial(options: {
   isTrial: boolean;
   planId: AppPlanId;
-  isWixStaff: boolean;
   instanceId: string;
 }): boolean {
   if (options.isTrial || !options.instanceId) return false;
-  return options.planId === "basic" || options.isWixStaff;
+  return options.planId === "basic";
 }
 
 export { featuresForPlan, APP_PLAN_LISTING_CAPS };

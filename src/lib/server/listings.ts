@@ -27,6 +27,8 @@ import {
 import { normalizeRichText } from "@/lib/server/listing-validation";
 import {
   applyPublicListingGates,
+  assertCanCreateListing,
+  assertCanEditListing,
   getAppEntitlement,
 } from "@/lib/server/entitlement";
 import { getSiteOwnerContact } from "@/lib/server/site-owner";
@@ -398,6 +400,9 @@ export async function saveListing(
   id?: string,
   revision?: string,
 ): Promise<Listing> {
+  if (!id) {
+    assertCanCreateListing(await getAppEntitlement());
+  }
   const data = withoutEmptyValues(input);
   if (!id) {
     const owner = await getSiteOwnerContact();
@@ -420,6 +425,7 @@ export async function updateListing(
   const listing = await getListing(id);
   if (!listing) return null;
 
+  assertCanEditListing(await getAppEntitlement(), patch);
   return saveListing({ ...listingToInput(listing), ...patch }, id, listing._revision);
 }
 
