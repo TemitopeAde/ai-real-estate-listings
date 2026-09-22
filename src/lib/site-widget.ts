@@ -31,7 +31,6 @@ export type ListingLoadingMode = "load-more" | "infinite" | "pagination";
 export type ListingControlAlignment = "left" | "center" | "right";
 
 export interface ListingWidgetConfig {
-  layout: "grid" | "carousel";
   loadingMode: ListingLoadingMode;
   pageSize: number;
   loadMoreLabel: string;
@@ -81,7 +80,6 @@ export interface ListingWidgetConfig {
   showImageDots: boolean;
   titleFont: WidgetFont;
   bodyFont: WidgetFont;
-  detailPagePath: string;
   language: WidgetLanguageSetting;
 }
 
@@ -130,7 +128,6 @@ export interface DetailWidgetConfig {
 }
 
 export const DEFAULT_LISTING_WIDGET_CONFIG: ListingWidgetConfig = {
-  layout: "grid",
   loadingMode: "load-more",
   pageSize: 12,
   loadMoreLabel: "Load more properties",
@@ -180,7 +177,6 @@ export const DEFAULT_LISTING_WIDGET_CONFIG: ListingWidgetConfig = {
   showImageDots: true,
   titleFont: { font: 'normal normal bold 28px "Helvetica Neue", Helvetica, Arial, sans-serif' },
   bodyFont: { font: 'normal normal normal 14px "Helvetica Neue", Helvetica, Arial, sans-serif' },
-  detailPagePath: DETAIL_PAGE_PATH,
   language: "auto",
 };
 
@@ -273,7 +269,8 @@ export function parseWidgetJson<T extends object>(value: string | null, fallback
 }
 
 export function normalizeListingWidgetConfig(config: Partial<ListingWidgetConfig>): ListingWidgetConfig {
-  const merged = { ...DEFAULT_LISTING_WIDGET_CONFIG, ...config };
+  const { detailPagePath: _legacyDetailPagePath, detailPageLink: _legacyDetailPageLink, layout: _legacyLayout, ...configWithoutLegacyFields } = config as Partial<ListingWidgetConfig> & { detailPagePath?: unknown; detailPageLink?: unknown; layout?: unknown };
+  const merged = { ...DEFAULT_LISTING_WIDGET_CONFIG, ...configWithoutLegacyFields };
   const loadingMode: ListingLoadingMode = merged.loadingMode === "infinite" || merged.loadingMode === "pagination" ? merged.loadingMode : "load-more";
   const controlAlignment: ListingControlAlignment = merged.controlAlignment === "left" || merged.controlAlignment === "right" ? merged.controlAlignment : "center";
   const spacing = (value: unknown, fallback: number, max: number) => Math.min(max, Math.max(0, Math.round(Number(value) || fallback)));

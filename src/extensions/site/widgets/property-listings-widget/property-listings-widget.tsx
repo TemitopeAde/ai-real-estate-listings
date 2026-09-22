@@ -15,7 +15,7 @@ import { useWidgetFonts } from "../widget-fonts";
 import { EMPTY_LISTING_FILTERS, ListingFiltersBar, usablePriceRange, type ListingFilters } from "./listing-filters";
 import styles from "./property-listings-widget.module.css";
 
-interface Props { config?: string; layout?: string; detailPagePath?: string; }
+interface Props { config?: string; }
 const FILTER_DEBOUNCE_MS = 400;
 const apiOrigin = new URL(import.meta.url).origin;
 
@@ -23,8 +23,6 @@ function getConfig(props: Props): ListingWidgetConfig {
   const parsed = parseWidgetJson(props.config ?? null, DEFAULT_LISTING_WIDGET_CONFIG);
   return normalizeListingWidgetConfig({
     ...parsed,
-    layout: props.layout === "carousel" || parsed.layout === "carousel" ? "carousel" : "grid",
-    detailPagePath: props.detailPagePath?.trim() || parsed.detailPagePath || DETAIL_PAGE_PATH,
     gap: Math.max(0, Number(parsed.gap) || 24),
     cardRadius: Math.max(0, Number(parsed.cardRadius) || 18),
     contentPadding: Math.max(0, Number(parsed.contentPadding) || 20),
@@ -95,8 +93,9 @@ const ImageCarousel: FC<{ listing: Listing; ratio: ListingWidgetConfig["imageRat
 const PropertyCard: FC<{ listing: Listing; config: ListingWidgetConfig; saved: boolean; lang: WidgetLangCode; locale: string; onSave: (listingId: string) => Promise<void> }> = ({ listing, config, saved, lang, locale, onSave }) => {
   const openDetails = async () => {
     const baseUrl = await location.baseUrl();
-    const path = config.detailPagePath.replace(/^\/+|\/+$/g, "") || DETAIL_PAGE_PATH;
-    await location.to(`${baseUrl.replace(/\/+$/, "")}/${path}?id=${encodeURIComponent(listing._id)}`);
+    const destination = new URL(`/${DETAIL_PAGE_PATH}`, baseUrl);
+    destination.searchParams.set("id", listing._id);
+    await location.to(`${destination.pathname}${destination.search}${destination.hash}`);
   };
   return <article className={styles.card} style={{ borderRadius: `${config.cardRadius}px` }}>
     <button type="button" className={styles.saveButton} onClick={(event) => { event.stopPropagation(); void onSave(listing._id); }} aria-label={saved ? t(lang, "removeTitle", { title: listing.title }) : t(lang, "saveTitle", { title: listing.title })} aria-pressed={saved}>
@@ -115,16 +114,17 @@ const PropertyCard: FC<{ listing: Listing; config: ListingWidgetConfig; saved: b
   </article>;
 };
 
-const ListingsGridSkeleton: FC<{ count: number; lang: WidgetLangCode }> = ({ count, lang }) => (
+const ListingsGridSkeleton: FC<{ config: ListingWidgetConfig; lang: WidgetLangCode }> = ({ config, lang }) => (
   <div className={styles.list} aria-label={t(lang, "loadingProperties")} aria-busy="true">
-    {Array.from({ length: Math.max(1, count) }, (_, index) => (
-      <article className={styles.skeletonCard} key={index}>
-        <div className={styles.skeletonImage} />
+    {Array.from({ length: Math.max(1, config.pageSize) }, (_, index) => (
+      <article className={`${styles.card} ${styles.skeletonCard}`} style={{ borderRadius: `${config.cardRadius}px` }} key={index} aria-hidden="true">
+        <div className={`${styles.imageFrame} ${styles[config.imageRatio]} ${styles.skeletonImage}`} />
         <div className={styles.skeletonBody}>
-          <span className={`${styles.skeletonLine} ${styles.skeletonMeta}`} />
+          {config.showPrice ? <span className={`${styles.skeletonLine} ${styles.skeletonMeta}`} /> : null}
           <span className={`${styles.skeletonLine} ${styles.skeletonHeading}`} />
-          <span className={`${styles.skeletonLine} ${styles.skeletonText}`} />
-          <span className={`${styles.skeletonLine} ${styles.skeletonTextShort}`} />
+          {config.showLocation ? <span className={`${styles.skeletonLine} ${styles.skeletonText}`} /> : null}
+          {config.showMetadata ? <span className={`${styles.skeletonLine} ${styles.skeletonTextShort}`} /> : null}
+          <span className={`${styles.skeletonLine} ${styles.skeletonLink}`} />
         </div>
       </article>
     ))}
@@ -163,7 +163,7 @@ const PagingControls: FC<{
 };
 
 const PropertyListings: FC<Props> = (props) => {
-  const config = useMemo(() => getConfig(props), [props.config, props.detailPagePath, props.layout]);
+  const config = useMemo(() => getConfig(props), [props.config]);
   const lang = useResolvedWidgetLanguage(config.language);
   const locale = useResolvedWidgetLocale(lang);
   const dir = widgetTextDirection(lang);
@@ -294,10 +294,10 @@ const PropertyListings: FC<Props> = (props) => {
   const style = { "--listing-gap": `${config.gap}px`, "--listing-columns": String(config.columns), "--listing-tablet-columns": String(config.tabletColumns), "--listing-mobile-columns": String(config.mobileColumns), "--listing-background": config.backgroundColor, "--listing-card": config.cardColor, "--listing-text": config.textColor, "--listing-muted": config.mutedColor, "--listing-accent": config.accentColor, "--listing-filter-card": config.filterBackgroundColor, "--listing-filter-text": config.filterTextColor, "--listing-filter-border": config.filterBorderColor, "--listing-padding": `${config.containerPadding.top}px ${config.containerPadding.right}px ${config.containerPadding.bottom}px ${config.containerPadding.left}px`, "--listing-margin": `${config.containerMargin.top}px ${config.containerMargin.right}px ${config.containerMargin.bottom}px ${config.containerMargin.left}px`, "--listing-border-width": `${config.cardBorderWidth}px`, "--listing-border-color": config.cardBorderColor, "--listing-shadow": config.cardShadow === "none" ? "none" : config.cardShadow === "strong" ? "0 18px 42px rgba(23,33,27,.16)" : "0 12px 30px rgba(23,33,27,.08)", font: config.bodyFont.font } as React.CSSProperties;
   Object.assign(style, fontStyles);
   if (error && listings.length === 0 && !loading) return <div className={`${styles.root} ${styles.message}`} style={style} lang={lang} dir={dir} role="alert">{error}</div>;
-  return <section className={`${styles.root} ${config.layout === "carousel" ? styles.carouselLayout : styles.gridLayout}`} style={style} lang={lang} dir={dir} aria-label={config.title} aria-busy={loading}>
+  return <section className={styles.root} style={style} lang={lang} dir={dir} aria-label={config.title} aria-busy={loading}>
     {config.showHeader ? <header className={styles.header}><div><h2 style={{ font: config.titleFont.font }}>{config.title}</h2><p>{config.subtitle}</p></div></header> : null}
     <ListingFiltersBar filters={filters} config={config} priceRange={sliderRange} lang={lang} locale={locale} onChange={updateFilter} onReset={resetFilters} />
-    {loading && !loadingMore ? <ListingsGridSkeleton count={config.columns} lang={lang} /> : listings.length === 0 ? <div className={styles.message}>{Object.values(filters).some(Boolean) ? t(lang, "noMatch") : t(lang, "noProperties")}</div> : <div className={styles.list}>{listings.map((listing) => <PropertyCard key={listing._id} listing={listing} config={config} saved={savedIds.has(listing._id)} lang={lang} locale={locale} onSave={onSave} />)}</div>}
+    {loading && !loadingMore ? <ListingsGridSkeleton config={config} lang={lang} /> : listings.length === 0 ? <div className={styles.message}>{Object.values(filters).some(Boolean) ? t(lang, "noMatch") : t(lang, "noProperties")}</div> : <div className={styles.list}>{listings.map((listing) => <PropertyCard key={listing._id} listing={listing} config={config} saved={savedIds.has(listing._id)} lang={lang} locale={locale} onSave={onSave} />)}</div>}
     {loadingMore ? <div className={styles.inlineLoading} role="status" aria-live="polite">{t(lang, "loadingMore")}</div> : null}
     {error ? <div className={styles.inlineError} role="alert">{error}</div> : null}
     <div ref={sentinelRef} className={styles.scrollSentinel} aria-hidden="true" />
@@ -305,4 +305,4 @@ const PropertyListings: FC<Props> = (props) => {
   </section>;
 };
 
-export default reactToWebComponent(PropertyListings, React, ReactDOM as any, { props: { config: "string", layout: "string", detailPagePath: "string" } });
+export default reactToWebComponent(PropertyListings, React, ReactDOM as any, { props: { config: "string" } });

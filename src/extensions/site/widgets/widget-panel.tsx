@@ -4,6 +4,7 @@ import { Box, Button, Divider, Dropdown, FillPreview, FormField, Input, listItem
 import "@wix/design-system/styles.global.css";
 
 import { DEFAULT_DETAIL_WIDGET_CONFIG, DEFAULT_LISTING_WIDGET_CONFIG, fontFamilyFromShorthand, normalizeDetailWidgetConfig, normalizeListingWidgetConfig, parseWidgetJson, type DetailWidgetConfig, type ListingWidgetConfig, type WidgetFont, type WidgetSpacing } from "../../../lib/site-widget";
+import { FIELD_HELP, type PanelFieldLabel } from "./widget-panel-help";
 import { WIDGET_LANGUAGE_OPTIONS } from "../../../lib/widget-i18n";
 
 type PanelConfig = ListingWidgetConfig | DetailWidgetConfig;
@@ -15,38 +16,32 @@ function parseFont(value: unknown, fallback: WidgetFont): WidgetFont {
   return fallback;
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children, help, displayLabel, inline = false }: { label: PanelFieldLabel; children: ReactNode; help?: string; displayLabel?: string; inline?: boolean }) {
   return (
     <SidePanel.Field>
-      <FormField label={label} labelSize="small" labelPlacement="top">{children}</FormField>
+      <FormField label={displayLabel ?? label} infoContent={help ?? FIELD_HELP[label]} labelSize="small" labelPlacement={inline ? "left" : "top"} labelAlignment="middle" stretchContent={!inline}>{children}</FormField>
     </SidePanel.Field>
   );
 }
-function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <Field label={label}><Input size="small" value={value} onChange={(event) => onChange(event.target.value)} /></Field>; }
-function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) { return <Field label={label}><Input size="small" type="number" value={String(value)} min={min} max={max} onChange={(event) => { const next = Number(event.target.value); if (Number.isFinite(next)) onChange(Math.min(max, Math.max(min, Math.round(next)))); }} /></Field>; }
-function ToggleField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+function TextField({ label, value, onChange }: { label: PanelFieldLabel; value: string; onChange: (value: string) => void }) { return <Field label={label}><Input size="small" value={value} onChange={(event) => onChange(event.target.value)} /></Field>; }
+function NumberField({ label, value, min, max, onChange }: { label: PanelFieldLabel; value: number; min: number; max: number; onChange: (value: number) => void }) { return <Field label={label}><Input size="small" type="number" value={String(value)} min={min} max={max} onChange={(event) => { const next = Number(event.target.value); if (Number.isFinite(next)) onChange(Math.min(max, Math.max(min, Math.round(next)))); }} /></Field>; }
+function ToggleField({ label, checked, onChange }: { label: PanelFieldLabel; checked: boolean; onChange: (value: boolean) => void }) {
   return (
-    <SidePanel.Field>
-      <Box align="space-between" verticalAlign="middle" gap="SP2">
-        <Text size="small">{label}</Text>
-        <ToggleSwitch size="small" checked={checked} onChange={(event) => onChange(event.target.checked)} />
-      </Box>
-    </SidePanel.Field>
+    <Field label={label} inline>
+      <ToggleSwitch size="small" aria-label={label} checked={checked} onChange={(event) => onChange(event.target.checked)} />
+    </Field>
   );
 }
-function SelectField({ label, value, options, onChange }: { label: string; value: string; options: Array<{ id: string; label: string }>; onChange: (value: string) => void }) { const dropdownOptions = options.map((option) => listItemSelectBuilder({ id: option.id, title: option.label, label: option.label })); return <Field label={label}><Dropdown size="small" selectedId={value} options={dropdownOptions} valueParser={(option) => option.label} onSelect={(option) => onChange(String(option.id))} /></Field>; }
-function RangeField({ label, value, min, max, step, onChange, unit = "px" }: { label: string; value: number; min: number; max: number; step: number; onChange: (value: number) => void; unit?: string }) { return <Field label={`${label}: ${value}${unit}`}><Slider value={[value]} min={min} max={max} step={step} onChange={(next) => onChange(Array.isArray(next) ? next[0] ?? value : next)} /></Field>; }
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function SelectField({ label, value, options, onChange }: { label: PanelFieldLabel; value: string; options: Array<{ id: string; label: string }>; onChange: (value: string) => void }) { const dropdownOptions = options.map((option) => listItemSelectBuilder({ id: option.id, title: option.label, label: option.label })); return <Field label={label}><Dropdown size="small" selectedId={value} options={dropdownOptions} valueParser={(option) => option.label} onSelect={(option) => onChange(String(option.id))} /></Field>; }
+function RangeField({ label, value, min, max, step, onChange, unit = "px", help }: { label: PanelFieldLabel; value: number; min: number; max: number; step: number; onChange: (value: number) => void; unit?: string; help?: string }) { return <Field label={label} displayLabel={`${label}: ${value}${unit}`} help={help}><Slider value={[value]} min={min} max={max} step={step} onChange={(next) => onChange(Array.isArray(next) ? next[0] ?? value : next)} /></Field>; }
+function ColorField({ label, value, onChange }: { label: PanelFieldLabel; value: string; onChange: (value: string) => void }) {
   return (
-    <SidePanel.Field>
-      <Box align="space-between" verticalAlign="middle" gap="SP2">
-        <Text size="small">{label}</Text>
-        <FillPreview size="small" aspectRatio={1} fill={value} onClick={() => { void inputs.selectColor(value, { onChange: (next) => { if (next) onChange(next); } }); }} />
-      </Box>
-    </SidePanel.Field>
+    <Field label={label} inline>
+      <FillPreview size="small" aspectRatio={1} fill={value} onClick={() => { void inputs.selectColor(value, { onChange: (next) => { if (next) onChange(next); } }); }} />
+    </Field>
   );
 }
-function FontField({ label, value, onChange }: { label: string; value: WidgetFont; onChange: (value: WidgetFont) => void }) {
+function FontField({ label, value, onChange }: { label: PanelFieldLabel; value: WidgetFont; onChange: (value: WidgetFont) => void }) {
   return (
     <Field label={label}>
       <Box direction="vertical" gap="SP1">
@@ -56,18 +51,18 @@ function FontField({ label, value, onChange }: { label: string; value: WidgetFon
     </Field>
   );
 }
-function SpacingFields({ label, value, onChange }: { label: string; value: WidgetSpacing; onChange: (side: keyof WidgetSpacing, value: number) => void }) {
+function SpacingFields({ label, value, onChange }: { label: PanelFieldLabel; value: WidgetSpacing; onChange: (side: keyof WidgetSpacing, value: number) => void }) {
   return (
     <Box direction="vertical" gap="SP2">
       <Text size="small" weight="bold">{label}</Text>
       <Box direction="vertical" gap="SP2">
         <Box gap="SP2">
-          <RangeField label="Top" value={value.top} min={0} max={160} step={1} onChange={(next) => onChange("top", next)} />
-          <RangeField label="Right" value={value.right} min={0} max={160} step={1} onChange={(next) => onChange("right", next)} />
+          <RangeField label="Top" help={`${FIELD_HELP[label]} Adjust the top side.`} value={value.top} min={0} max={160} step={1} onChange={(next) => onChange("top", next)} />
+          <RangeField label="Right" help={`${FIELD_HELP[label]} Adjust the right side.`} value={value.right} min={0} max={160} step={1} onChange={(next) => onChange("right", next)} />
         </Box>
         <Box gap="SP2">
-          <RangeField label="Bottom" value={value.bottom} min={0} max={160} step={1} onChange={(next) => onChange("bottom", next)} />
-          <RangeField label="Left" value={value.left} min={0} max={160} step={1} onChange={(next) => onChange("left", next)} />
+          <RangeField label="Bottom" help={`${FIELD_HELP[label]} Adjust the bottom side.`} value={value.bottom} min={0} max={160} step={1} onChange={(next) => onChange("bottom", next)} />
+          <RangeField label="Left" help={`${FIELD_HELP[label]} Adjust the left side.`} value={value.left} min={0} max={160} step={1} onChange={(next) => onChange("left", next)} />
         </Box>
       </Box>
     </Box>
@@ -120,7 +115,6 @@ export const WidgetPanel: FC<WidgetPanelProps> = ({ kind }) => {
   const isListings = kind === "listings";
   const listingConfig = isListings ? config as ListingWidgetConfig : null;
   const detailConfig = isListings ? null : config as DetailWidgetConfig;
-  const layoutOptions = [{ id: "grid", label: "Grid" }, { id: "carousel", label: "Carousel" }];
   const loadingModeOptions = [{ id: "load-more", label: "Load more button" }, { id: "infinite", label: "Infinite scroll" }, { id: "pagination", label: "Numbered pagination" }];
   const alignmentOptions = [{ id: "left", label: "Left" }, { id: "center", label: "Center" }, { id: "right", label: "Right" }];
   const ratioOptions = [{ id: "landscape", label: "Landscape" }, { id: "square", label: "Square" }, { id: "portrait", label: "Portrait" }];
@@ -186,14 +180,12 @@ export const WidgetPanel: FC<WidgetPanelProps> = ({ kind }) => {
               <AccordionSection title="Layout and images" isOpen={Boolean(openSections.layout)} onToggle={() => toggleSection("layout")}>
                 {listingConfig ? (
                   <>
-                    <SelectField label="Property presentation" value={listingConfig.layout} options={layoutOptions} onChange={(value) => update("layout", value)} />
                     <RangeField label="Listings per row" value={listingConfig.columns} min={1} max={6} step={1} unit="" onChange={(value) => update("columns", value)} />
                     <RangeField label="Tablet listings per row" value={listingConfig.tabletColumns} min={1} max={Math.max(1, listingConfig.columns)} step={1} unit="" onChange={(value) => update("tabletColumns", value)} />
                     <RangeField label="Mobile listings per row" value={listingConfig.mobileColumns} min={1} max={Math.max(1, listingConfig.tabletColumns)} step={1} unit="" onChange={(value) => update("mobileColumns", value)} />
-                    <TextField label="Detail page path" value={listingConfig.detailPagePath} onChange={(value) => update("detailPagePath", value)} />
                   </>
                 ) : null}
-                <SelectField label="Image ratio" value={config.imageRatio} options={ratioOptions} onChange={(value) => update("imageRatio", value)} />
+                {detailConfig ? <SelectField label="Image ratio" value={detailConfig.imageRatio} options={ratioOptions} onChange={(value) => update("imageRatio", value)} /> : null}
                 <ToggleField label="Show image arrows" checked={config.showImageControls} onChange={(value) => update("showImageControls", value)} />
                 <ToggleField label="Show image dots" checked={config.showImageDots} onChange={(value) => update("showImageDots", value)} />
               </AccordionSection>
@@ -252,7 +244,7 @@ export const WidgetPanel: FC<WidgetPanelProps> = ({ kind }) => {
                     <ColorField label="LinkedIn" value={detailConfig.shareLinkedinColor} onChange={(value) => update("shareLinkedinColor", value)} />
                   </AccordionSection>
                   <AccordionSection title="Related listings" isOpen={Boolean(openSections.related)} onToggle={() => toggleSection("related")}>
-                    <RangeField label="Number of cards" value={detailConfig.featuredCount} min={1} max={8} step={1} onChange={(value) => update("featuredCount", value)} />
+                    <RangeField label="Number of cards" unit="" value={detailConfig.featuredCount} min={1} max={8} step={1} onChange={(value) => update("featuredCount", value)} />
                     <RangeField label="Card gap" value={detailConfig.featuredGap} min={0} max={48} step={4} onChange={(value) => update("featuredGap", value)} />
                   </AccordionSection>
                 </>

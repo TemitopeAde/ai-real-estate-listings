@@ -1,7 +1,6 @@
 import { extensions } from '@wix/astro/builders'
 
 import listingsCollection from './listings';
-
 import savedPropertiesCollection from './saved-properties';
 import quoteRequestsCollection from './quote-requests';
 
@@ -10,3 +9,4 @@ export default extensions.dataCollections({
   name: 'Data Collections',
   collections: [listingsCollection, savedPropertiesCollection, quoteRequestsCollection],
 });
+
