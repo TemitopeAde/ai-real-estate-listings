@@ -4,6 +4,9 @@ import type { AppEntitlement } from "@/lib/entitlement";
 import { APP_PLAN_LISTING_CAPS, featuresForPlan } from "@/lib/pricing-plans";
 
 const fallbackEntitlement: AppEntitlement = {
+  hasAccess: false,
+  accessStatus: "unavailable",
+  autoRenewing: null,
   planId: "basic",
   packageName: "basic",
   instanceId: "",

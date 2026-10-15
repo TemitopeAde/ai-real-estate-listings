@@ -1,3 +1,4 @@
+import { SubscriptionBoundary } from "../subscription-boundary";
 import React, { useEffect, useMemo, useRef, useState, type FC } from "react";
 import ReactDOM from "react-dom";
 import reactToWebComponent from "react-to-webcomponent";
@@ -305,4 +306,6 @@ const PropertyListings: FC<Props> = (props) => {
   </section>;
 };
 
-export default reactToWebComponent(PropertyListings, React, ReactDOM as any, { props: { config: "string" } });
+const SubscribedWidget: FC<Props> = (props) => <SubscriptionBoundary><PropertyListings {...props} /></SubscriptionBoundary>;
+
+export default reactToWebComponent(SubscribedWidget, React, ReactDOM as any, { props: { config: "string" } });

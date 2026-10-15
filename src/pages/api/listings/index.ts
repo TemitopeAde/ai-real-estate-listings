@@ -1,3 +1,4 @@
+import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from 'astro';
 
 import { requireDashboardAccess } from '@/lib/server/access';
@@ -27,7 +28,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The listings service is unavailable.';
 }
 
-export const GET: APIRoute = async ({ url }) => {
+const handleGET: APIRoute = async ({ url }) => {
   const accessError = await requireDashboardAccess();
   if (accessError) return accessError;
 
@@ -53,7 +54,7 @@ export const GET: APIRoute = async ({ url }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request }) => {
+const handlePOST: APIRoute = async ({ request }) => {
   const accessError = await requireDashboardAccess();
   if (accessError) return accessError;
 
@@ -86,3 +87,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ message: errorMessage(error) }, 500);
   }
 };
+
+export const GET = withSubscription(handleGET, true);
+
+export const POST = withSubscription(handlePOST, true);

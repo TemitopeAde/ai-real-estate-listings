@@ -1,3 +1,4 @@
+import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from "astro";
 
 import { requireDashboardAccess } from "@/lib/server/access";
@@ -140,7 +141,7 @@ function matchingState(
   });
 }
 
-export const GET: APIRoute = async ({ url }) => {
+const handleGET: APIRoute = async ({ url }) => {
   const accessError = await requireDashboardAccess();
   if (accessError) return accessError;
 
@@ -190,3 +191,5 @@ export const GET: APIRoute = async ({ url }) => {
     return unavailable();
   }
 };
+
+export const GET = withSubscription(handleGET, true);

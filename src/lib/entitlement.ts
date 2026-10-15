@@ -13,6 +13,9 @@ export {
 } from "./public-listing-access";
 
 export interface AppEntitlement {
+  hasAccess: boolean;
+  accessStatus: import("./billing-access").AccessStatus;
+  autoRenewing: boolean | null;
   planId: AppPlanId;
   packageName: string;
   instanceId: string;
@@ -59,13 +62,5 @@ export function openAppUpgradePage(instanceId: string): void {
   window.open(appUpgradeUrl(instanceId), "_blank", "noopener,noreferrer");
 }
 
-export function canStartFreeTrial(options: {
-  isTrial: boolean;
-  planId: AppPlanId;
-  instanceId: string;
-}): boolean {
-  if (options.isTrial || !options.instanceId) return false;
-  return options.planId === "basic";
-}
 
 export { featuresForPlan, APP_PLAN_LISTING_CAPS };

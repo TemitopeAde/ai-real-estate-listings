@@ -1,3 +1,4 @@
+import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from "astro";
 
 import { isPropertyType, isTransactionType, type ListingViewEvent } from "@/lib/listing-types";
@@ -25,7 +26,7 @@ function pageParam(value: string | null, fallback: number, max: number): number 
   return Number.isInteger(number) ? Math.min(max, Math.max(0, number)) : fallback;
 }
 
-export const GET: APIRoute = async ({ url }) => {
+const handleGET: APIRoute = async ({ url }) => {
   try {
     const id = url.searchParams.get("id")?.trim();
     const entitlement = await getAppEntitlement();
@@ -58,7 +59,7 @@ export const GET: APIRoute = async ({ url }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request, url }) => {
+const handlePOST: APIRoute = async ({ request, url }) => {
   const id = url.searchParams.get("id")?.trim();
   if (!id) return json({ message: "Listing ID is required." }, 400);
 
@@ -80,3 +81,7 @@ export const POST: APIRoute = async ({ request, url }) => {
     return json({ message: "The listing view could not be recorded." }, 500);
   }
 };
+
+export const GET = withSubscription(handleGET, false);
+
+export const POST = withSubscription(handlePOST, false);

@@ -1,3 +1,4 @@
+import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from 'astro';
 import { embeddedScripts } from '@wix/app-management';
 import { auth } from '@wix/essentials';
@@ -5,7 +6,7 @@ import { requireDashboardAccess } from '@/lib/server/access';
 
 const SCRIPT_ID = '97745c0f-9118-4f67-8a30-7193764f470c';
 
-export const POST: APIRoute = async () => {
+const handlePOST: APIRoute = async () => {
   const denied = await requireDashboardAccess();
   if (denied) return denied;
   try {
@@ -16,3 +17,5 @@ export const POST: APIRoute = async () => {
     return new Response(JSON.stringify({ message: 'The saved-properties launcher could not be embedded.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 };
+
+export const POST = withSubscription(handlePOST, true);

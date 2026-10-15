@@ -1,3 +1,4 @@
+import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from "astro";
 
 import { getPublicListing } from "@/lib/server/listings";
@@ -73,7 +74,7 @@ function parseHistory(value: unknown): AssistantMessage[] {
   });
 }
 
-export const POST: APIRoute = async ({ request }) => {
+const handlePOST: APIRoute = async ({ request }) => {
   let body: unknown;
   try {
     body = await request.json();
@@ -137,3 +138,5 @@ export const POST: APIRoute = async ({ request }) => {
     clearTimeout(timeout);
   }
 };
+
+export const POST = withSubscription(handlePOST, false);

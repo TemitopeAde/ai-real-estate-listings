@@ -1,4 +1,11 @@
 export const EN = {
+  featEditListings: "Edit listings in the dashboard",
+  subscriptionRequired: "Subscription required",
+  subscriptionChecking: "Checking subscription access",
+  subscriptionRestore: "Start an available trial or subscribe to restore your listings and app features. Your data is preserved.",
+  subscriptionUnavailable: "Access could not yet be verified. Please retry in a moment.",
+  subscriptionRetry: "Check subscription again",
+
   appName: "EstateAI",
   appTagline: "Listing workspace",
   navOverview: "Overview",
@@ -205,13 +212,12 @@ export const EN = {
   pricingTitle: "Choose the plan that fits your inventory",
   pricingIntroTrial:
     "Your free trial includes every Business feature. After it ends, the live site and gated tools follow your active plan.",
-  pricingIntro:
-    "Start on Basic to publish listings and collect quotes. Upgrade to Pro or Business when you need AI copy, 360° tours, analytics, and more marketing tools.",
+  pricingIntro: "Subscribe to Pro or Business to publish listings and use the app. An active free trial includes all Business features.",
   currentPlan: "Current plan",
   freeTrial: "Free trial",
   mostPopular: "Most popular",
   featureComparison: "Feature comparison",
-  featureComparisonHint: "What is included on Basic, Pro, and Business.",
+  featureComparisonHint: "What is included on Pro and Business.",
   feature: "Feature",
   included: "Included",
   notIncluded: "Not included",
@@ -226,7 +232,7 @@ export const EN = {
   planBusinessSummary:
     "Unlimited listings, on-site AI assistant, and full marketing tools.",
   featActiveListings: "Active listings",
-  featActiveBasic: "Up to 5",
+  featActiveBasic: "1 listing",
   featActivePro: "Up to 50",
   featActiveBusiness: "Unlimited",
   featWidgets: "Listings and property detail widgets",
@@ -609,8 +615,7 @@ export const EN = {
   faqStartFirstA:
     "Add at least one active listing, place the listings and property detail widgets on your site, then send a test quote request. The Guide section walks through this path.",
   faqStartPublishQ: "How do listings appear on my live site?",
-  faqStartPublishA:
-    "Only listings with Active status are shown. Add the property listings widget to a page such as /properties and the property detail widget to a page such as /property-details. After your free trial, Basic shows up to 5 of your most recently updated active listings, Pro up to 50, and Business shows all of them.",
+  faqStartPublishA: "With an active trial or subscription, add the property listings and detail widgets to your site. Only Active listings are public: up to 50 on Pro and unlimited on Business or during a trial.",
   faqListStatusQ: "What do listing statuses mean?",
   faqListStatusA:
     "Draft is not public. Active is available on the site (within your plan cap). Under offer means a deal is in progress. Sold marks a completed transaction. Archived hides the listing from the default inventory unless you turn on archived listings in Settings.",
@@ -621,8 +626,7 @@ export const EN = {
   faqListArchiveA:
     "Delete archives the listing so it is no longer active. You can still find it when Include archived listings is enabled in Settings. It will not appear on the live site while it is archived.",
   faqListEditQ: "Why can't I edit a listing?",
-  faqListEditA:
-    "Editing existing listings is included on Pro and Business, and during a free trial. On Basic you can add listings up to your cap and delete listings to free a slot. Start a trial or open Pricing to upgrade.",
+  faqListEditA: "Editing requires an active trial or a Pro or Business subscription. Subscribe to restore access to your preserved listings.",
   faqListCoordsQ: "Can longitude or latitude be negative?",
   faqListCoordsA:
     "Yes. Latitude must be between -90 and 90, and longitude between -180 and 180. Western longitudes (for example -74.0060) are valid and are used for the map on the property page.",
@@ -642,14 +646,11 @@ export const EN = {
   faqSiteRelatedA:
     "Related listings and the on-site AI assistant are Business features. Social sharing and 360° tours are on Pro and Business. Also confirm those options are enabled on the widget in the editor.",
   faqPlansDiffQ: "What is included on each plan?",
-  faqPlansDiffA:
-    "Basic publishes a small inventory and collects quotes. Pro adds editing existing listings, AI Listing Writer, 360° tours, unique visitor insights, analytics, social sharing, and quote email notifications. Business adds unlimited public listings, multiple tour scenes, related listings, and the on-site assistant. Open Pricing for the full comparison.",
+  faqPlansDiffA: "Pro includes 50 listings, editing, AI Listing Writer, virtual tours, visitor insights, analytics, social sharing, and quote email notifications. Business adds unlimited listings, multiple tour scenes, related listings, and the site assistant.",
   faqPlansTrialQ: "How does the free trial work?",
-  faqPlansTrialA:
-    "While the trial is in progress you have every Business feature. Use Start free trial from the sidebar or Pricing. After it ends, the live site and gated tools follow your active plan.",
+  faqPlansTrialA: "An active trial includes every Business feature. When it ends, a paid subscription keeps access enabled. Without an active subscription the dashboard and widgets are locked, and your data is preserved for reactivation.",
   faqPlansCapQ: "How does the listing cap work?",
-  faqPlansCapA:
-    "Each plan limits how many listings you can create: 5 on Basic, 50 on Pro, and unlimited on Business or during a trial. Delete a listing or upgrade to add more once you reach the cap.",
+  faqPlansCapA: "Pro allows 50 listings; Business and active trials allow unlimited listings. Without an active trial or subscription, listings are preserved but access is locked.",
   faqWriterHowQ: "How do I generate listing copy?",
   faqWriterHowA:
     "Open AI Listing Writer, or use Write with AI inside a listing. Confirm the property facts, choose a style (professional, luxury, short, SEO, or social), then review the copy before you save.",
@@ -660,8 +661,7 @@ export const EN = {
   faqToursWhatA:
     "Use equirectangular 360° photos. Visitors can look around in the interactive viewer on the property page. You can add several scenes; each image is one viewpoint.",
   faqToursPlanQ: "Which plan shows the virtual tour?",
-  faqToursPlanA:
-    "Virtual tours are on Pro and Business. Pro shows the first scene on the site; additional scenes go live on Business. Extra panoramas stay saved in the dashboard if you add them on Basic.",
+  faqToursPlanA: "Pro shows the first virtual tour scene. Business shows additional scenes. All saved panoramas are preserved when access expires.",
   faqLeadsWhereQ: "Where do quote requests appear?",
   faqLeadsWhereA:
     "Open Quote requests in this dashboard. Each enquiry includes the property, visitor details, message, status, and internal notes.",

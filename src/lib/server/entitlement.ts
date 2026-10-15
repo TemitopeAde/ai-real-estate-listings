@@ -1,11 +1,13 @@
-import { appInstances } from "@wix/app-management";
+import { getBillingAccess } from "./billing-access";
+export { getBillingAccess } from "./billing-access";
+import { subscriptionError } from "@/lib/subscription-guard";
+export { subscriptionError } from "@/lib/subscription-guard";
 import { items } from "@wix/data";
 import { auth } from "@wix/essentials";
 
 import {
   type AppEntitlement,
   type PublicListingAccess,
-  canStartFreeTrial,
   listingCapForPlan,
   publicAccessFromFeatures,
   publicListingCount,
@@ -17,31 +19,15 @@ import {
 } from "@/lib/listing-types";
 import {
   featuresForPlan,
-  isAppPlanId,
   type AppPlanId,
   type PlanFeatureFlag,
 } from "@/lib/pricing-plans";
-
-function record(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
-function text(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { "Content-Type": "application/json" },
   });
-}
-
-function resolvePlanId(packageName: string | undefined): AppPlanId {
-  const value = packageName?.toLowerCase() ?? "";
-  return isAppPlanId(value) ? value : "basic";
 }
 
 async function countListings(status?: "active"): Promise<number> {
@@ -59,51 +45,18 @@ async function countListings(status?: "active"): Promise<number> {
 }
 
 export async function getAppEntitlement(): Promise<AppEntitlement> {
-  let planId: AppPlanId = "basic";
-  let packageName = "basic";
-  let instanceId = "";
-  let isTrial = false;
-
-  try {
-    const response = await auth.elevate(appInstances.getAppInstance)();
-    const instance = record(response.instance);
-    const billing = record(instance?.billing);
-    const trial = record(billing?.freeTrialInfo);
-    const trialStatus = text(trial?.status)?.toUpperCase();
-    isTrial = trialStatus === "IN_PROGRESS";
-    packageName = text(billing?.packageName)?.toLowerCase() ?? "basic";
-    planId = resolvePlanId(packageName);
-    instanceId = text(instance?.instanceId) ?? "";
-  } catch (error) {
-    console.error("Unable to resolve app billing entitlement.", error);
-  }
-
-  const fullAccess = isTrial;
-  const features = featuresForPlan(fullAccess ? "business" : planId);
-  const listingCap = listingCapForPlan(planId, fullAccess);
-  const [listingCount, activeListingCount] = await Promise.all([
-    countListings(),
-    countListings("active"),
-  ]);
-
+  const access = await getBillingAccess();
+  const fullAccess = access.isTrial;
+  const features = featuresForPlan(!access.hasAccess ? "basic" : fullAccess ? "business" : access.planId);
+  const listingCap = access.hasAccess ? listingCapForPlan(access.planId, fullAccess) : 0;
+  const [listingCount, activeListingCount] = access.hasAccess
+    ? await Promise.all([countListings(), countListings("active")]) : [0, 0];
   return {
-    planId,
-    packageName: isAppPlanId(packageName) ? packageName : "basic",
-    instanceId,
-    isTrial,
-    canStartTrial: canStartFreeTrial({
-      isTrial,
-      planId,
-      instanceId,
-    }),
-    fullAccess,
-    listingCap,
-    features,
-    listingCount,
-    activeListingCount,
+    ...access, fullAccess, features, listingCap, listingCount, activeListingCount,
     publicListingCount: publicListingCount(activeListingCount, listingCap),
   };
 }
+
 
 export class ListingLimitError extends Error {
   readonly code = "listing_cap_reached";
@@ -115,7 +68,7 @@ export class ListingLimitError extends Error {
     readonly listingCount: number,
   ) {
     super(
-      `Your plan allows up to ${listingCap} listings. Upgrade to add more.`,
+      `Your plan allows up to ${listingCap} ${listingCap === 1 ? "listing" : "listings"}. Upgrade to add more.`,
     );
     this.name = "ListingLimitError";
   }
@@ -168,6 +121,8 @@ export async function requireFeature(
   message: string,
 ): Promise<{ entitlement: AppEntitlement; error: Response | null }> {
   const entitlement = await getAppEntitlement();
+  const denied = subscriptionError(entitlement);
+  if (denied) return { entitlement, error: denied };
   if (entitlement.features[feature]) {
     return { entitlement, error: null };
   }

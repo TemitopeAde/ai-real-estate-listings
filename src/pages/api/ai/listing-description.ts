@@ -1,3 +1,4 @@
+import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from 'astro';
 
 import { requireDashboardAccess } from '@/lib/server/access';
@@ -13,7 +14,7 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback;
 }
 
-export const POST: APIRoute = async ({ request }) => {
+const handlePOST: APIRoute = async ({ request }) => {
   const accessError = await requireDashboardAccess();
   if (accessError) return accessError;
 
@@ -84,3 +85,5 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ message: 'The AI writer is temporarily unavailable. Please try again.' }, 502);
   }
 };
+
+export const POST = withSubscription(handlePOST, true);

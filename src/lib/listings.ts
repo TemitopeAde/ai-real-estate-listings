@@ -202,8 +202,8 @@ export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
   return request<AnalyticsSnapshot>("/api/listings/analytics");
 }
 
-export async function getAppEntitlement(): Promise<AppEntitlement> {
-  return request<AppEntitlement>("/api/listings/entitlement");
+export async function getAppEntitlement(signal?: AbortSignal): Promise<AppEntitlement> {
+  return request<AppEntitlement>("/api/listings/entitlement", { signal, cache: "no-store" });
 }
 
 export async function getSiteOwnerContact(): Promise<{

@@ -1,9 +1,10 @@
+import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from 'astro';
 import { createQuoteRequest } from '@/lib/server/quote-requests';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-export const POST: APIRoute = async ({ request }) => {
+const handlePOST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json() as Record<string, unknown>;
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
@@ -15,3 +16,5 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ success: false, message }, status);
   }
 };
+
+export const POST = withSubscription(handlePOST, false);

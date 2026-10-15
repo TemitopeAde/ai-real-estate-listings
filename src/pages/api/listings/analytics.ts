@@ -1,10 +1,11 @@
+import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from 'astro';
 
 import { requireDashboardAccess } from '@/lib/server/access';
 import { requireFeature } from '@/lib/server/entitlement';
 import { getAnalyticsSnapshot } from '@/lib/server/listings';
 
-export const GET: APIRoute = async () => {
+const handleGET: APIRoute = async () => {
   const accessError = await requireDashboardAccess();
   if (accessError) return accessError;
 
@@ -26,3 +27,5 @@ export const GET: APIRoute = async () => {
     });
   }
 };
+
+export const GET = withSubscription(handleGET, true);

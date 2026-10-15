@@ -17,13 +17,6 @@ export interface PlanFeatureRow {
 
 export const APP_PLANS: AppPlan[] = [
   {
-    id: "basic",
-    name: "Basic",
-    price: "Free",
-    billing: "Included with the app",
-    summary: "Publish a small inventory and collect enquiries from the site.",
-  },
-  {
     id: "pro",
     name: "Pro",
     price: "$6.50",
@@ -42,7 +35,7 @@ export const APP_PLANS: AppPlan[] = [
 export const APP_PLAN_IDS: AppPlanId[] = ["basic", "pro", "business"];
 
 export const APP_PLAN_LISTING_CAPS: Record<AppPlanId, number | null> = {
-  basic: 5,
+  basic: 1,
   pro: 50,
   business: null,
 };
@@ -85,7 +78,7 @@ export function featuresForPlan(planId: AppPlanId): PlanFeatureFlags {
 export const APP_PLAN_FEATURES: PlanFeatureRow[] = [
   {
     name: "Active listings",
-    values: { basic: "Up to 5", pro: "Up to 50", business: "Unlimited" },
+    values: { basic: "1 listing", pro: "Up to 50", business: "Unlimited" },
   },
   {
     name: "Listings and property detail widgets",

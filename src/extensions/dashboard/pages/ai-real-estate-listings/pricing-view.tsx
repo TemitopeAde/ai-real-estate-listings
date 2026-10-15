@@ -35,6 +35,7 @@ const FEATURE_NAME_KEYS: DashboardMessageKey[] = [
   "featOwnerContact",
   "featQuoteForm",
   "featSaved",
+  "featEditListings",
   "featAiWriter",
   "featTour",
   "featUniqueVisitors",
@@ -114,7 +115,7 @@ export function PricingView() {
         ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         {APP_PLANS.map((plan) => (
           <Card
             key={plan.id}
@@ -152,7 +153,7 @@ export function PricingView() {
               </p>
               <CardDescription>{t(PLAN_SUMMARY_KEYS[plan.id])}</CardDescription>
             </CardHeader>
-            {entitlement.canStartTrial && plan.id !== "basic" ? (
+            {entitlement.instanceId && plan.id !== "basic" ? (
               <CardContent>
                 <Button
                   type="button"
@@ -160,7 +161,7 @@ export function PricingView() {
                   variant={plan.id === "pro" ? "default" : "outline"}
                   onClick={() => openAppUpgradePage(entitlement.instanceId)}
                 >
-                  {t("startFreeTrial")}
+                  {entitlement.canStartTrial ? t("startFreeTrial") : t("viewPlans")}
                 </Button>
               </CardContent>
             ) : null}
@@ -191,7 +192,7 @@ export function PricingView() {
                   <TableCell className="whitespace-normal px-6 font-medium">
                     {t(FEATURE_NAME_KEYS[rowIndex] ?? "featActiveListings")}
                   </TableCell>
-                  {(Object.keys(feature.values) as AppPlanId[]).map((planId) => (
+                  {APP_PLANS.map(({ id: planId }) => (
                     <TableCell key={planId} className="px-4 text-center">
                       <FeatureCell
                         value={feature.values[planId]}

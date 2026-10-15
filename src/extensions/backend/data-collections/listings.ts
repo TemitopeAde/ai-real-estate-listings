@@ -144,7 +144,7 @@ export default {
   displayField: "title",
   dataPermissions: {
     itemInsert: "CMS_EDITOR",
-    itemRead: "ANYONE",
+    itemRead: "CMS_EDITOR",
     itemRemove: "CMS_EDITOR",
     itemUpdate: "CMS_EDITOR",
   },

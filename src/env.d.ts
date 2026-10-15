@@ -2,7 +2,6 @@
 /// <reference path="../.astro/types.d.ts" />
 
 interface ImportMetaEnv {
-  readonly DATABASE_URL: string;
   readonly COUNTRYSTATEAPI: string;
   readonly QUOTE_REQUEST_NOTIFICATION_TEMPLATE_ID?: string;
 }

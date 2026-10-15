@@ -33,7 +33,7 @@ export default {
   ],
   displayField: 'listingTitle',
   dataPermissions: {
-    itemInsert: 'ANYONE',
+    itemInsert: 'CMS_EDITOR',
     itemRead: 'CMS_EDITOR',
     itemRemove: 'CMS_EDITOR',
     itemUpdate: 'CMS_EDITOR',

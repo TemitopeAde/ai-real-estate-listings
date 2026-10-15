@@ -1,3 +1,4 @@
+import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from 'astro';
 
 import { getCurrentMemberId, listSavedProperties, removeSavedProperty, saveProperty } from '@/lib/server/saved-properties';
@@ -10,7 +11,7 @@ function text(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim().slice(0, 128) : undefined;
 }
 
-export const POST: APIRoute = async ({ request }) => {
+const handlePOST: APIRoute = async ({ request }) => {
   const memberId = await getCurrentMemberId();
   if (!memberId) return json({ message: 'A logged-in Wix member is required.' }, 401);
 
@@ -41,3 +42,5 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ message: error instanceof Error ? error.message : 'Saved properties are temporarily unavailable.' }, 500);
   }
 };
+
+export const POST = withSubscription(handlePOST, false);

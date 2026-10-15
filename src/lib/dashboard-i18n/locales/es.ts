@@ -174,12 +174,10 @@ export const es = complete({
   pricingEyebrow: "Planes de aplicaciones",
   pricingTitle: "Elige el plan que se ajuste a tu inventario",
   pricingIntroTrial: "Su prueba gratuita incluye todas las funciones de Business. Una vez finalizado, el sitio en vivo y las herramientas cerradas siguen su plan activo.",
-  pricingIntro: "Comience el Basic para publicar listados y recopilar cotizaciones. Actualice a Pro o Business cuando necesite copia de IA, recorridos de 360°, análisis y más herramientas de marketing.",
   currentPlan: "plan actual",
   freeTrial: "Prueba gratuita",
   mostPopular: "mas popular",
   featureComparison: "Comparación de características",
-  featureComparisonHint: "Qué está incluido en Basic, Pro y Business.",
   feature: "Característica",
   included: "Incluido",
   notIncluded: "No incluido",
@@ -193,7 +191,7 @@ export const es = complete({
   planProSummary: "Copia de IA, recorridos 360°, información sobre los visitantes y análisis de cartera.",
   planBusinessSummary: "Listados ilimitados, asistente de inteligencia artificial en el sitio y herramientas de marketing completas.",
   featActiveListings: "Listados activos",
-  featActiveBasic: "hasta 5",
+  featActiveBasic: "1 anuncio",
   featActivePro: "hasta 50",
   featActiveBusiness: "Ilimitado",
   featWidgets: "Listados y widgets de detalles de propiedades",
@@ -547,8 +545,6 @@ export const es = complete({
   faqStartFirstA:
     "Añade al menos un listado activo, coloca los widgets de listados y de detalle de propiedad en tu sitio y envía una solicitud de cotización de prueba. La sección Guía recorre este camino.",
   faqStartPublishQ: "¿Cómo aparecen los listados en mi sitio en vivo?",
-  faqStartPublishA:
-    "Solo se muestran los listados con estado Activo. Añade el widget de listados de propiedades a una página como /properties y el widget de detalle de propiedad a una página como /property-details. Tras la prueba gratuita, Basic muestra hasta 5 listados activos actualizados más recientemente, Pro hasta 50 y Business todos.",
   faqListStatusQ: "¿Qué significan los estados de los listados?",
   faqListStatusA:
     "Borrador no es público. Activo está disponible en el sitio (dentro del límite de tu plan). En negociación significa que hay un trato en curso. Vendido marca una transacción completada. Archivado oculta el listado del inventario predeterminado a menos que actives listados archivados en Configuración.",
@@ -576,14 +572,8 @@ export const es = complete({
   faqSiteRelatedA:
     "Los listados relacionados y el asistente de IA en el sitio son funciones de Business. Compartir en redes sociales y los tours 360° están en Pro y Business. Confirma también que esas opciones estén activadas en el widget en el editor.",
   faqPlansDiffQ: "¿Qué incluye cada plan?",
-  faqPlansDiffA:
-    "Basic publica un inventario pequeño y recoge cotizaciones. Pro añade AI Listing Writer, tours 360°, información de visitantes únicos, analítica, compartir en redes y notificaciones por correo de cotizaciones. Business añade listados públicos ilimitados, varias escenas de tour, listados relacionados y el asistente en el sitio. Abre Precios para la comparación completa.",
   faqPlansTrialQ: "¿Cómo funciona la prueba gratuita?",
-  faqPlansTrialA:
-    "Mientras dura la prueba tienes todas las funciones de Business. Usa Iniciar prueba gratuita desde la barra lateral o Precios. Cuando termine, el sitio en vivo y las herramientas restringidas siguen tu plan activo.",
   faqPlansCapQ: "¿Cómo funciona el límite de listados?",
-  faqPlansCapA:
-    "El panel puede almacenar todos tus registros. El sitio en vivo muestra los listados Activos actualizados más recientemente hasta el límite de tu plan: 5 en Basic, 50 en Pro e ilimitados en Business o durante una prueba.",
   faqWriterHowQ: "¿Cómo genero texto para un listado?",
   faqWriterHowA:
     "Abre AI Listing Writer o usa Escribir con IA dentro de un listado. Confirma los datos de la propiedad, elige un estilo (profesional, lujo, corto, SEO o social) y revisa el texto antes de guardar.",
@@ -594,8 +584,6 @@ export const es = complete({
   faqToursWhatA:
     "Usa fotos 360° equirectangulares. Los visitantes pueden mirar alrededor en el visor interactivo de la página de la propiedad. Puedes añadir varias escenas; cada imagen es un punto de vista.",
   faqToursPlanQ: "¿Qué plan muestra el tour virtual?",
-  faqToursPlanA:
-    "Los tours virtuales están en Pro y Business. Pro muestra la primera escena en el sitio; las escenas adicionales se activan en Business. Las panorámicas extra permanecen guardadas en el panel si las añades en Basic.",
   faqLeadsWhereQ: "¿Dónde aparecen las solicitudes de cotización?",
   faqLeadsWhereA:
     "Abre Solicitudes de cotización en este panel. Cada consulta incluye la propiedad, datos del visitante, mensaje, estado y notas internas.",

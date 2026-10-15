@@ -1,3 +1,6 @@
+import { pollWhileVisible } from "@/lib/poll-while-visible";
+import { openAppUpgradePage } from "@/lib/entitlement";
+import { PlanGate } from "./plan-gate";
 import { useCallback, useEffect, useState } from "react";
 import "@wix/design-system/styles.global.css";
 import { dashboard } from "@wix/dashboard";
@@ -72,11 +75,21 @@ function DashboardAppInner({
   const [entitlement, setEntitlement] = useState<AppEntitlement | null>(null);
 
   useEffect(() => {
-    void getAppEntitlement()
-      .then(setEntitlement)
-      .catch((error: unknown) => {
-        console.error("Unable to load plan entitlement.", error);
-      });
+    let active = true;
+    const stop = pollWhileVisible(async (signal) => {
+      let next: AppEntitlement | null = null;
+      try { next = await getAppEntitlement(signal); }
+      catch (error) { console.error("Unable to load plan entitlement.", error); }
+      if (!active) return;
+      if (signal.aborted) next = null;
+      setEntitlement(next);
+      if (!next?.hasAccess) {
+        setEditorMode(null);
+        setEditingListing(null);
+        setEditorError(null);
+      }
+    });
+    return () => { active = false; stop(); };
   }, [refreshToken]);
 
   const openEditor = useCallback(
@@ -265,6 +278,25 @@ function DashboardAppInner({
     content = (
       <SettingsView settings={settings} onSettingsChange={setSettings} />
     );
+  }
+
+  if (!entitlement?.hasAccess) {
+    return <EntitlementProvider value={entitlement}>
+      <main className="mx-auto max-w-5xl space-y-6 p-6">
+        <PlanGate
+          title={entitlement?.accessStatus === "inactive" ? t("subscriptionRequired") : t("subscriptionChecking")}
+          description={entitlement?.accessStatus === "inactive"
+            ? t("subscriptionRestore")
+            : t("subscriptionUnavailable")}
+          onUpgrade={() => {
+            if (entitlement?.instanceId) openAppUpgradePage(entitlement.instanceId);
+            else setRefreshToken((value) => value + 1);
+          }}
+        />
+        <Button variant="outline" onClick={() => setRefreshToken((value) => value + 1)}>{t("subscriptionRetry")}</Button>
+        <PricingView />
+      </main>
+    </EntitlementProvider>;
   }
 
   return (
