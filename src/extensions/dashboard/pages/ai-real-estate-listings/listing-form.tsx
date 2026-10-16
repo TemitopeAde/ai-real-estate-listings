@@ -1120,6 +1120,8 @@ export function ListingForm({
                   step="any"
                   value={form.price}
                   onChange={(event) => update("price", event.target.value)}
+                  onWheel={(event) => event.currentTarget.blur()}
+                  className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   aria-invalid={Boolean(errors.price)}
                   placeholder="0"
                 />
@@ -1164,6 +1166,8 @@ export function ListingForm({
                   step="any"
                   value={form.area}
                   onChange={(event) => update("area", event.target.value)}
+                  onWheel={(event) => event.currentTarget.blur()}
+                  className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   aria-invalid={Boolean(errors.area)}
                   placeholder="0"
                 />

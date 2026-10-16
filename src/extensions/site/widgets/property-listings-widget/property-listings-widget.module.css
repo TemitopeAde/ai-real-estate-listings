@@ -15,6 +15,7 @@
 @container (max-width: 560px) { .list { grid-template-columns: repeat(var(--listing-mobile-columns, 1), minmax(0, 1fr)); }.pagingControls { justify-content: center; } }
 @media (max-width: 720px) { .header { align-items: start; flex-direction: column; }.filters > label, .searchField { flex-basis: 100% !important; min-width: 0; } }
 @media (max-width: 560px) { .list { grid-template-columns: repeat(var(--listing-mobile-columns, 1), minmax(0, 1fr)); } }
+@media (hover: hover) and (pointer: fine) { .iconButton { opacity: 0; pointer-events: none; transition: opacity .2s ease; }.card:hover .iconButton, .card:focus-within .iconButton { opacity: 1; pointer-events: auto; } }
 .root { width: auto; font-size: 14px; }
 .root { font-family: var(--body-font-family, inherit); font-size: var(--body-font-size, 14px); }.root h2, .root h3 { font-family: var(--title-font-family, inherit); }
 

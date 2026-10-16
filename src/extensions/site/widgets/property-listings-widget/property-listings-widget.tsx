@@ -163,6 +163,8 @@ const PagingControls: FC<{
   </nav>;
 };
 
+const listingStyle = (config: ListingWidgetConfig) => ({ "--listing-gap": `${config.gap}px`, "--listing-columns": String(config.columns), "--listing-tablet-columns": String(config.tabletColumns), "--listing-mobile-columns": String(config.mobileColumns), "--listing-background": config.backgroundColor, "--listing-card": config.cardColor, "--listing-text": config.textColor, "--listing-muted": config.mutedColor, "--listing-accent": config.accentColor, "--listing-filter-card": config.filterBackgroundColor, "--listing-filter-text": config.filterTextColor, "--listing-filter-border": config.filterBorderColor, "--listing-padding": `${config.containerPadding.top}px ${config.containerPadding.right}px ${config.containerPadding.bottom}px ${config.containerPadding.left}px`, "--listing-margin": `${config.containerMargin.top}px ${config.containerMargin.right}px ${config.containerMargin.bottom}px ${config.containerMargin.left}px`, "--listing-border-width": `${config.cardBorderWidth}px`, "--listing-border-color": config.cardBorderColor, "--listing-shadow": config.cardShadow === "none" ? "none" : config.cardShadow === "strong" ? "0 18px 42px rgba(23,33,27,.16)" : "0 12px 30px rgba(23,33,27,.08)", font: config.bodyFont.font } as React.CSSProperties);
+
 const PropertyListings: FC<Props> = (props) => {
   const config = useMemo(() => getConfig(props), [props.config]);
   const lang = useResolvedWidgetLanguage(config.language);
@@ -292,7 +294,7 @@ const PropertyListings: FC<Props> = (props) => {
   };
   const updateFilter = (key: keyof ListingFilters, value: string) => setFilters((current) => ({ ...current, [key]: value }));
   const resetFilters = () => setFilters(EMPTY_LISTING_FILTERS);
-  const style = { "--listing-gap": `${config.gap}px`, "--listing-columns": String(config.columns), "--listing-tablet-columns": String(config.tabletColumns), "--listing-mobile-columns": String(config.mobileColumns), "--listing-background": config.backgroundColor, "--listing-card": config.cardColor, "--listing-text": config.textColor, "--listing-muted": config.mutedColor, "--listing-accent": config.accentColor, "--listing-filter-card": config.filterBackgroundColor, "--listing-filter-text": config.filterTextColor, "--listing-filter-border": config.filterBorderColor, "--listing-padding": `${config.containerPadding.top}px ${config.containerPadding.right}px ${config.containerPadding.bottom}px ${config.containerPadding.left}px`, "--listing-margin": `${config.containerMargin.top}px ${config.containerMargin.right}px ${config.containerMargin.bottom}px ${config.containerMargin.left}px`, "--listing-border-width": `${config.cardBorderWidth}px`, "--listing-border-color": config.cardBorderColor, "--listing-shadow": config.cardShadow === "none" ? "none" : config.cardShadow === "strong" ? "0 18px 42px rgba(23,33,27,.16)" : "0 12px 30px rgba(23,33,27,.08)", font: config.bodyFont.font } as React.CSSProperties;
+  const style = listingStyle(config);
   Object.assign(style, fontStyles);
   if (error && listings.length === 0 && !loading) return <div className={`${styles.root} ${styles.message}`} style={style} lang={lang} dir={dir} role="alert">{error}</div>;
   return <section className={styles.root} style={style} lang={lang} dir={dir} aria-label={config.title} aria-busy={loading}>
@@ -306,6 +308,17 @@ const PropertyListings: FC<Props> = (props) => {
   </section>;
 };
 
-const SubscribedWidget: FC<Props> = (props) => <SubscriptionBoundary><PropertyListings {...props} /></SubscriptionBoundary>;
+const PropertyListingsLoading: FC<Props> = (props) => {
+  const config = useMemo(() => getConfig(props), [props.config]);
+  const lang = useResolvedWidgetLanguage(config.language);
+  const fontStyles = useWidgetFonts(config.titleFont.font, config.bodyFont.font);
+  const style = Object.assign(listingStyle(config), fontStyles);
+  return <section className={styles.root} style={style} lang={lang} dir={widgetTextDirection(lang)} aria-label={config.title} aria-busy="true">
+    {config.showHeader ? <header className={styles.header}><div><h2 style={{ font: config.titleFont.font }}>{config.title}</h2><p>{config.subtitle}</p></div></header> : null}
+    <ListingsGridSkeleton config={config} lang={lang} />
+  </section>;
+};
+
+const SubscribedWidget: FC<Props> = (props) => <SubscriptionBoundary fallback={<PropertyListingsLoading {...props} />}><PropertyListings {...props} /></SubscriptionBoundary>;
 
 export default reactToWebComponent(SubscribedWidget, React, ReactDOM as any, { props: { config: "string" } });

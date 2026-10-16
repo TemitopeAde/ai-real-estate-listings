@@ -43,6 +43,7 @@ import { GuideView } from "./guide-view";
 import { FaqView } from "./faq-view";
 import { PricingView } from "./pricing-view";
 import { EntitlementProvider } from "./entitlement-context";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type EditorMode = "new" | "edit" | null;
 
@@ -73,6 +74,7 @@ function DashboardAppInner({
   const [editorError, setEditorError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [entitlement, setEntitlement] = useState<AppEntitlement | null>(null);
+  const [entitlementChecked, setEntitlementChecked] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -83,6 +85,7 @@ function DashboardAppInner({
       if (!active) return;
       if (signal.aborted) next = null;
       setEntitlement(next);
+      if (!signal.aborted) setEntitlementChecked(true);
       if (!next?.hasAccess) {
         setEditorMode(null);
         setEditingListing(null);
@@ -278,6 +281,25 @@ function DashboardAppInner({
     content = (
       <SettingsView settings={settings} onSettingsChange={setSettings} />
     );
+  }
+
+  if (!entitlementChecked) {
+    return <EntitlementProvider value={entitlement}>
+      <DashboardShell
+        section={section}
+        onSectionChange={changeSection}
+        dashboardLanguage={settings.dashboardLanguage}
+        onDashboardLanguageChange={changeLanguage}
+      >
+        <div className="space-y-6" aria-busy="true">
+          <Skeleton className="h-10 w-64 rounded-lg" />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-36 rounded-xl" />)}
+          </div>
+          <Skeleton className="h-52 rounded-xl" />
+        </div>
+      </DashboardShell>
+    </EntitlementProvider>;
   }
 
   if (!entitlement?.hasAccess) {
