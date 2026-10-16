@@ -91,10 +91,11 @@ const PropertyDetail: FC<PropertyDetailProps> = (props) => {
           <h2 className={styles.sectionTitle}>{t(lang, 'virtualTour')}</h2>
           {listing && panoramas.length ? <PanoramaViewer images={access.multiSceneTour ? panoramas : panoramas.slice(0, 1)} title={listing.title} lang={lang} /> : null}
         </section>
-        <section {...elementProps?.videos} className={classNames('property-detail-videos', styles.section, elementProps?.videos?.className)} hidden={!props.enableVideos || !listing?.videos?.length}>
+        {/* Not rendered at all without videos: an editor `display` override would beat the `hidden` attribute. */}
+        {listing && props.enableVideos && listing.videos?.length ? <section {...elementProps?.videos} className={classNames('property-detail-videos', styles.section, elementProps?.videos?.className)}>
           <h2 className={styles.sectionTitle}>{t(lang, 'videoTour')}</h2>
-          {listing && props.enableVideos && listing.videos?.length ? <PropertyVideos key={listing._id} videos={listing.videos} lang={lang} disabled={designMode} /> : null}
-        </section>
+          <PropertyVideos key={listing._id} videos={listing.videos} lang={lang} disabled={designMode} />
+        </section> : null}
         <div {...elementProps?.description} className={classNames('property-detail-description', richContentStyles.description, styles.description, elementProps?.description?.className)} dangerouslySetInnerHTML={{ __html: optimizeDescriptionImages(listing?.description ?? '') }} />
         <p {...elementProps?.metadata} className={classNames('property-detail-metadata', styles.metadata, elementProps?.metadata?.className)}>{listing ? [listing.bedrooms === undefined ? '' : t(lang, 'bedrooms', { count: listing.bedrooms }), listing.bathrooms === undefined ? '' : t(lang, 'bathrooms', { count: listing.bathrooms }), `${listing.area.toLocaleString(locale)} ${listing.areaUnit}`].filter(Boolean).join(' · ') : '\u00a0'}</p>
         <div {...elementProps?.mortgage} className={classNames('property-detail-mortgage', styles.section, elementProps?.mortgage?.className)} hidden={!props.enableMortgageCalculator || !access.mortgageCalculator || listing?.transactionType !== 'sale'}>

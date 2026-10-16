@@ -2,6 +2,7 @@ import { AgentPhoneInput } from "./agent-phone-input";
 import { LazyRichTextEditor } from "./lazy-rich-text-editor";
 import { ListingAttachmentsEditor } from "./listing-attachments-editor";
 import { ListingVideosEditor } from "./listing-videos-editor";
+import { MIN_YEAR_BUILT, YearPickerField, maxYearBuilt } from "./year-picker-field";
 import type { ListingDocument, ListingVideo } from "@/lib/listing-types";
 import { useEffect, useMemo, useState } from "react";
 import { dashboard } from "@wix/dashboard";
@@ -653,8 +654,14 @@ export function ListingForm({
         nextErrors[key] = t("validNumber");
     }
 
+    if (form.yearBuilt.trim()) {
+      const year = Number(form.yearBuilt);
+      if (!Number.isInteger(year) || year < MIN_YEAR_BUILT || year > maxYearBuilt()) {
+        nextErrors.yearBuilt = t("yearBuiltRange", { min: MIN_YEAR_BUILT, max: maxYearBuilt() });
+      }
+    }
+
     for (const [key, value] of [
-      ["yearBuilt", form.yearBuilt],
       ["parkingSpaces", form.parkingSpaces],
     ] as const) {
       const number = optionalNumber(value);
@@ -1223,12 +1230,20 @@ export function ListingForm({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <OptionalNumberField
-                label={t("yearBuilt")}
-                value={form.yearBuilt}
-                error={errors.yearBuilt}
-                onChange={(value) => update("yearBuilt", value)}
-              />
+              <div className="space-y-2 text-sm font-medium">
+                <label htmlFor="listing-year-built">
+                  <FieldLabel text={t("yearBuilt")} hint={t("optionalValueHint", { label: t("yearBuilt") })} />
+                </label>
+                <YearPickerField
+                  id="listing-year-built"
+                  value={form.yearBuilt}
+                  invalid={Boolean(errors.yearBuilt)}
+                  onChange={(value) => update("yearBuilt", value)}
+                />
+                {errors.yearBuilt ? (
+                  <span className="block text-xs font-normal text-destructive">{errors.yearBuilt}</span>
+                ) : null}
+              </div>
               <OptionalNumberField
                 label={t("parkingSpaces")}
                 value={form.parkingSpaces}
