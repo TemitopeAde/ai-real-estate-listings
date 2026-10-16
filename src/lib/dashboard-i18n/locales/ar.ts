@@ -1,6 +1,22 @@
 import { complete } from "../complete";
 
 export const ar = complete({
+  floorPlansHint: "أضف صورًا للطوابق أو التصاميم المختلفة. يمكن للزوار تكبير كل مخطط.",
+  brochuresHint: "أضف كتيبات PDF قابلة للتنزيل للعقار. إزالة الكتيب هنا تُبقي الملف في مدير الوسائط.",
+  addFloorPlans: "إضافة مخططات الطوابق",
+  addBrochures: "إضافة كتيبات PDF",
+  noAttachments: "لم تتم إضافة مرفقات بعد.",
+  attachmentLabel: "التسمية",
+  moveAttachmentUp: "نقل {name} لأعلى",
+  moveAttachmentDown: "نقل {name} لأسفل",
+  removeAttachment: "إزالة {name}",
+  floorPlanInvalid: "اختر ملفات صور مدعومة: PNG أو JPG أو GIF أو WebP أو AVIF أو SVG.",
+  brochureInvalid: "يمكن إضافة ملفات PDF فقط ككتيبات.",
+  featEditListings: "تعديل العقارات من لوحة التحكم",
+  floorPlans: "مخططات الطوابق",
+  brochures: "الكتيبات",
+  featAttachments: "مخططات الطوابق / الكتيبات (PDF)",
+
   appName: "EstateAI",
   appTagline: "مساحة عمل القائمة",
   navOverview: "نظرة عامة",
@@ -227,7 +243,7 @@ export const ar = complete({
   includeArchivedHelp: "احتفظ بالسجلات المؤرشفة مرئية في عرض القوائم بشكل افتراضي.",
   dashboardLanguage: "لغة لوحة القيادة",
   dashboardLanguageHint: "اختر لغة مساحة العمل هذه، أو اتبع لغة حساب Wix.",
-  languageAuto: "Auto (Wix account language)",
+  languageAuto: "Auto",
   savedLocally: "تم الحفظ محليًا لهذا المتصفح",
   changesUnsaved: "لم يتم حفظ التغييرات بعد",
   reset: "إعادة تعيين",

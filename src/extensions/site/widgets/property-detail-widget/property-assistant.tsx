@@ -1,4 +1,4 @@
-import React, { useEffect, useState, type FC } from "react";
+import React, { useEffect, useId, useState, type FC } from "react";
 import { httpClient } from "@wix/essentials";
 import { Bot, Send, Sparkles } from "lucide-react";
 import type { Listing } from "../../../../lib/listing-types";
@@ -13,6 +13,7 @@ interface Message {
 }
 
 interface PropertyAssistantProps {
+  disabled?: boolean;
   listing: Listing;
   lang: WidgetLangCode;
 }
@@ -29,7 +30,8 @@ async function askAssistant(listingId: string, question: string, history: Messag
   return result.answer.trim();
 }
 
-export const PropertyAssistant: FC<PropertyAssistantProps> = ({ listing, lang }) => {
+export const PropertyAssistant: FC<PropertyAssistantProps> = ({ listing, lang, disabled = false }) => {
+  const id = useId();
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,7 @@ export const PropertyAssistant: FC<PropertyAssistantProps> = ({ listing, lang })
 
   const submit = async (value = question) => {
     const nextQuestion = value.trim();
-    if (!nextQuestion || loading) return;
+    if (disabled || !nextQuestion || loading) return;
     const userMessage: Message = { role: "user", content: nextQuestion };
     const history = messages;
     setMessages((current) => [...current, userMessage]);
@@ -61,13 +63,13 @@ export const PropertyAssistant: FC<PropertyAssistantProps> = ({ listing, lang })
     }
   };
 
-  return <section className={styles.assistant} aria-labelledby="property-assistant-title">
+  return <section className={styles.assistant} aria-labelledby={`${id}-title`}>
     <div className={styles.assistantHeader}>
       <div className={styles.assistantIcon}><Bot aria-hidden="true" /></div>
-      <div><h2 id="property-assistant-title">{t(lang, "assistantTitle")}</h2><p>{t(lang, "assistantIntro")}</p></div>
+      <div><h2 id={`${id}-title`}>{t(lang, "assistantTitle")}</h2><p>{t(lang, "assistantIntro")}</p></div>
     </div>
-    {messages.length === 0 ? <div className={styles.suggestions}><span><Sparkles aria-hidden="true" /> {t(lang, "tryAsking")}</span><div>{suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void submit(suggestion)} disabled={loading}>{suggestion}</button>)}</div></div> : <div className={styles.assistantMessages} aria-live="polite">{messages.map((message, index) => <div className={`${styles.assistantMessage} ${message.role === "user" ? styles.assistantUser : styles.assistantReply}`} key={`${message.role}-${index}`}><span>{message.role === "user" ? t(lang, "you") : t(lang, "assistant")}</span><p>{message.content}</p></div>)}{loading ? <div className={`${styles.assistantMessage} ${styles.assistantReply}`}><span>{t(lang, "assistant")}</span><p>{t(lang, "checkingListing")}</p></div> : null}</div>}
+    {messages.length === 0 ? <div className={styles.suggestions}><span><Sparkles aria-hidden="true" /> {t(lang, "tryAsking")}</span><div>{suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void submit(suggestion)} disabled={disabled || loading}>{suggestion}</button>)}</div></div> : <div className={styles.assistantMessages} aria-live="polite">{messages.map((message, index) => <div className={`${styles.assistantMessage} ${message.role === "user" ? styles.assistantUser : styles.assistantReply}`} key={`${message.role}-${index}`}><span>{message.role === "user" ? t(lang, "you") : t(lang, "assistant")}</span><p>{message.content}</p></div>)}{loading ? <div className={`${styles.assistantMessage} ${styles.assistantReply}`}><span>{t(lang, "assistant")}</span><p>{t(lang, "checkingListing")}</p></div> : null}</div>}
     {error ? <p className={styles.assistantError} role="alert">{error}</p> : null}
-    <form className={styles.assistantForm} onSubmit={(event) => { event.preventDefault(); void submit(); }}><label className={styles.visuallyHidden} htmlFor="property-assistant-question">{t(lang, "askQuestion")}</label><input id="property-assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={t(lang, "askPlaceholder")} maxLength={500} disabled={loading} /><button type="submit" disabled={loading || !question.trim()} aria-label={t(lang, "askAssistant")}><Send aria-hidden="true" /> <span>{t(lang, "ask")}</span></button></form>
+    <form className={styles.assistantForm} onSubmit={(event) => { event.preventDefault(); void submit(); }}><label className={styles.visuallyHidden} htmlFor={`${id}-question`}>{t(lang, "askQuestion")}</label><input id={`${id}-question`} value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={t(lang, "askPlaceholder")} maxLength={500} disabled={disabled || loading} /><button type="submit" disabled={disabled || loading || !question.trim()} aria-label={t(lang, "askAssistant")}><Send aria-hidden="true" /> <span>{t(lang, "ask")}</span></button></form>
   </section>;
 };

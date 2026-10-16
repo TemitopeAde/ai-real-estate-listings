@@ -21,21 +21,31 @@ const fallbackEntitlement: AppEntitlement = {
 };
 
 const EntitlementContext = createContext<AppEntitlement | null>(null);
+// True until the first subscription check completes; plan-dependent actions stay disabled meanwhile.
+const EntitlementPendingContext = createContext(false);
 
 export function EntitlementProvider({
   value,
+  pending = false,
   children,
 }: {
   value: AppEntitlement | null;
+  pending?: boolean;
   children: ReactNode;
 }) {
   return (
     <EntitlementContext.Provider value={value}>
-      {children}
+      <EntitlementPendingContext.Provider value={pending}>
+        {children}
+      </EntitlementPendingContext.Provider>
     </EntitlementContext.Provider>
   );
 }
 
 export function useEntitlement(): AppEntitlement {
   return useContext(EntitlementContext) ?? fallbackEntitlement;
+}
+
+export function useEntitlementPending(): boolean {
+  return useContext(EntitlementPendingContext);
 }

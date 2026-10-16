@@ -27,6 +27,7 @@ export default {
     { type: 'TEXT', displayName: 'Phone', key: 'phone' },
     { type: 'RICH_TEXT', displayName: 'Message', key: 'message' },
     { type: 'TEXT', displayName: 'Member ID', key: 'memberId' },
+    { type: 'TEXT', displayName: 'Contact ID', key: 'contactId' },
     { type: 'TEXT', displayName: 'Status', key: 'status' },
     { type: 'TEXT', displayName: 'Internal Notes', key: 'notes' },
     { type: 'BOOLEAN', displayName: 'Archived', key: 'archived' },

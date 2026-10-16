@@ -1,8 +1,8 @@
 import { items } from '@wix/data';
 import { auth } from '@wix/essentials';
 
-import { getListing, getPublicListing } from '@/lib/server/listings';
-import { SAVED_PROPERTIES_COLLECTION_ID, type Listing } from '@/lib/listing-types';
+import { getListing, getPublicListing } from './listings';
+import { SAVED_PROPERTIES_COLLECTION_ID, type Listing } from '../listing-types';
 
 type SavedRecord = { _id?: string; memberId?: string; listingId?: string; savedAt?: Date | string };
 

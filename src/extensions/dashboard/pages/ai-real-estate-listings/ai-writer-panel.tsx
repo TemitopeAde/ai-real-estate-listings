@@ -122,8 +122,9 @@ export function AIWriterPanel({
           <label className="space-y-2 text-sm font-medium">
             {t('furnishingStatus')}
             <Select value={form.furnishing} onValueChange={(value) => update('furnishing', value)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              {/* Above the listing editor's AI writer dialog (z-[80]), which hosts this panel. */}
+              <SelectContent className="z-[90]">
                 <SelectItem value="Furnished">{t('furnishingFurnished')}</SelectItem>
                 <SelectItem value="Semi-furnished">{t('furnishingSemi')}</SelectItem>
                 <SelectItem value="Unfurnished">{t('furnishingUnfurnished')}</SelectItem>

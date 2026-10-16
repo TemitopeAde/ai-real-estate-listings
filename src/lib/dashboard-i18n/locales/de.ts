@@ -1,6 +1,22 @@
 import { complete } from "../complete";
 
 export const de = complete({
+  floorPlansHint: "Fügen Sie Bilder für verschiedene Etagen oder Grundrisse hinzu. Besucher können jeden Plan vergrößern.",
+  brochuresHint: "Fügen Sie herunterladbare PDF-Broschüren zur Immobilie hinzu. Wenn Sie eine Broschüre hier entfernen, bleibt die Datei im Medienmanager erhalten.",
+  addFloorPlans: "Grundrisse hinzufügen",
+  addBrochures: "PDF-Broschüren hinzufügen",
+  noAttachments: "Noch keine Anhänge hinzugefügt.",
+  attachmentLabel: "Bezeichnung",
+  moveAttachmentUp: "{name} nach oben verschieben",
+  moveAttachmentDown: "{name} nach unten verschieben",
+  removeAttachment: "{name} entfernen",
+  floorPlanInvalid: "Wählen Sie unterstützte Bilddateien: PNG, JPG, GIF, WebP, AVIF oder SVG.",
+  brochureInvalid: "Als Broschüren können nur PDF-Dateien hinzugefügt werden.",
+  featEditListings: "Einträge im Dashboard bearbeiten",
+  floorPlans: "Grundrisse",
+  brochures: "Broschüren",
+  featAttachments: "Grundrisse / Broschüren (PDF)",
+
   appName: "EstateAI",
   appTagline: "Arbeitsbereich auflisten",
   navOverview: "Übersicht",
@@ -227,7 +243,7 @@ export const de = complete({
   includeArchivedHelp: "Lassen Sie archivierte Datensätze standardmäßig in der Listenansicht sichtbar.",
   dashboardLanguage: "Dashboard-Sprache",
   dashboardLanguageHint: "Wählen Sie die Sprache für diesen Arbeitsbereich oder folgen Sie der Sprache des Wix-Kontos.",
-  languageAuto: "Auto (Wix account language)",
+  languageAuto: "Auto",
   savedLocally: "Lokal für diesen Browser gespeichert",
   changesUnsaved: "Änderungen werden noch nicht gespeichert",
   reset: "Zurücksetzen",

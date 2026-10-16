@@ -72,9 +72,15 @@ function SpacingFields({ label, value, onChange }: { label: PanelFieldLabel; val
 function AccordionSection({ title, isOpen, onToggle, children }: { title: string; isOpen: boolean; onToggle: () => void; children: ReactNode }) {
   return (
     <div style={{ width: "100%" }}>
-      <div
+      <button
+        type="button"
+        aria-expanded={isOpen}
         onClick={onToggle}
         style={{
+          width: "100%",
+          border: 0,
+          textAlign: "start",
+          font: "inherit",
           padding: "14px 18px",
           backgroundColor: "#f8f9fa",
           cursor: "pointer",
@@ -92,7 +98,7 @@ function AccordionSection({ title, isOpen, onToggle, children }: { title: string
         <svg width="16" height="16" viewBox="0 0 16 16" fill="#162d3d" style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}>
           <path d="M8 12.5l4-4H4l4 4z" />
         </svg>
-      </div>
+      </button>
       {isOpen ? <div style={{ padding: "18px", backgroundColor: "#fff" }}>{children}</div> : null}
       <Divider />
     </div>
@@ -133,6 +139,7 @@ export const WidgetPanel: FC<WidgetPanelProps> = ({ kind }) => {
             <>
               <AccordionSection title="Content" isOpen={Boolean(openSections.content)} onToggle={() => toggleSection("content")}>
                 <SelectField label="Language" value={config.language} options={WIDGET_LANGUAGE_OPTIONS.map((option) => ({ id: option.id, label: option.label }))} onChange={(value) => update("language", value)} />
+                <ToggleField label="Enable property comparison" checked={config.enableComparison} onChange={(value) => update("enableComparison", value)} />
                 {listingConfig ? (
                   <>
                     <TextField label="Heading" value={listingConfig.title} onChange={(value) => update("title", value)} />
@@ -148,10 +155,15 @@ export const WidgetPanel: FC<WidgetPanelProps> = ({ kind }) => {
                     <ToggleField label="Show location" checked={detailConfig?.showLocation ?? true} onChange={(value) => update("showLocation", value)} />
                     <ToggleField label="Show description" checked={detailConfig?.showDescription ?? true} onChange={(value) => update("showDescription", value)} />
                     <ToggleField label="Show amenities" checked={detailConfig?.showAmenities ?? true} onChange={(value) => update("showAmenities", value)} />
+                    <ToggleField label="Show floor plans" checked={detailConfig?.showFloorPlans ?? true} onChange={(value) => update("showFloorPlans", value)} />
+                    <ToggleField label="Show brochures" checked={detailConfig?.showBrochures ?? true} onChange={(value) => update("showBrochures", value)} />
+                    <ToggleField label="Show videos" checked={detailConfig?.showVideos ?? true} onChange={(value) => update("showVideos", value)} />
                     <ToggleField label="Show agent" checked={detailConfig?.showAgent ?? true} onChange={(value) => update("showAgent", value)} />
                     <ToggleField label="Show view count" checked={detailConfig?.showViewCount ?? true} onChange={(value) => update("showViewCount", value)} />
                     <ToggleField label="Show AI assistant" checked={detailConfig?.showAiAssistant ?? true} onChange={(value) => update("showAiAssistant", value)} />
                     <ToggleField label="Show social share" checked={detailConfig?.showSocialShare ?? true} onChange={(value) => update("showSocialShare", value)} />
+                    <ToggleField label="Show mortgage calculator" checked={detailConfig?.showMortgageCalculator ?? false} onChange={(value) => update("showMortgageCalculator", value)} />
+                    <ToggleField label="Show request a quote" checked={detailConfig?.showQuoteRequest ?? true} onChange={(value) => update("showQuoteRequest", value)} />
                     <TextField label="Related listings heading" value={detailConfig?.featuredTitle ?? ""} onChange={(value) => update("featuredTitle", value)} />
                     <TextField label="Related listings subheading" value={detailConfig?.featuredSubtitle ?? ""} onChange={(value) => update("featuredSubtitle", value)} />
                     <ToggleField label="Show related listings" checked={detailConfig?.showFeaturedListings ?? true} onChange={(value) => update("showFeaturedListings", value)} />

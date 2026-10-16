@@ -1,0 +1,8 @@
+id,title,transactionType,propertyType,status,price,currency,area,areaUnit,city,latitude,longitude,agentEmail,galleryImages
+,Bad type,sale,Apartmnt,active,100000,USD,90,sq m,Lagos,,,,
+,Negative price,sale,house,active,-5,USD,90,sq m,Lagos,,,,
+,Bad image,sale,house,active,100000,USD,90,sq m,Lagos,,,,ftp://x/a.jpg
+,Missing city,sale,house,active,100000,USD,90,sq m,,,,,
+,Bad latitude,sale,house,active,100000,USD,90,sq m,Lagos,200,3.4,,
+,Bad email,sale,house,active,100000,USD,90,sq m,Lagos,,,jane@,
+00000000-0000-0000-0000-000000000000,Unknown id,,,,,,,,,,,,

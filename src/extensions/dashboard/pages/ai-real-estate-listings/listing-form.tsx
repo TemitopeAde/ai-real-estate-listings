@@ -1,4 +1,9 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { AgentPhoneInput } from "./agent-phone-input";
+import { LazyRichTextEditor } from "./lazy-rich-text-editor";
+import { ListingAttachmentsEditor } from "./listing-attachments-editor";
+import { ListingVideosEditor } from "./listing-videos-editor";
+import type { ListingDocument, ListingVideo } from "@/lib/listing-types";
+import { useEffect, useMemo, useState } from "react";
 import { dashboard } from "@wix/dashboard";
 import { Check, ImagePlus, Loader2, Save, Trash2, WandSparkles } from "lucide-react";
 
@@ -72,12 +77,7 @@ import {
 import type { AreaUnit } from "@/lib/listing-types";
 import { AIWriterPanel } from "./ai-writer-panel";
 import { useEntitlement } from "./entitlement-context";
-
-const RichTextEditor = lazy(() =>
-  import("./rich-text-editor").then((module) => ({
-    default: module.RichTextEditor,
-  })),
-);
+import { isListingCapReached } from "@/lib/entitlement";
 
 const API_ORIGIN = new URL(import.meta.url).origin;
 
@@ -94,8 +94,8 @@ interface ListingFormProps {
 interface ListingFormState {
   title: string;
   description: string;
-  transactionType: ListingInput["transactionType"];
-  propertyType: ListingInput["propertyType"];
+  transactionType: ListingInput["transactionType"] | "";
+  propertyType: ListingInput["propertyType"] | "";
   status: ListingInput["status"];
   price: string;
   currency: string;
@@ -103,10 +103,10 @@ interface ListingFormState {
   areaUnit: string;
   bedrooms: string;
   bathrooms: string;
-  propertyCondition: NonNullable<ListingInput["propertyCondition"]>;
-  furnishingStatus: NonNullable<ListingInput["furnishingStatus"]>;
-  tenure: NonNullable<ListingInput["tenure"]>;
-  rentalFrequency: NonNullable<ListingInput["rentalFrequency"]>;
+  propertyCondition: NonNullable<ListingInput["propertyCondition"]> | "";
+  furnishingStatus: NonNullable<ListingInput["furnishingStatus"]> | "";
+  tenure: NonNullable<ListingInput["tenure"]> | "";
+  rentalFrequency: NonNullable<ListingInput["rentalFrequency"]> | "";
   availabilityDate: string;
   serviceCharge: string;
   securityDeposit: string;
@@ -126,6 +126,9 @@ interface ListingFormState {
   city: string;
   primaryImage: string;
   gallery: ListingImage[];
+  floorPlans: ListingImage[];
+  brochures: ListingDocument[];
+  videos: ListingVideo[];
 }
 
 type FormField = keyof ListingFormState;
@@ -153,8 +156,8 @@ function createInitialState(
   return {
     title: listing?.title ?? "",
     description: listing?.description ?? "",
-    transactionType: listing?.transactionType ?? "sale",
-    propertyType: listing?.propertyType ?? "house",
+    transactionType: listing?.transactionType ?? "",
+    propertyType: listing?.propertyType ?? "",
     status: listing?.status ?? defaults.defaultStatus,
     price: listing ? String(listing.price) : "",
     currency: listing?.currency ?? defaults.defaultCurrency,
@@ -162,12 +165,12 @@ function createInitialState(
     areaUnit: listing?.areaUnit ?? defaults.defaultAreaUnit,
     bedrooms: listing?.bedrooms === undefined ? "" : String(listing.bedrooms),
     bathrooms: listing?.bathrooms === undefined ? "" : String(listing.bathrooms),
-    propertyCondition: listing?.propertyCondition ?? "good",
+    propertyCondition: listing?.propertyCondition ?? "",
     furnishingStatus:
       listing?.furnishingStatus ??
-      (listing?.furnished ? "furnished" : "unfurnished"),
-    tenure: listing?.tenure ?? "freehold",
-    rentalFrequency: listing?.rentalFrequency ?? "monthly",
+      (listing ? (listing.furnished ? "furnished" : "unfurnished") : ""),
+    tenure: listing?.tenure ?? "",
+    rentalFrequency: listing?.rentalFrequency ?? "",
     availabilityDate: availabilityDate
       ? availabilityDate.toISOString().slice(0, 10)
       : "",
@@ -183,6 +186,9 @@ function createInitialState(
     latitude: listing?.latitude === undefined ? "" : String(listing.latitude),
     longitude: listing?.longitude === undefined ? "" : String(listing.longitude),
     panoramaImages: getPanoramaImages(listing ?? {}),
+    floorPlans: listing?.floorPlans ?? [],
+    brochures: listing?.brochures ?? [],
+    videos: listing?.videos ?? [],
     yearBuilt: listing?.yearBuilt === undefined ? "" : String(listing.yearBuilt),
     parkingSpaces:
       listing?.parkingSpaces === undefined ? "" : String(listing.parkingSpaces),
@@ -225,6 +231,12 @@ function hasRichText(description: string): boolean {
   );
 }
 
+const WRITER_FURNISHING_VALUES: Record<Exclude<ListingFormState["furnishingStatus"], "">, string> = {
+  furnished: "Furnished",
+  semi_furnished: "Semi-furnished",
+  unfurnished: "Unfurnished",
+};
+
 function listingCopyInputFromForm(
   form: ListingFormState,
   countries: CountryOption[],
@@ -242,12 +254,13 @@ function listingCopyInputFromForm(
     .map((part) => part.trim())
     .filter(Boolean)
     .join(", ");
-  const propertyType = translate(
-    PROPERTY_TYPE_MESSAGE_KEYS[form.propertyType],
-  );
-  const furnishing = translate(
-    FURNISHING_MESSAGE_KEYS[form.furnishingStatus],
-  );
+  const propertyType = form.propertyType
+    ? translate(PROPERTY_TYPE_MESSAGE_KEYS[form.propertyType])
+    : "";
+  // Must match the writer's furnishing option values, whatever the dashboard language.
+  const furnishing = form.furnishingStatus
+    ? WRITER_FURNISHING_VALUES[form.furnishingStatus]
+    : "";
   const amount = Number(form.price);
   const price = form.price.trim()
     ? `${form.currency} ${Number.isFinite(amount) ? amount.toLocaleString(locale) : form.price.trim()}`
@@ -296,6 +309,7 @@ export function ListingForm({
   const [writerKey, setWriterKey] = useState(0);
   const isEditing = Boolean(listing?._id);
   const canEditListing = !isEditing || entitlement.features.editListings;
+  const canCreateListing = isEditing || !isListingCapReached(entitlement);
 
   const editorLabel = isEditing ? t("editListingDetails") : t("createListing");
 
@@ -602,6 +616,10 @@ export function ListingForm({
   const validate = (): FormErrors => {
     const nextErrors: FormErrors = {};
     if (!form.title.trim()) nextErrors.title = t("enterTitle");
+    if (!form.transactionType)
+      nextErrors.transactionType = t("selectLabel", { label: t("transactionType") });
+    if (!form.propertyType)
+      nextErrors.propertyType = t("selectLabel", { label: t("propertyType") });
     if (!form.currency.trim() || !/^[a-z]{3}$/i.test(form.currency.trim())) {
       nextErrors.currency = t("currencyCodeError");
     }
@@ -662,11 +680,14 @@ export function ListingForm({
       return;
     }
 
+    const { transactionType, propertyType } = form;
+    if (!transactionType || !propertyType) return;
+
     const input: ListingInput = {
       title: form.title.trim(),
       description: hasRichText(form.description) ? form.description : undefined,
-      transactionType: form.transactionType,
-      propertyType: form.propertyType,
+      transactionType,
+      propertyType,
       status: form.status,
       price: Number(form.price),
       currency: form.currency.trim().toUpperCase(),
@@ -681,10 +702,10 @@ export function ListingForm({
         .split(",")
         .map((amenity) => amenity.trim())
         .filter(Boolean),
-      propertyCondition: form.propertyCondition,
-      furnishingStatus: form.furnishingStatus,
-      tenure: form.tenure,
-      rentalFrequency: form.rentalFrequency,
+      propertyCondition: form.propertyCondition || undefined,
+      furnishingStatus: form.furnishingStatus || undefined,
+      tenure: form.tenure || undefined,
+      rentalFrequency: form.rentalFrequency || undefined,
       availabilityDate: form.availabilityDate
         ? new Date(`${form.availabilityDate}T00:00:00`)
         : undefined,
@@ -695,6 +716,9 @@ export function ListingForm({
       agentEmail: form.agentEmail.trim() || undefined,
       latitude: optionalNumber(form.latitude),
       longitude: optionalNumber(form.longitude),
+      floorPlans: form.floorPlans,
+      brochures: form.brochures,
+      videos: form.videos.map((video) => (video.title?.trim() ? { ...video, title: video.title.trim() } : { ...video, title: undefined })),
       panoramaImage: form.panoramaImages[0]?.url,
       panoramaImages: form.panoramaImages.length > 0 ? form.panoramaImages : undefined,
       address: {
@@ -718,6 +742,8 @@ export function ListingForm({
         (form.gallery[0]?.url ?? form.primaryImage.trim()) || undefined,
       gallery: form.gallery.length > 0 ? form.gallery : undefined,
     };
+
+    if (!canCreateListing) return;
 
     if (!canEditListing) {
       dashboard.showToast({
@@ -821,20 +847,10 @@ export function ListingForm({
                   {entitlement.features.aiWriter ? t("writeWithAi") : t("writeWithAiPro")}
                 </Button>
               </div>
-              <div className="listing-rich-editor overflow-hidden rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/30">
-                <Suspense
-                  fallback={
-                    <div className="min-h-52 p-4 text-sm text-muted-foreground">
-                      {t("loadingEditor")}
-                    </div>
-                  }
-                >
-                  <RichTextEditor
-                    value={form.description}
-                    onChange={(value) => update("description", value)}
-                  />
-                </Suspense>
-              </div>
+              <LazyRichTextEditor
+                value={form.description}
+                onChange={(value) => update("description", value)}
+              />
               <p className="text-xs font-normal text-muted-foreground">
                 {t("descriptionFormatHint")}
               </p>
@@ -970,6 +986,9 @@ export function ListingForm({
           </CardContent>
         </Card>
 
+        <ListingAttachmentsEditor floorPlans={form.floorPlans} brochures={form.brochures} onFloorPlansChange={(images) => update("floorPlans", images)} onBrochuresChange={(documents) => update("brochures", documents)} />
+        <ListingVideosEditor videos={form.videos} onChange={(videos) => update("videos", videos)} />
+
         <Card className="border-border/70 bg-card/90 shadow-sm">
           <CardHeader>
             <CardTitle>{t("virtualTour")}</CardTitle>
@@ -1053,6 +1072,7 @@ export function ListingForm({
                 if (isTransactionType(value)) update("transactionType", value);
               }}
               options={transactionOptions}
+              error={errors.transactionType}
             />
             <FieldSelect
               label={t("propertyType")}
@@ -1062,6 +1082,7 @@ export function ListingForm({
                 if (isPropertyType(value)) update("propertyType", value);
               }}
               options={propertyTypeOptions}
+              error={errors.propertyType}
             />
             <FieldSelect
               label={t("status")}
@@ -1213,6 +1234,7 @@ export function ListingForm({
                 value={form.parkingSpaces}
                 error={errors.parkingSpaces}
                 onChange={(value) => update("parkingSpaces", value)}
+                hideSpinner
               />
             </div>
 
@@ -1247,6 +1269,7 @@ export function ListingForm({
                 value={form.securityDeposit}
                 error={errors.securityDeposit}
                 onChange={(value) => update("securityDeposit", value)}
+                hideSpinner
               />
             </div>
 
@@ -1255,7 +1278,7 @@ export function ListingForm({
                 <p className="text-sm font-medium">{t("agentContact")}</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2 text-sm font-medium">
+                <label className="space-y-2 text-sm font-medium sm:col-span-2">
                   <FieldLabel text={t("agentName")} hint={t("agentNameHint")} />
                   <Input
                     value={form.agentName}
@@ -1265,23 +1288,24 @@ export function ListingForm({
                     placeholder={t("agentNamePlaceholder")}
                   />
                 </label>
-                <label className="space-y-2 text-sm font-medium">
+                <div className="space-y-2 text-sm font-medium sm:col-span-2">
                   <FieldLabel text={t("agentPhone")} hint={t("agentPhoneHint")} />
-                  <Input
-                    type="tel"
+                  <AgentPhoneInput
                     value={form.agentPhone}
-                    onChange={(event) =>
-                      update("agentPhone", event.target.value)
-                    }
-                    placeholder={t("agentPhonePlaceholder")}
-                    aria-invalid={Boolean(errors.agentPhone)}
+                    onChange={(value) => update("agentPhone", value)}
+                    defaultCountry={form.country}
+                    locale={locale}
+                    countryLabel={t("country")}
+                    phoneLabel={t("agentPhone")}
+                    invalid={Boolean(errors.agentPhone)}
+                    errorId={errors.agentPhone ? "agent-phone-error" : undefined}
                   />
                   {errors.agentPhone ? (
-                    <span className="block text-xs font-normal text-destructive">
+                    <span id="agent-phone-error" className="block text-xs font-normal text-destructive">
                       {errors.agentPhone}
                     </span>
                   ) : null}
-                </label>
+                </div>
                 <label className="space-y-2 text-sm font-medium sm:col-span-2">
                   <FieldLabel text={t("agentEmail")} hint={t("agentEmailHint")} />
                   <Input
@@ -1350,7 +1374,12 @@ export function ListingForm({
         <Button type="button" variant="outline" onClick={onBack}>
           {t("cancel")}
         </Button>
-        <Button type="submit" disabled={saving || !canEditListing}>
+        {!canCreateListing ? (
+          <p className="mr-auto self-center text-xs text-muted-foreground">
+            {t("listingCapReachedBody")}
+          </p>
+        ) : null}
+        <Button type="submit" disabled={saving || !canEditListing || !canCreateListing}>
           {saving ? (
             t("saving")
           ) : (
@@ -1538,11 +1567,13 @@ function OptionalNumberField({
   value,
   error,
   onChange,
+  hideSpinner = false,
 }: {
   label: string;
   value: string;
   error?: string;
   onChange: (value: string) => void;
+  hideSpinner?: boolean;
 }) {
   const t = useDt();
   return (
@@ -1552,6 +1583,8 @@ function OptionalNumberField({
         type="number"
         min="0"
         step="any"
+        inputMode={hideSpinner ? "numeric" : undefined}
+        className={hideSpinner ? "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={Boolean(error)}

@@ -54,6 +54,7 @@ export interface ListingWidgetConfig {
   showPrice: boolean;
   showStatus: boolean;
   showMetadata: boolean;
+  enableComparison: boolean;
   showSearch: boolean;
   showTransactionFilter: boolean;
   showPropertyTypeFilter: boolean;
@@ -99,9 +100,15 @@ export interface DetailWidgetConfig {
   showDescription: boolean;
   showAmenities: boolean;
   showAgent: boolean;
+  showFloorPlans: boolean;
+  showBrochures: boolean;
+  showVideos: boolean;
+  enableComparison: boolean;
   showViewCount: boolean;
   showAiAssistant: boolean;
   showSocialShare: boolean;
+  showMortgageCalculator: boolean;
+  showQuoteRequest: boolean;
   shareFacebookColor: string;
   shareInstagramColor: string;
   shareWhatsappColor: string;
@@ -151,6 +158,7 @@ export const DEFAULT_LISTING_WIDGET_CONFIG: ListingWidgetConfig = {
   showPrice: true,
   showStatus: true,
   showMetadata: true,
+  enableComparison: false,
   showSearch: true,
   showTransactionFilter: true,
   showPropertyTypeFilter: true,
@@ -196,9 +204,15 @@ export const DEFAULT_DETAIL_WIDGET_CONFIG: DetailWidgetConfig = {
   showDescription: true,
   showAmenities: true,
   showAgent: true,
+  showFloorPlans: true,
+  showBrochures: true,
+  showVideos: true,
+  enableComparison: false,
   showViewCount: true,
   showAiAssistant: true,
   showSocialShare: true,
+  showMortgageCalculator: false,
+  showQuoteRequest: true,
   shareFacebookColor: "#1877F2",
   shareInstagramColor: "#E4405F",
   shareWhatsappColor: "#25D366",

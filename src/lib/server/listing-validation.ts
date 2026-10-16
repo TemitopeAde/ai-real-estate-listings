@@ -1,3 +1,4 @@
+import { parseFloorPlans, parseBrochures, parseVideos } from "../listing-attachments";
 import {
   isAreaUnit,
   isPropertyCondition,
@@ -8,7 +9,7 @@ import {
   isPropertyType,
   isTransactionType,
   type ListingInput,
-} from "@/lib/listing-types";
+} from "../listing-types";
 
 export interface ValidationResult<T> {
   value?: T;
@@ -471,6 +472,9 @@ export function parseListingInput(
         ? body.aiTags
         : (errors.push("AI tags must be an array of text values."), undefined);
   const gallery = parseGallery(body.gallery, errors);
+  const floorPlans = parseFloorPlans(body.floorPlans, errors);
+  const brochures = parseBrochures(body.brochures, errors);
+  const videos = parseVideos(body.videos, errors);
   const aiGeneratedAt =
     body.aiGeneratedAt === undefined ||
     body.aiGeneratedAt === null ||
@@ -531,6 +535,9 @@ export function parseListingInput(
       city,
       primaryImage,
       gallery,
+      floorPlans,
+      brochures,
+      videos,
       aiDescription,
       aiTags,
       aiGeneratedAt,
@@ -574,6 +581,9 @@ const patchableKeys = new Set<string>([
   "city",
   "primaryImage",
   "gallery",
+  "floorPlans",
+  "brochures",
+  "videos",
   "aiDescription",
   "aiTags",
   "aiGeneratedAt",
@@ -730,6 +740,9 @@ export function parseListingPatch(
       "Primary image",
       errors,
     );
+  if ("floorPlans" in body) result.floorPlans = parseFloorPlans(body.floorPlans, errors);
+  if ("brochures" in body) result.brochures = parseBrochures(body.brochures, errors);
+  if ("videos" in body) result.videos = parseVideos(body.videos, errors);
   if ("gallery" in body) {
     result.gallery = parseGallery(body.gallery, errors);
   }

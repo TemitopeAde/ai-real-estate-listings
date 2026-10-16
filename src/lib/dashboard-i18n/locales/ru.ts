@@ -1,6 +1,22 @@
 import { complete } from "../complete";
 
 export const ru = complete({
+  floorPlansHint: "Добавьте изображения разных этажей или планировок. Посетители смогут увеличить каждый план.",
+  brochuresHint: "Добавьте PDF-брошюры об объекте для скачивания. Удаление брошюры здесь не удаляет файл из Медиаменеджера.",
+  addFloorPlans: "Добавить планы этажей",
+  addBrochures: "Добавить PDF-брошюры",
+  noAttachments: "Вложения ещё не добавлены.",
+  attachmentLabel: "Подпись",
+  moveAttachmentUp: "Переместить {name} вверх",
+  moveAttachmentDown: "Переместить {name} вниз",
+  removeAttachment: "Удалить {name}",
+  floorPlanInvalid: "Выберите поддерживаемые изображения: PNG, JPG, GIF, WebP, AVIF или SVG.",
+  brochureInvalid: "В качестве брошюр можно добавлять только PDF-файлы.",
+  featEditListings: "Редактирование объектов в панели управления",
+  floorPlans: "Планы этажей",
+  brochures: "Брошюры",
+  featAttachments: "Планы этажей / Брошюры (PDF)",
+
   appName: "EstateAI",
   appTagline: "Рабочая область объявлений",
   navOverview: "Обзор",
@@ -227,7 +243,7 @@ export const ru = complete({
   includeArchivedHelp: "Показывать архивные записи в списке объявлений по умолчанию.",
   dashboardLanguage: "Язык панели",
   dashboardLanguageHint: "Выберите язык рабочей области или следуйте языку аккаунта Wix.",
-  languageAuto: "Auto (Wix account language)",
+  languageAuto: "Auto",
   savedLocally: "Сохранено локально в этом браузере",
   changesUnsaved: "Изменения ещё не сохранены",
   reset: "Сбросить",

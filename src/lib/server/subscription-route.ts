@@ -1,4 +1,4 @@
-import { createSubscriptionGuard } from '@/lib/subscription-guard';
+import { createSubscriptionGuard } from '../subscription-guard';
 import { requireDashboardAccess } from './access';
 import { getBillingAccess } from './entitlement';
 

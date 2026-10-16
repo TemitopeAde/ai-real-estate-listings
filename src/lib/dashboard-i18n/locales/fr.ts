@@ -1,6 +1,22 @@
 import { complete } from "../complete";
 
 export const fr = complete({
+  floorPlansHint: "Ajoutez des images pour les différents étages ou agencements. Les visiteurs peuvent agrandir chaque plan.",
+  brochuresHint: "Ajoutez des brochures PDF téléchargeables. Retirer une brochure ici conserve le fichier dans le Gestionnaire de médias.",
+  addFloorPlans: "Ajouter des plans",
+  addBrochures: "Ajouter des brochures PDF",
+  noAttachments: "Aucune pièce jointe pour le moment.",
+  attachmentLabel: "Libellé",
+  moveAttachmentUp: "Monter {name}",
+  moveAttachmentDown: "Descendre {name}",
+  removeAttachment: "Retirer {name}",
+  floorPlanInvalid: "Choisissez des images compatibles : PNG, JPG, GIF, WebP, AVIF ou SVG.",
+  brochureInvalid: "Seuls les fichiers PDF peuvent être ajoutés comme brochures.",
+  featEditListings: "Modifier les annonces dans le tableau de bord",
+  floorPlans: "Plans",
+  brochures: "Brochures",
+  featAttachments: "Plans / Brochures (PDF)",
+
   appName: "EstateAI",
   appTagline: "Espace de travail de liste",
   navOverview: "Aperçu",
@@ -227,7 +243,7 @@ export const fr = complete({
   includeArchivedHelp: "Conservez les enregistrements archivés visibles dans la vue Listes par défaut.",
   dashboardLanguage: "Langue du tableau de bord",
   dashboardLanguageHint: "Choisissez la langue de cet espace de travail ou suivez la langue du compte Wix.",
-  languageAuto: "Auto (Wix account language)",
+  languageAuto: "Auto",
   savedLocally: "Enregistré localement pour ce navigateur",
   changesUnsaved: "Les modifications ne sont pas encore enregistrées",
   reset: "Réinitialiser",

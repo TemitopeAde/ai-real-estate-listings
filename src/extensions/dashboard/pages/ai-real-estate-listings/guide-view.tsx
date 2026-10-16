@@ -22,7 +22,7 @@ import { useDt } from "@/lib/dashboard-i18n";
 import type { DashboardMessageKey } from "@/lib/dashboard-i18n";
 import { isListingCapReached } from "@/lib/entitlement";
 import type { DashboardSection } from "./dashboard-shell";
-import { useEntitlement } from "./entitlement-context";
+import { useEntitlement, useEntitlementPending } from "./entitlement-context";
 
 interface GuideViewProps {
   onNavigate: (section: DashboardSection) => void;
@@ -89,6 +89,7 @@ const steps: Array<{
 export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
   const t = useDt();
   const entitlement = useEntitlement();
+  const pending = useEntitlementPending();
   return (
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -102,7 +103,7 @@ export function GuideView({ onNavigate, onAddListing }: GuideViewProps) {
           </p>
         </div>
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
-          <Button onClick={onAddListing} className="w-full sm:w-auto">
+          <Button onClick={onAddListing} disabled={pending} className="w-full sm:w-auto">
             {t("addListing")}
             <ArrowRight className="size-4" aria-hidden="true" />
           </Button>

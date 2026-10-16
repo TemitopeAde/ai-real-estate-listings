@@ -31,7 +31,7 @@ import {
   STATUS_MESSAGE_KEYS,
 } from '@/lib/dashboard-i18n/labels';
 import { isListingCapReached } from '@/lib/entitlement';
-import { useEntitlement } from './entitlement-context';
+import { useEntitlement, useEntitlementPending } from './entitlement-context';
 
 interface OverviewViewProps {
   refreshToken: number;
@@ -152,6 +152,7 @@ function RecentListings({
 export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpenWriter, onOpenGuide, onOpenPricing }: OverviewViewProps) {
   const t = useDt();
   const entitlement = useEntitlement();
+  const pending = useEntitlementPending();
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,7 +179,7 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
           <GuideIntro onOpenGuide={onOpenGuide} />
         </div>
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
-          <Button onClick={onAddListing} className="w-full sm:w-auto">
+          <Button onClick={onAddListing} disabled={pending} className="w-full sm:w-auto">
             <Plus className="size-4" aria-hidden="true" />
             {t('addListing')}
           </Button>
@@ -245,6 +246,7 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
             <Button
               variant="secondary"
               size="sm"
+              disabled={pending}
               onClick={() => {
                 if (entitlement.features.aiWriter) {
                   onOpenWriter();

@@ -29,7 +29,7 @@ import {
   type Listing,
   type ListingInput,
 } from "@/lib/listings";
-import { isListingCapReached, type AppEntitlement } from "@/lib/entitlement";
+import type { AppEntitlement } from "@/lib/entitlement";
 import { DashboardI18nProvider, useDt } from "@/lib/dashboard-i18n";
 import { DashboardShell, type DashboardSection } from "./dashboard-shell";
 import { ListingForm } from "./listing-form";
@@ -43,7 +43,8 @@ import { GuideView } from "./guide-view";
 import { FaqView } from "./faq-view";
 import { PricingView } from "./pricing-view";
 import { EntitlementProvider } from "./entitlement-context";
-import { Skeleton } from "@/components/ui/skeleton";
+
+const ENTITLEMENT_RETRY_MS = 5000;
 
 type EditorMode = "new" | "edit" | null;
 
@@ -78,48 +79,38 @@ function DashboardAppInner({
 
   useEffect(() => {
     let active = true;
+    let retryTimer: number | undefined;
     const stop = pollWhileVisible(async (signal) => {
       let next: AppEntitlement | null = null;
       try { next = await getAppEntitlement(signal); }
       catch (error) { console.error("Unable to load plan entitlement.", error); }
       if (!active) return;
-      if (signal.aborted) next = null;
+      // Failed or unverifiable checks are retried quietly; the last known access stays in place.
+      if (signal.aborted || !next || next.accessStatus === "unavailable") {
+        window.clearTimeout(retryTimer);
+        retryTimer = window.setTimeout(() => setRefreshToken((value) => value + 1), ENTITLEMENT_RETRY_MS);
+        return;
+      }
       setEntitlement(next);
-      if (!signal.aborted) setEntitlementChecked(true);
-      if (!next?.hasAccess) {
+      setEntitlementChecked(true);
+      if (!next.hasAccess) {
         setEditorMode(null);
         setEditingListing(null);
         setEditorError(null);
       }
     });
-    return () => { active = false; stop(); };
+    return () => { active = false; window.clearTimeout(retryTimer); stop(); };
   }, [refreshToken]);
 
   const openEditor = useCallback(
     async (id?: string) => {
-      let current = entitlement;
-      if (!id) {
-        try {
-          current = await getAppEntitlement();
-          setEntitlement(current);
-        } catch (error) {
-          console.error("Unable to load plan entitlement.", error);
-        }
-      }
+      if (!entitlementChecked) return;
+      const current = entitlement;
 
       if (id && current && !current.features.editListings) {
         dashboard.showToast({
           type: "error",
           message: t("listingEditLocked"),
-        });
-        setSection("pricing");
-        return;
-      }
-
-      if (!id && current && isListingCapReached(current)) {
-        dashboard.showToast({
-          type: "error",
-          message: t("listingCapReached", { cap: current.listingCap ?? 0 }),
         });
         setSection("pricing");
         return;
@@ -131,6 +122,10 @@ function DashboardAppInner({
       setEditorLoading(Boolean(id));
 
       if (!id) {
+        // Refresh in the background; the form disables saving at the listing cap.
+        void getAppEntitlement()
+          .then(setEntitlement)
+          .catch((error) => console.error("Unable to load plan entitlement.", error));
         return;
       }
 
@@ -283,33 +278,12 @@ function DashboardAppInner({
     );
   }
 
-  if (!entitlementChecked) {
-    return <EntitlementProvider value={entitlement}>
-      <DashboardShell
-        section={section}
-        onSectionChange={changeSection}
-        dashboardLanguage={settings.dashboardLanguage}
-        onDashboardLanguageChange={changeLanguage}
-      >
-        <div className="space-y-6" aria-busy="true">
-          <Skeleton className="h-10 w-64 rounded-lg" />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-36 rounded-xl" />)}
-          </div>
-          <Skeleton className="h-52 rounded-xl" />
-        </div>
-      </DashboardShell>
-    </EntitlementProvider>;
-  }
-
-  if (!entitlement?.hasAccess) {
+  if (entitlementChecked && !entitlement?.hasAccess) {
     return <EntitlementProvider value={entitlement}>
       <main className="mx-auto max-w-5xl space-y-6 p-6">
         <PlanGate
-          title={entitlement?.accessStatus === "inactive" ? t("subscriptionRequired") : t("subscriptionChecking")}
-          description={entitlement?.accessStatus === "inactive"
-            ? t("subscriptionRestore")
-            : t("subscriptionUnavailable")}
+          title={t("subscriptionRequired")}
+          description={t("subscriptionRestore")}
           onUpgrade={() => {
             if (entitlement?.instanceId) openAppUpgradePage(entitlement.instanceId);
             else setRefreshToken((value) => value + 1);
@@ -322,7 +296,7 @@ function DashboardAppInner({
   }
 
   return (
-    <EntitlementProvider value={entitlement}>
+    <EntitlementProvider value={entitlement} pending={!entitlementChecked}>
       <DashboardShell
         section={section}
         onSectionChange={changeSection}

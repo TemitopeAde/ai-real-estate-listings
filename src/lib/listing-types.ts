@@ -29,6 +29,7 @@ export interface QuoteRequest {
   phone?: string;
   message?: string;
   memberId?: string;
+  contactId?: string;
   status: QuoteRequestStatus;
   notes?: string;
   archived: boolean;
@@ -106,6 +107,17 @@ export interface ListingImage {
   title?: string;
 }
 
+export interface ListingDocument {
+  id: string;
+  url: string;
+  filename: string;
+  title?: string;
+}
+
+export type ListingVideo =
+  | { source: "youtube"; videoId: string; url: string; title?: string }
+  | { source: "wix"; url: string; id?: string; title?: string; poster?: string };
+
 export interface ListingViewEvent {
   viewerId?: string;
   viewerName?: string;
@@ -157,6 +169,9 @@ export interface ListingInput {
   city: string;
   primaryImage?: string;
   gallery?: ListingImage[];
+  floorPlans?: ListingImage[];
+  brochures?: ListingDocument[];
+  videos?: ListingVideo[];
   aiDescription?: string;
   aiTags?: string[];
   aiGeneratedAt?: Date;

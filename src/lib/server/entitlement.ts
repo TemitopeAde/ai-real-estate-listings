@@ -1,7 +1,7 @@
 import { getBillingAccess } from "./billing-access";
 export { getBillingAccess } from "./billing-access";
-import { subscriptionError } from "@/lib/subscription-guard";
-export { subscriptionError } from "@/lib/subscription-guard";
+import { subscriptionError } from "../subscription-guard";
+export { subscriptionError } from "../subscription-guard";
 import { items } from "@wix/data";
 import { auth } from "@wix/essentials";
 
@@ -11,17 +11,17 @@ import {
   listingCapForPlan,
   publicAccessFromFeatures,
   publicListingCount,
-} from "@/lib/entitlement";
+} from "../entitlement";
 import {
   LISTINGS_COLLECTION_ID,
   type Listing,
   type ListingInput,
-} from "@/lib/listing-types";
+} from "../listing-types";
 import {
   featuresForPlan,
   type AppPlanId,
   type PlanFeatureFlag,
-} from "@/lib/pricing-plans";
+} from "../pricing-plans";
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {

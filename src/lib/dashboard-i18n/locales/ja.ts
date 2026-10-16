@@ -1,6 +1,22 @@
 import { complete } from "../complete";
 
 export const ja = complete({
+  floorPlansHint: "フロアや間取りごとの画像を追加します。訪問者は各図面を拡大表示できます。",
+  brochuresHint: "ダウンロード可能な物件PDFパンフレットを追加します。ここで削除しても、ファイルはメディアマネージャーに残ります。",
+  addFloorPlans: "間取り図を追加",
+  addBrochures: "PDFパンフレットを追加",
+  noAttachments: "添付ファイルはまだありません。",
+  attachmentLabel: "ラベル",
+  moveAttachmentUp: "{name}を上に移動",
+  moveAttachmentDown: "{name}を下に移動",
+  removeAttachment: "{name}を削除",
+  floorPlanInvalid: "対応する画像ファイル（PNG、JPG、GIF、WebP、AVIF、SVG）を選択してください。",
+  brochureInvalid: "パンフレットとして追加できるのはPDFファイルのみです。",
+  featEditListings: "ダッシュボードで物件を編集",
+  floorPlans: "間取り図",
+  brochures: "パンフレット",
+  featAttachments: "間取り図 / パンフレット (PDF)",
+
   appName: "EstateAI",
   appTagline: "リストワークスペース",
   navOverview: "概要",
@@ -227,7 +243,7 @@ export const ja = complete({
   includeArchivedHelp: "デフォルトでは、アーカイブされたレコードがリスト ビューに表示されたままになります。",
   dashboardLanguage: "ダッシュボード言語",
   dashboardLanguageHint: "このワークスペースの言語を選択するか、Wix アカウントの言語に従います。",
-  languageAuto: "Auto (Wix account language)",
+  languageAuto: "Auto",
   savedLocally: "このブラウザ用にローカルに保存されました",
   changesUnsaved: "変更はまだ保存されていません",
   reset: "リセット",

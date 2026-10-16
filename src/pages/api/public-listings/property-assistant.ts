@@ -1,5 +1,6 @@
 import { withSubscription } from "@/lib/server/subscription-route";
 import type { APIRoute } from "astro";
+import { getSecret } from "astro:env/server";
 
 import { getPublicListing } from "@/lib/server/listings";
 import { requireFeature } from "@/lib/server/entitlement";
@@ -98,7 +99,7 @@ const handlePOST: APIRoute = async ({ request }) => {
   );
   if (error) return error;
 
-  const apiKey = import.meta.env.DEEPSEEK_API_KEY;
+  const apiKey = getSecret("DEEPSEEK_API_KEY");
   if (!apiKey) return json({ message: "The property assistant is not configured." }, 503);
 
   const systemPrompt = [

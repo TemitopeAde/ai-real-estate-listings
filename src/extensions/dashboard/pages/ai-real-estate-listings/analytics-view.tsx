@@ -23,7 +23,7 @@ import { formatPrice } from '@/lib/formatters';
 import { getAnalyticsSnapshot, type AnalyticsSnapshot } from '@/lib/listings';
 import { useDashboardI18n, useDt } from '@/lib/dashboard-i18n';
 import { breakdownLabelKey } from '@/lib/dashboard-i18n/labels';
-import { useEntitlement } from './entitlement-context';
+import { useEntitlement, useEntitlementPending } from './entitlement-context';
 import { PlanGate } from './plan-gate';
 
 interface AnalyticsViewProps {
@@ -84,6 +84,7 @@ function PricingTable({ items }: { items: AnalyticsSnapshot['averagePriceByCurre
 export function AnalyticsView({ refreshToken, onOpenPricing }: AnalyticsViewProps) {
   const t = useDt();
   const entitlement = useEntitlement();
+  const pending = useEntitlementPending();
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -124,10 +125,10 @@ export function AnalyticsView({ refreshToken, onOpenPricing }: AnalyticsViewProp
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">{t('analyticsTitle')}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t('analyticsIntro')}</p>
         </div>
-        <Button variant="outline" onClick={() => void load()}><RefreshCw className="size-4" aria-hidden="true" /> {t('refresh')}</Button>
+        <Button variant="outline" onClick={() => void load()} disabled={pending}><RefreshCw className="size-4" aria-hidden="true" /> {t('refresh')}</Button>
       </div>
 
-      {!entitlement.features.analytics ? (
+      {!pending && !entitlement.features.analytics ? (
         <PlanGate
           title={t('analyticsLockedTitle')}
           description={t('analyticsLockedBody')}

@@ -51,7 +51,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useEntitlement } from './entitlement-context';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useEntitlement, useEntitlementPending } from './entitlement-context';
 
 export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'guide' | 'faq' | 'pricing' | 'settings';
 
@@ -104,8 +105,9 @@ export function DashboardShell({
   const t = useDt();
   const currentSection = sectionCopy[section];
   const entitlement = useEntitlement();
+  const pending = useEntitlementPending();
   const planName = t(PLAN_NAME_KEYS[entitlement.planId]);
-  const lockedSections: Partial<Record<DashboardSection, boolean>> = {
+  const lockedSections: Partial<Record<DashboardSection, boolean>> = pending ? {} : {
     writer: !entitlement.features.aiWriter,
     analytics: !entitlement.features.analytics,
   };
@@ -159,6 +161,9 @@ export function DashboardShell({
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="p-3">
+          {pending ? (
+            <Skeleton className="h-[5.5rem] rounded-2xl" aria-hidden="true" />
+          ) : (
           <div className="rounded-2xl border border-sidebar-border bg-sidebar-accent/55 p-4">
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="text-xs font-medium">{planName}</span>
@@ -185,6 +190,7 @@ export function DashboardShell({
               </Button>
             ) : null}
           </div>
+          )}
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton

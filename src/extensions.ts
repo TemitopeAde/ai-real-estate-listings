@@ -34,9 +34,21 @@ import appRemoved from './extensions/backend/events/app-removed/app-removed.exte
 import subscriptionTransferred from './extensions/backend/events/subscription-transferred/subscription-transferred.extension.ts';
 
 
+import propertyListings from './extensions/site/components/property-listings/property-listings.extension.ts';
+
+
+import propertyDetail from './extensions/site/components/property-detail/property-detail.extension.ts';
+
+
+import estateTools from './extensions/backend/app-tools/estate-tools/estate-tools.extension.ts';
+
+
+import estateToolsRunner from './extensions/backend/service-plugins/estate-tools-runner/estate-tools-runner.extension.ts';
+
+
 export default app()
   .use(aiRealEstateListings)
   .use(dataCollections)
   .use(propertyListingsWidget)
   .use(propertyDetailWidget)
-  .use(savedProperties).use(subscriptionPurchased).use(subscriptionChanged).use(subscriptionCancelled).use(subscriptionConverted).use(subscriptionReactivated).use(appInstalled).use(appRemoved).use(subscriptionTransferred);
+  .use(savedProperties).use(subscriptionPurchased).use(subscriptionChanged).use(subscriptionCancelled).use(subscriptionConverted).use(subscriptionReactivated).use(appInstalled).use(appRemoved).use(subscriptionTransferred).use(propertyListings).use(propertyDetail).use(estateTools).use(estateToolsRunner);

@@ -51,6 +51,10 @@ import type {
   ListingQuery,
 } from "./listing-types";
 import type { AppEntitlement } from "./entitlement";
+import type {
+  ListingImportRequestRow,
+  ListingImportResult,
+} from "./server/listing-import";
 
 export class ListingsApiError extends Error {
   constructor(
@@ -191,6 +195,31 @@ export async function archiveListing(id: string): Promise<Listing> {
     },
   );
   return deserializeListing(response);
+}
+
+/** Fetches every listing (archived included) page by page, for CSV export. */
+export async function exportAllListings(): Promise<Listing[]> {
+  const listings: Listing[] = [];
+  for (let page = 0; ; page += 1) {
+    const result = await queryListings({ includeArchived: true, page, pageSize: 100 });
+    listings.push(...result.items);
+    if (!result.hasNext || result.items.length === 0) return listings;
+  }
+}
+
+/** Validates (dryRun) or saves one batch of CSV rows. */
+export async function importListingRows(
+  rows: ListingImportRequestRow[],
+  options: { dryRun: boolean; createsBefore?: number },
+): Promise<ListingImportResult[]> {
+  const response = await request<{ results: ListingImportResult[] }>(
+    "/api/listings/import",
+    {
+      method: "POST",
+      body: JSON.stringify({ rows, ...options }),
+    },
+  );
+  return response.results;
 }
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {

@@ -99,11 +99,12 @@ async function copyText(value: string): Promise<void> {
   await navigator.clipboard.writeText(value);
 }
 
-export const PropertySocialShare: FC<{ listing: Listing; lang: WidgetLangCode; locale: string }> = ({ listing, lang, locale }) => {
+export const PropertySocialShare: FC<{ listing: Listing; lang: WidgetLangCode; locale: string; pageUrl?: string; disabled?: boolean }> = ({ listing, lang, locale, pageUrl: suppliedPageUrl, disabled = false }) => {
   const [copied, setCopied] = useState(false);
 
   const share = async (channel: ShareChannel) => {
-    const pageUrl = window.location.href;
+    if (disabled) return;
+    const pageUrl = suppliedPageUrl ?? window.location.href;
     const text = shareText(listing, pageUrl, locale);
     const url = shareUrl(channel.id, text, pageUrl);
     try {
@@ -128,6 +129,7 @@ export const PropertySocialShare: FC<{ listing: Listing; lang: WidgetLangCode; l
           <li key={channel.id}>
             <button
               type="button"
+              disabled={disabled}
               className={`${styles.shareButton} ${shareButtonClass[channel.id]}`}
               onClick={() => void share(channel)}
               aria-label={t(lang, "shareOn", { label: channel.label })}

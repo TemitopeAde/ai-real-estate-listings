@@ -1,6 +1,22 @@
 import { complete } from "../complete";
 
 export const zh = complete({
+  floorPlansHint: "添加不同楼层或布局的图片。访客可以放大查看每张户型图。",
+  brochuresHint: "添加可下载的 PDF 房产宣传册。在此移除宣传册不会删除媒体管理器中的文件。",
+  addFloorPlans: "添加户型图",
+  addBrochures: "添加 PDF 宣传册",
+  noAttachments: "尚未添加附件。",
+  attachmentLabel: "标签",
+  moveAttachmentUp: "将 {name} 上移",
+  moveAttachmentDown: "将 {name} 下移",
+  removeAttachment: "移除 {name}",
+  floorPlanInvalid: "请选择支持的图片文件：PNG、JPG、GIF、WebP、AVIF 或 SVG。",
+  brochureInvalid: "只能添加 PDF 文件作为宣传册。",
+  featEditListings: "在控制台中编辑房源",
+  floorPlans: "户型图",
+  brochures: "宣传册",
+  featAttachments: "户型图 / 宣传册 (PDF)",
+
   appName: "EstateAI",
   appTagline: "列出工作区",
   navOverview: "概述",
@@ -227,7 +243,7 @@ export const zh = complete({
   includeArchivedHelp: "默认情况下，使存档记录在“列表”视图中可见。",
   dashboardLanguage: "仪表板语言",
   dashboardLanguageHint: "选择此工作区的语言，或遵循 Wix 帐户语言。",
-  languageAuto: "Auto (Wix account language)",
+  languageAuto: "Auto",
   savedLocally: "为此浏览器本地保存",
   changesUnsaved: "更改尚未保存",
   reset: "重置",

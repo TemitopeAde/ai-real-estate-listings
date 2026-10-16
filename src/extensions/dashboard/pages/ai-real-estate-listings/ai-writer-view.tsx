@@ -1,11 +1,13 @@
 import { AIWriterPanel } from './ai-writer-panel';
 import { useDt } from '@/lib/dashboard-i18n';
-import { useEntitlement } from './entitlement-context';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useEntitlement, useEntitlementPending } from './entitlement-context';
 import { PlanGate } from './plan-gate';
 
 export function AIWriterView({ onOpenPricing }: { onOpenPricing: () => void }) {
   const t = useDt();
   const entitlement = useEntitlement();
+  const pending = useEntitlementPending();
 
   return (
     <div className="space-y-6">
@@ -16,7 +18,9 @@ export function AIWriterView({ onOpenPricing }: { onOpenPricing: () => void }) {
           {t('writerIntro')}
         </p>
       </div>
-      {entitlement.features.aiWriter ? (
+      {pending ? (
+        <Skeleton className="h-96 rounded-xl" />
+      ) : entitlement.features.aiWriter ? (
         <AIWriterPanel />
       ) : (
         <PlanGate

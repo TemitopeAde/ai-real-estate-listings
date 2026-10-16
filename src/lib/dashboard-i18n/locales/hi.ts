@@ -1,6 +1,22 @@
 import { complete } from "../complete";
 
 export const hi = complete({
+  floorPlansHint: "अलग-अलग मंज़िलों या लेआउट की तस्वीरें जोड़ें। विज़िटर हर प्लान को बड़ा करके देख सकते हैं।",
+  brochuresHint: "डाउनलोड करने योग्य PDF प्रॉपर्टी ब्रोशर जोड़ें। यहाँ से ब्रोशर हटाने पर फ़ाइल मीडिया मैनेजर में बनी रहती है।",
+  addFloorPlans: "फ्लोर प्लान जोड़ें",
+  addBrochures: "PDF ब्रोशर जोड़ें",
+  noAttachments: "अभी तक कोई अटैचमेंट नहीं जोड़ा गया।",
+  attachmentLabel: "लेबल",
+  moveAttachmentUp: "{name} को ऊपर ले जाएँ",
+  moveAttachmentDown: "{name} को नीचे ले जाएँ",
+  removeAttachment: "{name} हटाएँ",
+  floorPlanInvalid: "समर्थित इमेज फ़ाइलें चुनें: PNG, JPG, GIF, WebP, AVIF या SVG।",
+  brochureInvalid: "ब्रोशर के रूप में केवल PDF फ़ाइलें जोड़ी जा सकती हैं।",
+  featEditListings: "डैशबोर्ड में लिस्टिंग संपादित करें",
+  floorPlans: "फ्लोर प्लान",
+  brochures: "ब्रोशर",
+  featAttachments: "फ्लोर प्लान / ब्रोशर (PDF)",
+
   appName: "EstateAI",
   appTagline: "कार्यक्षेत्र सूचीबद्ध करना",
   navOverview: "सिंहावलोकन",
@@ -227,7 +243,7 @@ export const hi = complete({
   includeArchivedHelp: "संग्रहीत रिकॉर्ड को डिफ़ॉल्ट रूप से लिस्टिंग दृश्य में दृश्यमान रखें।",
   dashboardLanguage: "डैशबोर्ड भाषा",
   dashboardLanguageHint: "इस कार्यक्षेत्र के लिए भाषा चुनें, या Wix खाता भाषा का पालन करें।",
-  languageAuto: "Auto (Wix account language)",
+  languageAuto: "Auto",
   savedLocally: "इस ब्राउज़र के लिए स्थानीय रूप से सहेजा गया",
   changesUnsaved: "परिवर्तन अभी तक सहेजे नहीं गए हैं",
   reset: "रीसेट करें",

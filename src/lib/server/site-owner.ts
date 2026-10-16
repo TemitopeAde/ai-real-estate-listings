@@ -1,7 +1,7 @@
 import { appInstances } from "@wix/app-management";
 import { auth } from "@wix/essentials";
 
-import type { Listing } from "@/lib/listing-types";
+import type { Listing } from "../listing-types";
 
 export interface SiteOwnerContact {
   name?: string;

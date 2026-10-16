@@ -1,3 +1,4 @@
+import { parseFloorPlans, parseBrochures, parseVideos } from "../listing-attachments";
 import { items } from "@wix/data";
 import { auth } from "@wix/essentials";
 
@@ -23,16 +24,16 @@ import {
   type ListingPage,
   type ListingPriceRange,
   type ListingQuery,
-} from "@/lib/listing-types";
-import { normalizeRichText } from "@/lib/server/listing-validation";
+} from "../listing-types";
+import { normalizeRichText } from "./listing-validation";
 import {
   applyPublicListingGates,
   assertCanCreateListing,
   assertCanEditListing,
   getAppEntitlement,
-} from "@/lib/server/entitlement";
-import { getSiteOwnerContact } from "@/lib/server/site-owner";
-import type { AppEntitlement } from "@/lib/entitlement";
+} from "./entitlement";
+import { getSiteOwnerContact } from "./site-owner";
+import type { AppEntitlement } from "../entitlement";
 
 type WixDataRecord = { _id?: string; [key: string]: unknown };
 
@@ -256,6 +257,9 @@ export function normalizeListing(item: WixDataRecord): Listing {
     city: toStringValue(item.city) ?? "",
     primaryImage: toStringValue(item.primaryImage),
     gallery: toGallery(item.gallery),
+    floorPlans: parseFloorPlans(item.floorPlans, []) ?? [],
+    brochures: parseBrochures(item.brochures, []) ?? [],
+    videos: parseVideos(item.videos, []) ?? [],
     aiDescription: toStringValue(item.aiDescription),
     aiTags: toStringArray(item.aiTags),
     aiGeneratedAt: toDateValue(item.aiGeneratedAt),
@@ -341,6 +345,9 @@ export function listingToInput(listing: Listing): ListingInput {
     city: listing.city,
     primaryImage: listing.primaryImage,
     gallery: listing.gallery,
+    floorPlans: listing.floorPlans,
+    brochures: listing.brochures,
+    videos: listing.videos,
     aiDescription: listing.aiDescription,
     aiTags: listing.aiTags,
     aiGeneratedAt: listing.aiGeneratedAt,
@@ -360,7 +367,7 @@ export async function queryListings(
 ): Promise<ListingPage> {
   const page = Math.max(0, queryOptions.page ?? 0);
   const pageSize = Math.min(100, Math.max(1, queryOptions.pageSize ?? 10));
-  let query = items.query(LISTINGS_COLLECTION_ID);
+  let query = auth.elevate(items.query)(LISTINGS_COLLECTION_ID);
   const search = queryOptions.search?.trim();
 
   if (search) query = query.and(listingSearchFilter(search));
@@ -413,7 +420,7 @@ export async function saveListing(
   if (revision) data._revision = revision;
   const result = id
     ? await auth.elevate(items.update)(LISTINGS_COLLECTION_ID, { _id: id, ...data })
-    : await items.insert(LISTINGS_COLLECTION_ID, data);
+    : await auth.elevate(items.insert)(LISTINGS_COLLECTION_ID, data);
 
   return normalizeListing(result);
 }
@@ -646,10 +653,10 @@ export async function recordListingView(
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   const [total, active, underOffer, sold, recent] = await Promise.all([
-    items.query(LISTINGS_COLLECTION_ID).count(),
-    items.query(LISTINGS_COLLECTION_ID).eq("status", "active").count(),
-    items.query(LISTINGS_COLLECTION_ID).eq("status", "under_offer").count(),
-    items.query(LISTINGS_COLLECTION_ID).eq("status", "sold").count(),
+    auth.elevate(items.query)(LISTINGS_COLLECTION_ID).count(),
+    auth.elevate(items.query)(LISTINGS_COLLECTION_ID).eq("status", "active").count(),
+    auth.elevate(items.query)(LISTINGS_COLLECTION_ID).eq("status", "under_offer").count(),
+    auth.elevate(items.query)(LISTINGS_COLLECTION_ID).eq("status", "sold").count(),
     queryListings({ pageSize: 5, includeArchived: true }),
   ]);
 
@@ -658,8 +665,8 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
 
 async function getAllListings(): Promise<Listing[]> {
   const all: Listing[] = [];
-  let result = await items
-    .query(LISTINGS_COLLECTION_ID)
+  let result = await auth
+    .elevate(items.query)(LISTINGS_COLLECTION_ID)
     .ascending("_createdDate")
     .limit(1000)
     .find();

@@ -1,0 +1,19 @@
+.section { box-sizing: border-box; min-width: 0; margin-block: 1.5rem; color: var(--detail-text, #17211b); }
+.plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 1rem; list-style: none; padding: 0; margin: 0; }
+.plan { box-sizing: border-box; width: 100%; display: flex; flex-direction: column; gap: .75rem; padding: .75rem; border: 1px solid #cbd5d0; border-radius: .75rem; color: inherit; background: var(--detail-card, #fff); font: inherit; cursor: pointer; pointer-events: auto; overflow-wrap: anywhere; }
+.thumbnail { width: 100%; height: 180px; object-fit: contain; }
+.brochures { list-style: none; padding: 0; margin: 0; display: grid; gap: .75rem; }
+.brochure { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; padding-block: .75rem; border-bottom: 1px solid #cbd5d0; }
+.documentName { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; display: grid; gap: .25rem; }
+.filename { font-size: .875rem; color: var(--detail-muted, #526057); }
+.control { box-sizing: border-box; min-height: 44px; padding: .5rem .875rem; border: 1px solid currentColor; border-radius: .5rem; background: var(--detail-card, #fff); color: var(--detail-accent, #0c3b2e); font: inherit; cursor: pointer; pointer-events: auto; }
+.control:hover, .plan:hover { background: color-mix(in srgb, var(--detail-accent, #0c3b2e) 8%, white); }
+.control:disabled, .plan:disabled { opacity: .55; cursor: default; }
+.control:focus-visible, .plan:focus-visible { outline: 3px solid var(--detail-accent, #0c3b2e); outline-offset: 3px; }
+.viewer { box-sizing: border-box; width: min(1100px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); border: 1px solid #cbd5d0; border-radius: 1rem; padding: 1rem; background: var(--detail-card, #fff); color: var(--detail-text, #17211b); font: inherit; overflow: auto; }
+.viewer::backdrop { background: rgb(0 0 0 / 65%); }
+.viewerHeader, .viewerControls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+.viewerHeader { margin-block-end: 1rem; }
+.enlarged { display: block; width: 100%; height: min(65dvh, 800px); object-fit: contain; }
+.viewerControls { margin-block-start: 1rem; }
+.error { flex-basis: 100%; margin: 0; color: #a32222; }

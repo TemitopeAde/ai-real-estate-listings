@@ -47,6 +47,7 @@ export type PlanFeatureFlag =
   | "uniqueVisitors"
   | "analytics"
   | "socialShare"
+  | "mortgageCalculator"
   | "quoteEmail"
   | "assistant"
   | "relatedListings"
@@ -62,12 +63,13 @@ export function featuresForPlan(planId: AppPlanId): PlanFeatureFlags {
   const paid = planId !== "basic";
   const business = planId === "business";
   return {
-    editListings: paid,
+    editListings: true,
     aiWriter: paid,
     virtualTour: paid,
     uniqueVisitors: paid,
     analytics: paid,
     socialShare: paid,
+    mortgageCalculator: paid,
     quoteEmail: paid,
     assistant: business,
     relatedListings: business,
@@ -98,7 +100,11 @@ export const APP_PLAN_FEATURES: PlanFeatureRow[] = [
   },
   {
     name: "Edit listings in the dashboard",
-    values: { basic: false, pro: true, business: true },
+    values: { basic: true, pro: true, business: true },
+  },
+  {
+    name: "Floor plans and PDF brochures",
+    values: { basic: true, pro: true, business: true },
   },
   {
     name: "AI Listing Writer",
@@ -118,6 +124,10 @@ export const APP_PLAN_FEATURES: PlanFeatureRow[] = [
   },
   {
     name: "Social sharing on listing pages",
+    values: { basic: false, pro: true, business: true },
+  },
+  {
+    name: "Mortgage calculator on listing pages",
     values: { basic: false, pro: true, business: true },
   },
   {

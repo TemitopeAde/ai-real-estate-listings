@@ -1,12 +1,13 @@
+import { contacts } from '@wix/crm';
 import { items } from '@wix/data';
 import { auth } from '@wix/essentials';
 import { notificationsV3 } from '@wix/notifications';
 
-import { QUOTE_REQUESTS_COLLECTION_ID, QUOTE_REQUEST_STATUSES, type QuoteRequest, type QuoteRequestStatus } from '@/lib/listing-types';
-import { getPublicListing } from '@/lib/server/listings';
-import { getAppEntitlement } from '@/lib/server/entitlement';
-import { normalizeRichText } from '@/lib/server/listing-validation';
-import { getSiteOwnerContact } from '@/lib/server/site-owner';
+import { QUOTE_REQUESTS_COLLECTION_ID, QUOTE_REQUEST_STATUSES, type QuoteRequest, type QuoteRequestStatus } from '../listing-types';
+import { getPublicListing } from './listings';
+import { getAppEntitlement } from './entitlement';
+import { normalizeRichText } from './listing-validation';
+import { getSiteOwnerContact } from './site-owner';
 
 type RecordValue = { _id?: string; [key: string]: unknown };
 
@@ -39,6 +40,23 @@ async function notifyQuoteRequest(request: QuoteRequest, agentEmail?: string): P
       listingTitle: { text: request.listingTitle }, firstName: { text: request.firstName }, lastName: { text: request.lastName }, email: { text: request.email }, phone: { text: request.phone ?? '' }, message: { text: request.message ?? '' }, agentEmail: { text: agentEmail ?? '' }, ownerEmail: { text: ownerEmail },
     } });
   } catch (error) { console.error('Unable to send quote request notification.', error); }
+}
+
+/** Links the submitter to a site contact, creating one if needed. Never blocks the quote request. */
+async function upsertQuoteContact(details: { firstName: string; lastName: string; email: string; phone: string }): Promise<string | undefined> {
+  try {
+    const existing = await auth.elevate(contacts.queryContacts)().eq('primaryInfo.email', details.email).limit(1).find();
+    if (existing.items[0]?._id) return existing.items[0]._id;
+    const created = await auth.elevate(contacts.createContact)({
+      name: { first: details.firstName, last: details.lastName },
+      emails: { items: [{ email: details.email, primary: true }] },
+      phones: { items: [{ phone: details.phone, primary: true }] },
+    });
+    return created.contact?._id;
+  } catch (error) {
+    console.error('Unable to save the quote requester as a contact.', error);
+    return undefined;
+  }
 }
 
 export function isRateLimited(key: string): boolean {
@@ -93,6 +111,7 @@ export async function createQuoteRequest(input: Record<string, unknown>, rateKey
     phone: requesterPhone,
     message,
     memberId: await getMemberId(),
+    contactId: await upsertQuoteContact({ firstName, lastName, email: requesterEmail, phone: requesterPhone }),
     status: 'new',
     notes: '',
     archived: false,
@@ -108,7 +127,7 @@ export function normalizeQuoteRequest(value: unknown): QuoteRequest {
     _id: text(item._id, 100), listingId: text(item.listingId, 100), listingTitle: text(item.listingTitle, 200),
     listingPrice: typeof item.listingPrice === 'number' ? item.listingPrice : 0, listingCurrency: text(item.listingCurrency, 10),
     listingCity: text(item.listingCity, 120), listingAddress: text(item.listingAddress, 300), listingPrimaryImage: text(item.listingPrimaryImage, 500),
-    firstName: text(item.firstName, 80), lastName: text(item.lastName, 80), email: text(item.email, 160), phone: text(item.phone, 40), message: richMessage(item.message), memberId: text(item.memberId, 100),
+    firstName: text(item.firstName, 80), lastName: text(item.lastName, 80), email: text(item.email, 160), phone: text(item.phone, 40), message: richMessage(item.message), memberId: text(item.memberId, 100), contactId: text(item.contactId, 100),
     status: status(item.status), notes: text(item.notes, 4000), archived: item.archived === true, _createdDate: date(item._createdDate), _updatedDate: date(item._updatedDate),
   };
 }

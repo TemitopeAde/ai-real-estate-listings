@@ -5,7 +5,9 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  Download,
   Eye,
+  FileUp,
   Loader2,
   Lock,
   MoreHorizontal,
@@ -64,6 +66,8 @@ import {
   getImageUrl,
 } from "@/lib/formatters";
 import { useDashboardI18n, useDt } from "@/lib/dashboard-i18n";
+import { dashboard } from "@wix/dashboard";
+import { listingsToCsv } from "@/lib/listing-csv";
 import {
   PROPERTY_TYPE_MESSAGE_KEYS,
   STATUS_MESSAGE_KEYS,
@@ -75,6 +79,7 @@ import {
   getListing,
   isListingStatus,
   isPropertyType,
+  exportAllListings,
   queryListings,
   type Listing,
   type ListingStatus,
@@ -82,7 +87,8 @@ import {
   type PropertyType,
 } from "@/lib/listings";
 import { isListingCapReached, openAppUpgradePage } from "@/lib/entitlement";
-import { useEntitlement } from "./entitlement-context";
+import { useEntitlement, useEntitlementPending } from "./entitlement-context";
+import { CsvImportReview, downloadTextFile } from "./csv-import-review";
 
 interface ListingsViewProps {
   refreshToken: number;
@@ -161,6 +167,7 @@ export function ListingsView({
   const t = useDt();
   const { locale } = useDashboardI18n();
   const entitlement = useEntitlement();
+  const pending = useEntitlementPending();
   const [listings, setListings] = useState<Listing[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ListingStatus | "all">("all");
@@ -177,6 +184,25 @@ export function ListingsView({
   const [viewersListing, setViewersListing] = useState<Listing | null>(null);
   const [viewersLoading, setViewersLoading] = useState(false);
   const [viewersError, setViewersError] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const all = await exportAllListings();
+      downloadTextFile(
+        `listings-${new Date().toISOString().slice(0, 10)}.csv`,
+        listingsToCsv(all),
+      );
+      dashboard.showToast({ type: "success", message: t("csvExportDone", { count: all.length }) });
+    } catch (exportError) {
+      console.error("Unable to export listings.", exportError);
+      dashboard.showToast({ type: "error", message: t("csvExportFailed") });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -268,9 +294,22 @@ export function ListingsView({
             </p>
           </div>
           <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
-            <Button onClick={onAddListing} className="w-full sm:w-auto">
-              <Plus className="size-4" aria-hidden="true" /> {t("addListing")}
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button variant="outline" onClick={() => void exportCsv()} disabled={exporting} className="w-full sm:w-auto">
+                {exporting ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Download className="size-4" aria-hidden="true" />
+                )}
+                {exporting ? t("csvExporting") : t("csvExport")}
+              </Button>
+              <Button variant="outline" onClick={() => setImportOpen(true)} disabled={pending} className="w-full sm:w-auto">
+                <FileUp className="size-4" aria-hidden="true" /> {t("csvImport")}
+              </Button>
+              <Button onClick={onAddListing} disabled={pending} className="w-full sm:w-auto">
+                <Plus className="size-4" aria-hidden="true" /> {t("addListing")}
+              </Button>
+            </div>
             {isListingCapReached(entitlement) ? (
               <p className="max-w-xs text-xs leading-5 text-muted-foreground">
                 {t("listingCapReachedBody")}
@@ -369,7 +408,7 @@ export function ListingsView({
                 <p className="max-w-md text-sm text-muted-foreground">
                   {t("emptyListingsBody")}
                 </p>
-                <Button size="sm" onClick={onAddListing}>
+                <Button size="sm" onClick={onAddListing} disabled={pending}>
                   <Plus className="size-4" aria-hidden="true" /> {t("addListing")}
                 </Button>
                 {isListingCapReached(entitlement) ? (
@@ -412,7 +451,10 @@ export function ListingsView({
                       return (
                         <TableRow
                           key={listing._id}
-                          className="transition-colors hover:bg-muted/20"
+                          className={`transition-colors hover:bg-muted/20 ${pending ? "" : "cursor-pointer"}`}
+                          onClick={() => {
+                            if (!pending) onEditListing(listing._id);
+                          }}
                         >
                           <TableCell className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -428,9 +470,18 @@ export function ListingsView({
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <p className="max-w-[240px] truncate font-medium">
+                                <button
+                                  type="button"
+                                  className="block max-w-[240px] truncate rounded-sm text-left font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+                                  disabled={pending}
+                                  aria-label={`${t("edit")}: ${listing.title}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onEditListing(listing._id);
+                                  }}
+                                >
                                   {listing.title}
-                                </p>
+                                </button>
                                 <p className="mt-1 max-w-[240px] truncate text-xs text-muted-foreground">
                                   {listing.city || t("locationNotSet")}
                                 </p>
@@ -463,11 +514,15 @@ export function ListingsView({
                           <TableCell className="px-3 py-4 text-muted-foreground">
                             {formatDate(listing._updatedDate, locale)}
                           </TableCell>
-                          <TableCell className="px-6 py-4 text-right">
+                          <TableCell
+                            className="px-6 py-4 text-right"
+                            onClick={(event) => event.stopPropagation()}
+                          >
                             <ListingActionsMenu
                               listing={listing}
                               archiving={archivingId === listing._id}
                               canEdit={entitlement.features.editListings}
+                              disabled={pending}
                               onEdit={() => {
                                 onEditListing(listing._id);
                               }}
@@ -579,6 +634,11 @@ export function ListingsView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <CsvImportReview
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={() => void load()}
+      />
     </>
   );
 }
@@ -587,6 +647,7 @@ function ListingActionsMenu({
   listing,
   archiving,
   canEdit,
+  disabled = false,
   onEdit,
   onViewers,
   onDelete,
@@ -594,6 +655,7 @@ function ListingActionsMenu({
   listing: Listing;
   archiving: boolean;
   canEdit: boolean;
+  disabled?: boolean;
   onEdit: () => void;
   onViewers: () => void;
   onDelete: () => void;
@@ -715,6 +777,7 @@ function ListingActionsMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={t("actionsFor", { title: listing.title })}
+        disabled={disabled}
         onClick={toggle}
       >
         <MoreHorizontal className="size-4" aria-hidden="true" />

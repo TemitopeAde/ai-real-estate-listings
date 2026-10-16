@@ -102,12 +102,11 @@ export const PanoramaViewer: FC<{ images: ListingImage[]; title: string; lang: W
   return (
     <div className={styles.panoramaLayout}>
       {images.length > 1 ? (
-        <div className={styles.panoramaScenes} role="list" aria-label={t(lang, "scenes")}>
+        <section className={styles.panoramaScenes} aria-label={t(lang, "scenes")}>
           {images.map((image, imageIndex) => (
             <button
               key={`${image.url}-${imageIndex}`}
               type="button"
-              role="listitem"
               className={imageIndex === index ? styles.panoramaSceneActive : styles.panoramaScene}
               onClick={() => setIndex(imageIndex)}
               aria-pressed={imageIndex === index}
@@ -117,7 +116,7 @@ export const PanoramaViewer: FC<{ images: ListingImage[]; title: string; lang: W
               <span>{image.title ?? t(lang, "scene", { count: imageIndex + 1 })}</span>
             </button>
           ))}
-        </div>
+        </section>
       ) : null}
       <div className={styles.panoramaWrap}>
         <div
