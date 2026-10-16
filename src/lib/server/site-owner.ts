@@ -7,6 +7,8 @@ export interface SiteOwnerContact {
   name?: string;
   email?: string;
   phone?: string;
+  siteId?: string;
+  siteName?: string;
 }
 
 function text(value: unknown): string | undefined {
@@ -36,6 +38,8 @@ export async function getSiteOwnerContact(): Promise<SiteOwnerContact> {
         joinedName(text(ownerInfo?.firstName), text(ownerInfo?.lastName)) ??
         text(site?.siteDisplayName),
       phone: text(ownerInfo?.phone) ?? text(ownerInfo?.phoneNumber),
+      siteId: text(site?.siteId),
+      siteName: text(site?.siteDisplayName),
     };
   } catch (error) {
     console.warn("Unable to resolve site owner contact.", error);

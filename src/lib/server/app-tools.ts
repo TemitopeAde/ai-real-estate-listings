@@ -194,7 +194,7 @@ const listQuoteRequests: ToolHandler = async (payload) => {
   const status = payload.status;
   if (status !== undefined && status !== "" && !isQuoteStatus(status)) return fail("Status must be new, contacted, quoted, or closed.");
   const page = clampInt(payload.page, 0, 0, 1000);
-  const result = await queryQuoteRequests(page, clampInt(payload.pageSize, 10, 1, 25), text(payload.search), isQuoteStatus(status) ? status : undefined, payload.includeArchived === true);
+  const result = await queryQuoteRequests(page, clampInt(payload.pageSize, 10, 1, 25), text(payload.search), isQuoteStatus(status) ? status : undefined, payload.includeArchived === true ? 'all' : 'active');
   return { ok: true, totalCount: result.totalCount, hasNext: result.hasNext, page, quoteRequests: result.items.map(quoteSummary) };
 };
 

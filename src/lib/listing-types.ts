@@ -4,6 +4,8 @@ export const SAVED_PROPERTIES_COLLECTION_ID =
   "@admin14744/ai-real-estate-listings/saved-properties";
 export const QUOTE_REQUESTS_COLLECTION_ID =
   "@admin14744/ai-real-estate-listings/quote-requests";
+export const EMAIL_TEMPLATES_COLLECTION_ID =
+  "@admin14744/ai-real-estate-listings/email-templates";
 
 export const QUOTE_REQUEST_STATUSES = [
   { value: "new", label: "New" },
@@ -33,8 +35,15 @@ export interface QuoteRequest {
   status: QuoteRequestStatus;
   notes?: string;
   archived: boolean;
+  /** Emails the site owner sent from the dashboard, newest last. */
+  emailLog?: QuoteRequestEmail[];
   _createdDate?: Date;
   _updatedDate?: Date;
+}
+
+export interface QuoteRequestEmail {
+  sentAt: Date;
+  subject: string;
 }
 
 export const LISTING_STATUSES = [

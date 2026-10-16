@@ -88,7 +88,6 @@ export function PropertyVideos({ videos, lang, disabled = false }: Props) {
       </div>
       <p className={styles.caption} aria-live="polite">
         <strong>{currentTitle}</strong>
-        {videos.length > 1 ? <span>{t(lang, "videoCount", { current: index + 1, total: videos.length })}</span> : null}
       </p>
       {videos.length > 1 ? (
         <ul className={styles.strip}>

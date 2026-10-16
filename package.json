@@ -25,6 +25,7 @@
     "@wix/data": "^1.0.512",
     "@wix/design-system": "^1.154.0",
     "@wix/editor": "^1.356.0",
+    "@wix/email-transmissions": "^1.0.13",
     "@wix/essentials": "^0.1.23",
     "@wix/media": "^1.0.272",
     "@wix/notifications": "^1.0.70",

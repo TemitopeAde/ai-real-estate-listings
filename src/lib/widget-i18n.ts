@@ -21,6 +21,7 @@ export const WIDGET_LANGUAGE_OPTIONS: Array<{ id: WidgetLanguageSetting; label: 
 ];
 
 const EN = {
+  phoneCountryCode: "Country calling code",
   floorPlans: "Floor plans",
   brochures: "Brochures",
   floorPlanLabel: "Floor plan {number}",
@@ -172,6 +173,7 @@ export type WidgetMessageKey = keyof typeof EN;
 const catalogs: Record<WidgetLangCode, Partial<Record<WidgetMessageKey, string>>> = {
   en: EN,
   zh: {
+    phoneCountryCode: "国家/地区拨号代码",
     floorPlans: "户型图",
     brochures: "宣传册",
     floorPlanLabel: "户型图 {number}",
@@ -231,6 +233,7 @@ const catalogs: Record<WidgetLangCode, Partial<Record<WidgetMessageKey, string>>
     mortgageCalculator: "房贷计算器", homePrice: "房屋价格", downPayment: "首付比例 (%)", interestRate: "年利率 (%)", loanTerm: "贷款期限", years: "{count} 年", monthlyPayment: "预计月供", loanAmount: "贷款金额", mortgageDisclaimer: "仅供估算，不含税费、保险及其他费用。具体金额请咨询贷款机构。",
   },
   hi: {
+    phoneCountryCode: "देश का डायलिंग कोड",
     floorPlans: "फ्लोर प्लान",
     brochures: "ब्रोशर",
     floorPlanLabel: "फ्लोर प्लान {number}",
@@ -293,6 +296,7 @@ const catalogs: Record<WidgetLangCode, Partial<Record<WidgetMessageKey, string>>
     mortgageCalculator: "मॉर्गेज कैलकुलेटर", homePrice: "घर की कीमत", downPayment: "डाउन पेमेंट (%)", interestRate: "ब्याज दर (%)", loanTerm: "ऋण अवधि", years: "{count} वर्ष", monthlyPayment: "अनुमानित मासिक भुगतान", loanAmount: "ऋण राशि", mortgageDisclaimer: "केवल अनुमान। कर, बीमा और शुल्क शामिल नहीं हैं। सटीक आँकड़ों के लिए ऋणदाता से संपर्क करें।",
   },
   es: {
+    phoneCountryCode: "Código telefónico del país",
     floorPlans: "Planos",
     brochures: "Folletos",
     floorPlanLabel: "Plano {number}",
@@ -355,6 +359,7 @@ const catalogs: Record<WidgetLangCode, Partial<Record<WidgetMessageKey, string>>
     mortgageCalculator: "Calculadora de hipoteca", homePrice: "Precio de la vivienda", downPayment: "Entrada (%)", interestRate: "Tipo de interés (%)", loanTerm: "Plazo del préstamo", years: "{count} años", monthlyPayment: "Cuota mensual estimada", loanAmount: "Importe del préstamo", mortgageDisclaimer: "Solo es una estimación. No incluye impuestos, seguros ni comisiones. Consulta a una entidad financiera para cifras exactas.",
   },
   fr: {
+    phoneCountryCode: "Indicatif téléphonique du pays",
     floorPlans: "Plans",
     brochures: "Brochures",
     floorPlanLabel: "Plan {number}",
@@ -417,6 +422,7 @@ const catalogs: Record<WidgetLangCode, Partial<Record<WidgetMessageKey, string>>
     mortgageCalculator: "Simulateur de prêt immobilier", homePrice: "Prix du bien", downPayment: "Apport (%)", interestRate: "Taux d’intérêt (%)", loanTerm: "Durée du prêt", years: "{count} ans", monthlyPayment: "Mensualité estimée", loanAmount: "Montant du prêt", mortgageDisclaimer: "Estimation uniquement. Hors taxes, assurances et frais. Contactez un prêteur pour des chiffres exacts.",
   },
   ar: {
+    phoneCountryCode: "رمز الاتصال بالدولة",
     floorPlans: "مخططات الطوابق",
     brochures: "الكتيبات",
     floorPlanLabel: "مخطط الطابق {number}",
@@ -479,6 +485,7 @@ const catalogs: Record<WidgetLangCode, Partial<Record<WidgetMessageKey, string>>
     mortgageCalculator: "حاسبة الرهن العقاري", homePrice: "سعر العقار", downPayment: "الدفعة الأولى (%)", interestRate: "سعر الفائدة (%)", loanTerm: "مدة القرض", years: "{count} سنة", monthlyPayment: "القسط الشهري التقديري", loanAmount: "مبلغ القرض", mortgageDisclaimer: "تقدير فقط. لا يشمل الضرائب والتأمين والرسوم. تواصل مع جهة تمويل للحصول على أرقام دقيقة.",
   },
   pt: {
+    phoneCountryCode: "Indicativo telefónico do país",
     floorPlans: "Plantas",
     brochures: "Brochuras",
     floorPlanLabel: "Planta {number}",
@@ -541,6 +548,7 @@ const catalogs: Record<WidgetLangCode, Partial<Record<WidgetMessageKey, string>>
     mortgageCalculator: "Simulador de crédito habitação", homePrice: "Preço do imóvel", downPayment: "Entrada (%)", interestRate: "Taxa de juro (%)", loanTerm: "Prazo do empréstimo", years: "{count} anos", monthlyPayment: "Prestação mensal estimada", loanAmount: "Montante do empréstimo", mortgageDisclaimer: "Apenas uma estimativa. Não inclui impostos, seguros e comissões. Contacte um banco para valores exatos.",
   },
   ru: {
+    phoneCountryCode: "Телефонный код страны",
     floorPlans: "Планы этажей",
     brochures: "Брошюры",
     floorPlanLabel: "План этажа {number}",
@@ -603,6 +611,7 @@ const catalogs: Record<WidgetLangCode, Partial<Record<WidgetMessageKey, string>>
     mortgageCalculator: "Ипотечный калькулятор", homePrice: "Стоимость жилья", downPayment: "Первоначальный взнос (%)", interestRate: "Процентная ставка (%)", loanTerm: "Срок кредита", years: "{count} лет", monthlyPayment: "Примерный ежемесячный платёж", loanAmount: "Сумма кредита", mortgageDisclaimer: "Только оценка. Без учёта налогов, страховки и комиссий. Точные условия уточняйте у кредитора.",
   },
   ja: {
+    phoneCountryCode: "国番号",
     floorPlans: "間取り図",
     brochures: "パンフレット",
     floorPlanLabel: "間取り図 {number}",
@@ -665,6 +674,7 @@ const catalogs: Record<WidgetLangCode, Partial<Record<WidgetMessageKey, string>>
     mortgageCalculator: "住宅ローン計算", homePrice: "物件価格", downPayment: "頭金 (%)", interestRate: "金利 (%)", loanTerm: "返済期間", years: "{count}年", monthlyPayment: "毎月の返済額（目安）", loanAmount: "借入額", mortgageDisclaimer: "目安です。税金・保険・手数料は含まれません。正確な金額は金融機関にご確認ください。",
   },
   de: {
+    phoneCountryCode: "Ländervorwahl",
     floorPlans: "Grundrisse",
     brochures: "Broschüren",
     floorPlanLabel: "Grundriss {number}",

@@ -6,6 +6,7 @@ import type { Listing } from '../../../../lib/listing-types';
 import type { DetailWidgetConfig } from '../../../../lib/site-widget';
 import { LOCKED_PUBLIC_ACCESS, type PublicListingAccess } from '../../../../lib/public-listing-access';
 import { showSiteToast } from '../../../../lib/site-toast';
+import { LISTING_CACHE, RELATED_CACHE, cachedFetch, publicDataCache } from '../../../../lib/public-data-cache';
 import { ACCESS_RETRY_MS, AccessUnverifiedError, assertSubscriptionAccess, SubscriptionLockedError } from '../../../../lib/subscription-response';
 import { t, useResolvedWidgetLanguage, useResolvedWidgetLocale, widgetTextDirection } from '../../../../lib/widget-i18n';
 
@@ -24,7 +25,15 @@ function listingAccess(value: unknown): PublicListingAccess {
   };
 }
 
-async function loadListing(id: string): Promise<{ listing: Listing; access: PublicListingAccess }> {
+type ListingData = { listing: Listing; access: PublicListingAccess };
+const listingKey = (id: string) => `listing:${id}`;
+
+/** Cached: repeat visits within a few minutes don't call the API (see public-data-cache). */
+function loadListing(id: string): Promise<ListingData> {
+  return cachedFetch(listingKey(id), () => fetchListing(id), LISTING_CACHE);
+}
+
+async function fetchListing(id: string): Promise<ListingData> {
   const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/listing?id=${encodeURIComponent(id)}`, { headers: { Accept: "application/json" } });
   assertSubscriptionAccess(response);
   if (!response.ok) throw new Error(response.status === 404 ? "not-found" : "load-failed");
@@ -42,13 +51,16 @@ export async function loadPublicListings(listing?: Listing, limit = 100): Promis
     params.set("transactionType", listing.transactionType);
   }
   params.set("pageSize", String(Math.min(100, Math.max(1, limit + 4))));
-  const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/listing?${params.toString()}`, { headers: { Accept: "application/json" } });
-  if (!response.ok) return [];
-  const data: unknown = await response.json();
-  const items =
-    data && typeof data === "object" && Array.isArray((data as { items?: unknown }).items)
+  const query = params.toString();
+  const items = await cachedFetch(`related:${query}`, async () => {
+    const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/listing?${query}`, { headers: { Accept: "application/json" } });
+    // Thrown (not cached) so the next visit retries.
+    if (!response.ok) throw new Error("related-failed");
+    const data: unknown = await response.json();
+    return data && typeof data === "object" && Array.isArray((data as { items?: unknown }).items)
       ? ((data as { items: Listing[] }).items)
       : [];
+  }, RELATED_CACHE).catch((): Listing[] => []);
   const city = listing ? (listing.address?.city || listing.city).trim().toLowerCase() : "";
   const candidates = items.filter((item) => !listing || item._id !== listing._id).filter((item) => item.status === "active");
   if (!listing) return candidates.slice(0, limit);
@@ -104,6 +116,7 @@ export function usePropertyDetail(config: DetailWidgetConfig, currentUrl?: strin
     if (!enabled) { setListing(null); return; }
     let mounted = true;
     let retryTimer: number | undefined;
+    let unsubscribe = () => {};
     setState("loading");
     setListing(null);
     setSaved(false);
@@ -111,7 +124,17 @@ export function usePropertyDetail(config: DetailWidgetConfig, currentUrl?: strin
     void queryPromise.then((query) => {
       const queryRecord = typeof query === "object" && query !== null ? query as Record<string, unknown> : {};
       const id = queryRecord.id;
-      if (typeof id !== "string" || !id) { if (mounted) setState("missing"); return; }
+      if (!mounted) return;
+      if (typeof id !== "string" || !id) { setState("missing"); return; }
+      // Apply background refreshes of a cached listing (changed data, cancelled plan, deleted listing).
+      unsubscribe = publicDataCache.subscribe<ListingData>(listingKey(id), {
+        onValue: (data) => { if (!mounted) return; setListing(data.listing); setAccess(data.access); setState("ready"); },
+        onError: (reason) => {
+          if (!mounted) return;
+          if (reason instanceof SubscriptionLockedError) setState("locked");
+          else if (reason instanceof Error && reason.message === "not-found") setState("not-found");
+        },
+      });
       return loadListing(id).then(async (data) => { if (!mounted) return; setListing(data.listing); setAccess(data.access); setViewCount(data.listing.viewCount); setState("ready"); try { if (!(await isMemberLoggedIn())) throw new Error("login-required"); const savedResponse = await savedAction("list", id); const value = typeof savedResponse === "object" && savedResponse !== null ? savedResponse as { items?: Array<{ id?: string }> } : {}; if (mounted) { const ids = new Set((value.items ?? []).flatMap((item) => item.id ? [item.id] : [])); setSaved(ids.has(id)); setFeaturedSavedIds(ids); } } catch { /* Guests start unsaved. */ } return designMode || !mounted ? undefined : recordView(id); }).then((count) => { if (mounted && typeof count === "number") setViewCount(count); }).catch((reason: unknown) => {
         if (!mounted) return;
         if (reason instanceof SubscriptionLockedError) { setState("locked"); return; }
@@ -120,7 +143,7 @@ export function usePropertyDetail(config: DetailWidgetConfig, currentUrl?: strin
         setState(reason instanceof Error && reason.message === "not-found" ? "not-found" : "error");
       });
     }).catch((reason: unknown) => { console.error("Unable to read property URL.", reason); if (mounted) setState("error"); });
-    return () => { mounted = false; window.clearTimeout(retryTimer); };
+    return () => { mounted = false; window.clearTimeout(retryTimer); unsubscribe(); };
   }, [currentUrl, designMode, enabled, retryToken]);
   useEffect(() => {
     if (!enabled || !listing || !config.showFeaturedListings || !access.relatedListings) { setFeaturedListings([]); return; }

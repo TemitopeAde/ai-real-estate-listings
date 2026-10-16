@@ -31,6 +31,7 @@ export default {
     { type: 'TEXT', displayName: 'Status', key: 'status' },
     { type: 'TEXT', displayName: 'Internal Notes', key: 'notes' },
     { type: 'BOOLEAN', displayName: 'Archived', key: 'archived' },
+    { type: 'ARRAY_DOCUMENT', displayName: 'Email Log', key: 'emailLog' },
   ],
   displayField: 'listingTitle',
   dataPermissions: {

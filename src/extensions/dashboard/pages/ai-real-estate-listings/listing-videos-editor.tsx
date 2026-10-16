@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useDt } from "@/lib/dashboard-i18n";
 import {
   MAX_LISTING_VIDEOS,
-  isWixVideoUrl,
+  wixVideoFromMediaItem,
   moveAttachment,
   parseYouTubeId,
   youTubeThumbnail,
@@ -70,16 +70,11 @@ export function ListingVideosEditor({ videos, onChange }: Props) {
       let invalid = false;
       const next = [...videos];
       for (const item of response.items) {
-        const url = item.url?.trim() ?? "";
-        if (!isWixVideoUrl(url)) { invalid = true; continue; }
-        if (next.some((video) => video.source === "wix" && (video.url === url || (item._id && video.id === item._id)))) continue;
+        const selected = wixVideoFromMediaItem(item);
+        if (!selected) { invalid = true; continue; }
+        if (next.some((video) => video.source === "wix" && (video.url === selected.url || (selected.id && video.id === selected.id)))) continue;
         if (next.length >= MAX_LISTING_VIDEOS) break;
-        next.push({
-          source: "wix",
-          url,
-          ...(item._id ? { id: item._id } : {}),
-          ...(item.displayName?.trim() ? { title: item.displayName.trim().slice(0, 120) } : {}),
-        });
+        next.push(selected);
       }
       onChange(next);
       if (invalid) setError(t("wixVideoInvalid"));

@@ -111,6 +111,44 @@ export function isWixVideoUrl(value: string): boolean {
   }
 }
 
+/** Convert Wix's media identifier to the public playback URL used by HTML video. */
+export function wixVideoPlaybackUrl(value: string): string | null {
+  const input = value.trim();
+  const match = /^wix:video:\/\/v1\/([A-Za-z0-9_~-]+)(?:\/[^?#]*)?(?:#[^\s]*)?$/.exec(input);
+  if (match?.[1]) return `https://video.wixstatic.com/video/${match[1]}/file`;
+  return isWixVideoUrl(input) ? input : null;
+}
+
+function wixVideoPoster(value: string): string | undefined {
+  if (isWixVideoUrl(value)) return value;
+  const match = /^wix:image:\/\/v1\/([A-Za-z0-9_.~-]+)(?:[\/#]|$)/.exec(value);
+  return match?.[1] ? `https://static.wixstatic.com/media/${match[1]}` : undefined;
+}
+
+/** Supports both SDK media identifiers and raw Media Manager file descriptors. */
+export function wixVideoFromMediaItem(item: unknown): Extract<ListingVideo, { source: "wix" }> | null {
+  if (!record(item)) return null;
+  const media = record(item.media) ? item.media : undefined;
+  const video = media?.video;
+  const resolutions = record(video) && Array.isArray(video.resolutions) ? video.resolutions : [];
+  const playable = resolutions.find((entry) => record(entry) && /\.(mp4|webm)$/i.test(text(entry.format)) && wixVideoPlaybackUrl(text(entry.url)));
+  const candidates = [
+    record(playable) ? text(playable.url) : "",
+    text(video),
+    text(item.url),
+  ];
+  const url = candidates.map(wixVideoPlaybackUrl).find((candidate) => candidate !== null);
+  if (!url) return null;
+  const title = text(item.displayName).slice(0, MAX_VIDEO_TITLE);
+  const poster = wixVideoPoster(text(item.thumbnailUrl));
+  return {
+    source: "wix", url,
+    ...(text(item._id) ? { id: text(item._id) } : {}),
+    ...(title ? { title } : {}),
+    ...(poster ? { poster } : {}),
+  };
+}
+
 export function parseVideos(value: unknown, errors: string[]): ListingVideo[] | undefined {
   if (value === undefined) return undefined;
   if (value === null) return [];
@@ -135,17 +173,17 @@ export function parseVideos(value: unknown, errors: string[]): ListingVideo[] | 
       return [{ source: "youtube", videoId, url: `https://youtu.be/${videoId}`, ...label }];
     }
     if (item.source === "wix") {
-      const url = text(item.url);
-      if (!isWixVideoUrl(url)) { errors.push("Each Wix video must be an HTTPS Wix Media URL."); return []; }
+      const url = wixVideoPlaybackUrl(text(item.url));
+      if (!url) { errors.push("Each Wix video must be a supported Wix Media URL."); return []; }
       if (seen.has(url)) return [];
       seen.add(url);
-      const poster = text(item.poster);
+      const poster = wixVideoPoster(text(item.poster));
       return [{
         source: "wix",
         url,
         ...(text(item.id) ? { id: text(item.id) } : {}),
         ...label,
-        ...(poster && isWixVideoUrl(poster) ? { poster } : {}),
+        ...(poster ? { poster } : {}),
       }];
     }
     errors.push("Each video must be a YouTube link or a Wix Media video."); return [];

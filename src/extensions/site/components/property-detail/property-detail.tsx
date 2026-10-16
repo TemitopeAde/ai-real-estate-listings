@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { useReducedMotion, useLanguageDirection } from '@wix/react-component-utils';
 import { Bookmark, BookmarkCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DEFAULT_DETAIL_WIDGET_CONFIG, formatListingPrice, getImageUrls, getListingLocation } from '../../../../lib/site-widget';
+import { optimizeDescriptionImages } from '../../../../lib/description-images';
 import { getPanoramaImages } from '../../../../lib/listing-types';
 import { t } from '../../../../lib/widget-i18n';
 import { usePropertyDetail, loadPublicListings } from '../../widgets/property-detail-widget/use-property-detail';
@@ -94,7 +95,7 @@ const PropertyDetail: FC<PropertyDetailProps> = (props) => {
           <h2 className={styles.sectionTitle}>{t(lang, 'videoTour')}</h2>
           {listing && props.enableVideos && listing.videos?.length ? <PropertyVideos key={listing._id} videos={listing.videos} lang={lang} disabled={designMode} /> : null}
         </section>
-        <div {...elementProps?.description} className={classNames('property-detail-description', richContentStyles.description, styles.description, elementProps?.description?.className)} dangerouslySetInnerHTML={{ __html: listing?.description ?? '' }} />
+        <div {...elementProps?.description} className={classNames('property-detail-description', richContentStyles.description, styles.description, elementProps?.description?.className)} dangerouslySetInnerHTML={{ __html: optimizeDescriptionImages(listing?.description ?? '') }} />
         <p {...elementProps?.metadata} className={classNames('property-detail-metadata', styles.metadata, elementProps?.metadata?.className)}>{listing ? [listing.bedrooms === undefined ? '' : t(lang, 'bedrooms', { count: listing.bedrooms }), listing.bathrooms === undefined ? '' : t(lang, 'bathrooms', { count: listing.bathrooms }), `${listing.area.toLocaleString(locale)} ${listing.areaUnit}`].filter(Boolean).join(' · ') : '\u00a0'}</p>
         <div {...elementProps?.mortgage} className={classNames('property-detail-mortgage', styles.section, elementProps?.mortgage?.className)} hidden={!props.enableMortgageCalculator || !access.mortgageCalculator || listing?.transactionType !== 'sale'}>
           {listing?.transactionType === 'sale' && props.enableMortgageCalculator && access.mortgageCalculator ? <MortgageCalculator key={listing._id} listing={listing} lang={lang} locale={locale} /> : null}

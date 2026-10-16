@@ -6,6 +6,8 @@ import {
   parseVideos,
   parseYouTubeId,
   youTubeEmbedUrl,
+  wixVideoPlaybackUrl,
+  wixVideoFromMediaItem,
 } from '../src/lib/listing-attachments.ts';
 
 const ID = 'dQw4w9WgXcQ';
@@ -84,4 +86,49 @@ test('parseVideos rejects bad entries, too many videos and long labels', () => {
   const notArray = [];
   assert.equal(parseVideos('x', notArray), undefined);
   assert.equal(notArray.length, 1);
+});
+
+test('Wix media identifiers become playable URLs and survive a mixed-source save/load', () => {
+  const reference = 'wix:video://v1/abc_123/walkthrough.mp4#posterUri=abc.jpg&posterWidth=640&posterHeight=360';
+  const selected = wixVideoFromMediaItem({
+    _id: 'abc_123', displayName: ' Walkthrough ',
+    url: 'https://static.wixstatic.com/media/original-file',
+    media: { video: reference },
+    thumbnailUrl: 'https://static.wixstatic.com/media/abc.jpg',
+  });
+  assert.deepEqual(selected, {
+    source: 'wix', id: 'abc_123', title: 'Walkthrough',
+    url: 'https://video.wixstatic.com/video/abc_123/file',
+    poster: 'https://static.wixstatic.com/media/abc.jpg',
+  });
+  const errors = [];
+  const videos = parseVideos(JSON.parse(JSON.stringify([
+    { source: 'youtube', videoId: ID }, selected,
+  ])), errors);
+  assert.deepEqual(errors, []);
+  assert.equal(videos.length, 2);
+  assert.deepEqual(videos[1], selected);
+  assert.deepEqual(parseVideos([{ source: 'wix', url: reference }], []), [
+    { source: 'wix', url: selected.url },
+  ]);
+});
+
+test('Media Manager prefers a browser-playable resolution over the general file URL', () => {
+  const selected = wixVideoFromMediaItem({
+    url: 'https://static.wixstatic.com/media/original-file',
+    media: { video: { resolutions: [
+      { format: 'hls', url: 'https://video.wixstatic.com/video/abc/master.m3u8' },
+      { format: '720p.mp4', url: 'https://video.wixstatic.com/video/abc/720p/mp4/file.mp4' },
+    ] } },
+  });
+  assert.equal(selected.url, 'https://video.wixstatic.com/video/abc/720p/mp4/file.mp4');
+  assert.equal(wixVideoFromMediaItem({ url: 'https://video.wixstatic.com/video/abc/file' }).url, 'https://video.wixstatic.com/video/abc/file');
+});
+
+test('Wix video normalization rejects unsafe or malformed references', () => {
+  for (const value of ['wix:video://v1/', 'wix:video://v1/../bad', 'wix:video://evil/abc', 'javascript:alert(1)', 'https://wixstatic.com.evil.io/file']) {
+    assert.equal(wixVideoPlaybackUrl(value), null, value);
+  }
+  assert.equal(wixVideoFromMediaItem({ media: { video: 'wix:video://v1/abc' } }).url, 'https://video.wixstatic.com/video/abc/file');
+  assert.equal(wixVideoFromMediaItem(null), null);
 });

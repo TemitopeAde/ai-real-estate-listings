@@ -4,6 +4,7 @@ import { authentication, currentMember } from '@wix/site-members';
 import type { Listing, ListingPage, ListingPriceRange } from '../../../../lib/listing-types';
 import type { ListingWidgetConfig } from '../../../../lib/site-widget';
 import { showSiteToast } from '../../../../lib/site-toast';
+import { LISTING_CACHE, PRICE_RANGE_CACHE, cachedFetch, publicDataCache } from '../../../../lib/public-data-cache';
 import { ACCESS_RETRY_MS, AccessUnverifiedError, assertSubscriptionAccess, SubscriptionLockedError } from '../../../../lib/subscription-response';
 import { t, useResolvedWidgetLanguage, useResolvedWidgetLocale, widgetTextDirection } from '../../../../lib/widget-i18n';
 import { useDebouncedValue } from '../use-debounced-value';
@@ -12,7 +13,7 @@ import { EMPTY_LISTING_FILTERS, usablePriceRange, type ListingFilters } from './
 const FILTER_DEBOUNCE_MS = 400;
 const apiOrigin = new URL(import.meta.url).origin;
 
-async function loadListings(filters: ListingFilters, page: number, pageSize: number): Promise<ListingPage> {
+function listingsQuery(filters: ListingFilters, page: number, pageSize: number): string {
   const params = new URLSearchParams();
   if (filters.search.trim()) params.set("search", filters.search.trim());
   if (filters.transactionType) params.set("transactionType", filters.transactionType);
@@ -22,7 +23,19 @@ async function loadListings(filters: ListingFilters, page: number, pageSize: num
   if (filters.bedrooms) params.set("bedrooms", filters.bedrooms);
   params.set("page", String(page));
   params.set("pageSize", String(pageSize));
-  const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/listing?${params.toString()}`, { headers: { Accept: "application/json" } });
+  return params.toString();
+}
+
+const listingsKey = (query: string) => `listings:${query}`;
+
+/** Cached per filter/page combination (see public-data-cache). */
+function loadListings(filters: ListingFilters, page: number, pageSize: number): Promise<ListingPage> {
+  const query = listingsQuery(filters, page, pageSize);
+  return cachedFetch(listingsKey(query), () => fetchListings(query), LISTING_CACHE);
+}
+
+async function fetchListings(query: string): Promise<ListingPage> {
+  const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/listing?${query}`, { headers: { Accept: "application/json" } });
   assertSubscriptionAccess(response);
   if (!response.ok) throw new Error("Listings could not be loaded.");
   const data: unknown = await response.json();
@@ -35,7 +48,11 @@ async function loadListings(filters: ListingFilters, page: number, pageSize: num
   };
 }
 
-async function loadPriceRange(): Promise<ListingPriceRange | null> {
+function loadPriceRange(): Promise<ListingPriceRange | null> {
+  return cachedFetch("price-range", fetchPriceRange, PRICE_RANGE_CACHE);
+}
+
+async function fetchPriceRange(): Promise<ListingPriceRange | null> {
   const response = await httpClient.fetchWithAuth(`${apiOrigin}/api/public-listings/listing?priceRange=1`, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error("Price range could not be loaded.");
   const data: unknown = await response.json();
@@ -93,6 +110,8 @@ export function usePropertyListings(config: ListingWidgetConfig, designMode = fa
   }), [config, debouncedFilters]);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const requestVersion = useRef(0);
+  const pageRef = useRef(0);
+  pageRef.current = page;
   const savingIds = useRef(new Set<string>());
   useEffect(() => {
     if (!enabled || !config.showPriceFilter) return;
@@ -111,6 +130,18 @@ export function usePropertyListings(config: ListingWidgetConfig, designMode = fa
     setHasNext(false);
     setError(null);
     let retryTimer: number | undefined;
+    // Apply background refreshes of the cached first page, unless the visitor has loaded more since.
+    const unsubscribe = publicDataCache.subscribe<ListingPage>(listingsKey(listingsQuery(activeFilters, 0, config.pageSize)), {
+      onValue: (data) => {
+        if (!mounted || version !== requestVersion.current || pageRef.current !== 0) return;
+        setListings(data.items);
+        setTotalCount(data.totalCount);
+        setHasNext(data.hasNext);
+      },
+      onError: (reason) => {
+        if (mounted && version === requestVersion.current && reason instanceof SubscriptionLockedError) { setLocked(true); setListings([]); }
+      },
+    });
     void loadListings(activeFilters, 0, config.pageSize).then((data) => {
       if (!mounted || version !== requestVersion.current) return;
       setLocked(false);
@@ -127,7 +158,7 @@ export function usePropertyListings(config: ListingWidgetConfig, designMode = fa
       setError(t(lang, "propertiesUnavailable"));
       setLoading(false);
     });
-    return () => { mounted = false; window.clearTimeout(retryTimer); };
+    return () => { mounted = false; window.clearTimeout(retryTimer); unsubscribe(); };
   }, [activeFilters, config.pageSize, lang, enabled, retryToken]);
   const loadPage = async (targetPage: number, replace: boolean) => {
     if (!enabled || loadingMore || (!replace && !hasNext)) return;
