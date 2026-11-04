@@ -268,7 +268,11 @@ export function InvoiceComposer({
                             <SelectValue placeholder={listings === null ? t('invoiceListingsLoading') : t('invoiceChooseListing')} />
                           </SelectTrigger>
                           <SelectContent>
-                            {listingOptions.map((option) => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}
+                            {listingOptions.map((option) => {
+                              // A listing already on another line can't be picked again.
+                              const taken = option.id !== line.listingId && form.lines.some((other) => other.key !== line.key && other.listingId === option.id);
+                              return <SelectItem key={option.id} value={option.id} disabled={taken}>{taken ? `${option.label} · ${t('invoiceListingAdded')}` : option.label}</SelectItem>;
+                            })}
                           </SelectContent>
                         </Select>
                       </Field>
@@ -289,7 +293,7 @@ export function InvoiceComposer({
               {fieldError('lineItems')}
               {listings !== null && listings.length === 0 ? <p className="text-xs text-muted-foreground">{t('invoiceNoListings')}</p> : null}
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button type="button" variant="outline" size="sm" disabled={form.lines.length >= INVOICE_LIMITS.lineItems} onClick={() => update({ lines: [...form.lines, newLine()] })}>
+                <Button type="button" variant="outline" size="sm" disabled={form.lines.length >= INVOICE_LIMITS.lineItems || (listings !== null && form.lines.length >= listingOptions.length)} onClick={() => update({ lines: [...form.lines, newLine()] })}>
                   <Plus className="size-4" aria-hidden="true" /> {t('invoiceAddLine')}
                 </Button>
                 <p className="text-sm">

@@ -46,31 +46,54 @@ const record = (value: unknown): Loose => (typeof value === 'object' && value !=
 const text = (value: unknown, max: number) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** HTTP status of a Wix SDK error, wherever the SDK put it. */
-function statusOf(error: unknown): number | undefined {
+interface WixErrorInfo { status?: number; code?: string; reason?: string; requestId?: string }
+
+/**
+ * Status, code and human-readable reason of a Wix SDK error. The SDK sets `status`,
+ * `details.applicationError` / `details.validationError` and `requestId` on the error,
+ * and puts a JSON `{ message, details }` string in `message`.
+ */
+function wixErrorInfo(error: unknown): WixErrorInfo {
   const value = record(error);
   const details = record(value.details);
+  const application = record(details.applicationError);
+  const validation = record(details.validationError);
   const response = record(value.response);
-  for (const candidate of [value.status, value.httpStatus, response.status, details.httpStatus]) {
-    if (typeof candidate === 'number') return candidate;
+  const status = [value.status, response.status].find((candidate): candidate is number => typeof candidate === 'number');
+  const violations = Array.isArray(validation.fieldViolations)
+    ? validation.fieldViolations.map((violation) => { const item = record(violation); return [text(item.field, 100), text(item.description, 200)].filter(Boolean).join(' '); }).filter(Boolean)
+    : [];
+  let messageText = text(value.message, 1000);
+  try {
+    const parsed = record(JSON.parse(messageText));
+    if (typeof parsed.message === 'string') messageText = parsed.message.trim();
+  } catch {
+    // Not JSON: use the message as it is.
   }
-  const match = /\b(4\d\d|5\d\d)\b/.exec(String(value.message ?? ''));
-  return match ? Number(match[1]) : undefined;
+  const reason = violations.join('; ') || text(application.description, 500) || messageText || undefined;
+  const code = text(application.code, 100) || text(value.code, 100) || undefined;
+  const requestId = text(value.requestId, 100) || text(details.requestId, 100) || undefined;
+  return { status, code, reason, requestId };
 }
 
-/** Maps a Wix Invoices API failure to an error the dashboard can explain. */
-function toInvoiceError(error: unknown, fallback: string): InvoiceError {
+/**
+ * Maps a Wix Invoices API failure to an error the dashboard can explain, keeping Wix's own
+ * reason and request ID. A 428 means "Invoices not enabled on this site" only for calls that
+ * reach the Invoices service at all (create, list, get), so `siteCheck` limits that reading.
+ */
+function toInvoiceError(error: unknown, fallback: string, { siteCheck = false }: { siteCheck?: boolean } = {}): InvoiceError {
   if (error instanceof InvoiceError) return error;
-  const status = statusOf(error);
-  if (status === 428) {
-    return new InvoiceError('Wix Invoices isn’t available on this site yet. Wix is enabling it for existing sites gradually; please try again later.', 409, 'invoices_unavailable');
+  const info = wixErrorInfo(error);
+  console.error(fallback, info, error);
+  const suffix = `${info.reason ? ` Wix says: ${info.reason}` : ''}${info.requestId ? ` (request ID ${info.requestId})` : ''}`;
+  if (info.status === 428 && siteCheck) {
+    return new InvoiceError(`Wix Invoices isn’t available on this site yet. Wix is enabling it for existing sites gradually.${suffix}`, 409, 'invoices_unavailable');
   }
-  if (status === 401 || status === 403) {
-    return new InvoiceError('The app doesn’t have permission to manage invoices on this site. Reinstall or update the app to grant the “Manage Invoices” permission.', 403, 'permission_missing');
+  if (info.status === 401 || info.status === 403) {
+    return new InvoiceError(`The app doesn’t have permission for this invoice action. Make sure the app has the “Manage Invoices” permission.${suffix}`, 403, 'permission_missing');
   }
-  if (status === 404) return new InvoiceError('Invoice not found.', 404, 'not_found');
-  console.error(fallback, error);
-  return new InvoiceError(fallback, 502, 'wix_error');
+  if (info.status === 404) return new InvoiceError(`Invoice not found.${suffix}`, 404, 'not_found');
+  return new InvoiceError(`${fallback}${suffix}`, 502, info.code ?? 'wix_error');
 }
 
 async function requireInvoicesPlan(): Promise<void> {
@@ -86,7 +109,7 @@ async function getAppInvoice(id: string): Promise<InvoiceRecord> {
   try {
     wixInvoice = unwrap(await auth.elevate(invoices.getInvoice)(id));
   } catch (error) {
-    throw toInvoiceError(error, 'Wix couldn’t load the invoice. Please try again.');
+    throw toInvoiceError(error, 'Wix couldn’t load the invoice.', { siteCheck: true });
   }
   if (record(record(wixInvoice).sourceReference).appId !== APP_ID) throw new InvoiceError('Invoice not found.', 404, 'not_found');
   return summarizeWixInvoice(wixInvoice);
@@ -173,23 +196,37 @@ async function createInvoiceOnce(input: InvoiceDraftInput, send: boolean): Promi
   try {
     wixInvoice = await auth.elevate(invoices.createInvoice)(toWixInvoice(draft, contactId, new Date(), APP_ID));
   } catch (error) {
-    throw toInvoiceError(error, 'Wix couldn’t create the invoice. Please try again.');
+    throw toInvoiceError(error, 'Wix couldn’t create the invoice.', { siteCheck: true });
   }
 
   const invoiceId = summarizeWixInvoice(wixInvoice)._id;
   if (!send) return { invoice: withDraftCustomer(summarizeWixInvoice(wixInvoice), draft) };
 
+  // Each step reports its own failure. If the email fails, still try to create the
+  // payment link so the agent can share it another way.
+  const warnings: string[] = [];
   let checkoutUrl: string | undefined;
-  let warning: string | undefined;
+  let sent = false;
   try {
     wixInvoice = unwrap(await auth.elevate(invoices.publishInvoice)(invoiceId));
+  } catch (error) {
+    const failure = toInvoiceError(error, 'The invoice was saved as a draft, but Wix couldn’t publish it. Open it from Invoices and choose Send to retry.');
+    return { invoice: withDraftCustomer(summarizeWixInvoice(wixInvoice), draft), warning: failure.message };
+  }
+  try {
     wixInvoice = unwrap(await auth.elevate(invoices.sendInvoice)(invoiceId, draft.message ? { messageContent: draft.message } : {}));
+    sent = true;
+  } catch (error) {
+    warnings.push(toInvoiceError(error, 'The invoice was published, but Wix couldn’t email it. Use Resend, or share the payment link.').message);
+  }
+  try {
     checkoutUrl = (await auth.elevate(invoices.initiatePayment)(invoiceId)).url || undefined;
   } catch (error) {
-    warning = toInvoiceError(error, 'The invoice was created but not fully sent. Use Resend or Get payment link to retry.').message;
+    warnings.push(toInvoiceError(error, 'Wix couldn’t create a payment link. Make sure online payments are set up on the site.').message);
   }
+  const warning = warnings.length ? warnings.join(' ') : undefined;
 
-  if (draft.quoteRequestId && !warning) await markQuoteRequestQuoted(draft.quoteRequestId);
+  if (draft.quoteRequestId && sent) await markQuoteRequestQuoted(draft.quoteRequestId);
   return { invoice: withDraftCustomer(summarizeWixInvoice(wixInvoice), draft), checkoutUrl, warning };
 }
 
@@ -237,7 +274,7 @@ export async function listInvoices(options: { pageSize: number; filter: InvoiceF
       total: typeof paging.total === 'number' ? paging.total : undefined,
     };
   } catch (error) {
-    throw toInvoiceError(error, 'Wix couldn’t load the invoices. Please try again.');
+    throw toInvoiceError(error, 'Wix couldn’t load the invoices.', { siteCheck: true });
   }
 }
 
@@ -259,7 +296,7 @@ export async function resendInvoice(id: string, message?: unknown): Promise<Invo
     if (sent.quoteRequestId) await markQuoteRequestQuoted(sent.quoteRequestId);
     return sent;
   } catch (error) {
-    throw toInvoiceError(error, 'Wix couldn’t send the invoice. Please try again.');
+    throw toInvoiceError(error, 'Wix couldn’t send the invoice.');
   }
 }
 

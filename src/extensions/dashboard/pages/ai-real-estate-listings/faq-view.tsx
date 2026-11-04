@@ -86,6 +86,17 @@ const CATEGORIES: Array<{
     ],
   },
   {
+    id: "invoices",
+    titleKey: "faqCatInvoices",
+    items: [
+      { q: "faqInvoicesWhatQ", a: "faqInvoicesWhatA" },
+      { q: "faqInvoicesCreateQ", a: "faqInvoicesCreateA" },
+      { q: "faqInvoicesPayQ", a: "faqInvoicesPayA" },
+      { q: "faqInvoicesStatusQ", a: "faqInvoicesStatusA" },
+      { q: "faqInvoicesPlanQ", a: "faqInvoicesPlanA" },
+    ],
+  },
+  {
     id: "analytics",
     titleKey: "faqCatAnalytics",
     items: [

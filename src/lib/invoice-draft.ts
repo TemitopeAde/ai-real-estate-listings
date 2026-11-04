@@ -123,6 +123,7 @@ export function parseInvoiceDraft(input: unknown): { value?: InvoiceDraftInput; 
   if (!lineItems.length) errors.lineItems = 'Add at least one line item.';
   else if (rawLines.length > INVOICE_LIMITS.lineItems) errors.lineItems = `An invoice can have up to ${INVOICE_LIMITS.lineItems} line items.`;
   else if (lineItems.some((line) => !line.listingId || !line.name)) errors.lineItems = 'Choose a listing for every line item.';
+  else if (new Set(lineItems.map((line) => line.listingId)).size !== lineItems.length) errors.lineItems = 'Each listing can only be added once. Change the quantity instead.';
   else if (lineItems.some((line) => !Number.isFinite(line.amount) || line.amount <= 0 || line.amount > INVOICE_LIMITS.maxAmount)) errors.lineItems = 'Every line item needs an amount greater than zero.';
   else if (lineItems.some((line) => !Number.isInteger(line.quantity) || line.quantity < 1 || line.quantity > 1000)) errors.lineItems = 'Quantities must be whole numbers from 1 to 1000.';
 

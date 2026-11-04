@@ -32,6 +32,7 @@ import {
 } from '@/lib/dashboard-i18n/labels';
 import { isListingCapReached } from '@/lib/entitlement';
 import { useEntitlement, useEntitlementPending } from './entitlement-context';
+import { OverviewChecklist } from './overview-checklist';
 
 interface OverviewViewProps {
   refreshToken: number;
@@ -40,6 +41,8 @@ interface OverviewViewProps {
   onOpenWriter: () => void;
   onOpenGuide: () => void;
   onOpenPricing: () => void;
+  onOpenSettings: () => void;
+  onOpenRequests: () => void;
 }
 
 function MetricCard({
@@ -149,7 +152,16 @@ function RecentListings({
   );
 }
 
-export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpenWriter, onOpenGuide, onOpenPricing }: OverviewViewProps) {
+export function OverviewView({
+  refreshToken,
+  onAddListing,
+  onViewListings,
+  onOpenWriter,
+  onOpenGuide,
+  onOpenPricing,
+  onOpenSettings,
+  onOpenRequests,
+}: OverviewViewProps) {
   const t = useDt();
   const entitlement = useEntitlement();
   const pending = useEntitlementPending();
@@ -214,6 +226,19 @@ export function OverviewView({ refreshToken, onAddListing, onViewListings, onOpe
           Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-36 rounded-xl" />)
         )}
       </div>
+
+      <OverviewChecklist
+        snapshot={snapshot}
+        instanceId={entitlement.instanceId || undefined}
+        actions={{
+          onAddListing,
+          onViewListings,
+          onOpenGuide,
+          onOpenSettings,
+          onOpenWriter,
+          onOpenRequests,
+        }}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
         <Card className="border-border/70 bg-card/90 shadow-sm">

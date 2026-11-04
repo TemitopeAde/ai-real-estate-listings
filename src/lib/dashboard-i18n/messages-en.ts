@@ -127,6 +127,25 @@ export const EN = {
     "Turn your confirmed property facts into professional, luxury, short, SEO, or social-ready copy in seconds.",
   openWriter: "Open AI writer",
   unlockWriter: "Unlock AI writer",
+  checklistTitle: "Getting started checklist",
+  checklistHint: "Complete these steps to get your listings live and ready for buyers.",
+  checklistAllDone: "Nice work — your workspace is fully set up.",
+  checklistProgress: "{done} of {total} complete",
+  checklistDismiss: "Hide checklist",
+  checklistAutoHint: "Completed automatically from your workspace data",
+  checklistOpenGuide: "Open guide",
+  checklistAddListingTitle: "Add your first listing",
+  checklistAddListingBody: "Enter location, price, and photos for a property.",
+  checklistPublishListingTitle: "Publish an active listing",
+  checklistPublishListingBody: "Only active listings appear on your live site.",
+  checklistAddWidgetTitle: "Add the listings widgets to your site",
+  checklistAddWidgetBody: "Place the property listings and property detail widgets on pages in the editor.",
+  checklistReviewSettingsTitle: "Review workspace settings",
+  checklistReviewSettingsBody: "Set your default currency, area unit, and listing status.",
+  checklistTryWriterTitle: "Write a description with AI",
+  checklistTryWriterBody: "Turn property facts into polished, ready-to-publish listing copy.",
+  checklistCheckRequestsTitle: "Check your quote requests",
+  checklistCheckRequestsBody: "Follow up quickly on enquiries from site visitors.",
 
   listingsEyebrow: "Inventory management",
   listingsTitle: "All listings",
@@ -756,6 +775,22 @@ export const EN = {
   faqLeadsEmailQ: "Who receives quote notification emails?",
   faqLeadsEmailA:
     "Notifications use the listing agent email and the site owner email. Quote email notifications are included on Pro and Business.",
+  faqCatInvoices: "Invoices",
+  faqInvoicesWhatQ: "What can I do with Invoices?",
+  faqInvoicesWhatA:
+    "Bill clients through Wix Invoices. Each invoice is numbered, linked to one or more of your listings, emailed to the client, and comes with an online payment link. Search and filter invoices by Unpaid, Paid, or Voided.",
+  faqInvoicesCreateQ: "How do I create an invoice?",
+  faqInvoicesCreateA:
+    "Choose New invoice in Invoices, or Create invoice on a quote request to prefill the client and property. Pick a contact, add line items for your listings, and set the currency and due date. Create saves a draft; Create & send also emails it to the client. Invoicing from a quote request marks that request as Quoted.",
+  faqInvoicesPayQ: "How do clients pay an invoice?",
+  faqInvoicesPayA:
+    "The emailed invoice includes a link to pay online. You can also open an invoice and use Get payment link to copy and share it yourself. Online payments must be set up on your site; if no link appears, check your site's payment settings.",
+  faqInvoicesStatusQ: "Why hasn't an invoice's status changed?",
+  faqInvoicesStatusA:
+    "Statuses come from Wix Invoices. Open the invoice and choose Refresh to load the latest status. Use Resend to email an unpaid invoice again. Paid and voided invoices are closed and can no longer be sent or paid.",
+  faqInvoicesPlanQ: "Which plan includes Invoices?",
+  faqInvoicesPlanA:
+    "Invoices are included on the Business plan and during an active free trial. Taxes are added by Wix from your site's tax settings.",
   faqAnalyticsWhatQ: "What does Analytics show?",
   faqAnalyticsWhatA:
     "Analytics summarises your inventory mix, recent activity, AI-ready content, top cities, average asking price by currency, and status or transaction breakdowns. It is available on Pro and Business.",
@@ -897,6 +932,7 @@ export const EN = {
   invoiceLineItems: "Line items",
   invoiceListing: "Listing",
   invoiceChooseListing: "Choose a listing",
+  invoiceListingAdded: "already added",
   invoiceListingsLoading: "Loading listings…",
   invoiceNoListings: "Add a listing first; each line item is one of your listings.",
   invoiceLineDescription: "Charge, e.g. Rent (monthly), Deposit",

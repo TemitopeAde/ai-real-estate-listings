@@ -54,6 +54,9 @@ test('a listing becomes one line: title, charge type and price', () => {
 
 test('every line must be a listing, and the first one becomes the invoice listing', () => {
   assert.match(parseInvoiceDraft({ ...validDraft, lineItems: [{ name: 'Custom', amount: 5, quantity: 1 }] }).errors.lineItems, /Choose a listing/);
+  const line = { listingId: 'l1', name: 'Flat', amount: 100, quantity: 1 };
+  assert.match(parseInvoiceDraft({ ...validDraft, lineItems: [line, { ...line, amount: 50 }] }).errors.lineItems, /only be added once/);
+  assert.deepEqual(parseInvoiceDraft({ ...validDraft, lineItems: [line, { ...line, listingId: 'l2' }] }).errors, {});
   const { value } = parseInvoiceDraft(validDraft);
   assert.equal(value.listingId, 'l1');
   assert.equal(value.listingTitle, 'Lekki flat');

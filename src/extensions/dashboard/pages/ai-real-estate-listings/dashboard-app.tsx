@@ -238,6 +238,8 @@ function DashboardAppInner({
         onOpenWriter={() => setSection("writer")}
         onOpenGuide={() => setSection("guide")}
         onOpenPricing={() => setSection("pricing")}
+        onOpenSettings={() => setSection("settings")}
+        onOpenRequests={() => setSection("requests")}
       />
     );
   } else if (section === "listings") {
