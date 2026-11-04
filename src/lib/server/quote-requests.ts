@@ -117,21 +117,77 @@ async function sendQuoteRequestEmails(request: QuoteRequest): Promise<void> {
   });
 }
 
-/** Links the submitter to a site contact, creating one if needed. Never blocks the quote request. */
-async function upsertQuoteContact(details: { firstName: string; lastName: string; email: string; phone: string; countryCode?: string }): Promise<string | undefined> {
+/** ID of the existing contact when Wix rejects a create with DUPLICATE_CONTACT_EXISTS. */
+function duplicateContactId(error: unknown): string | undefined {
+  const value = record(error);
+  const details = record(value.details);
+  for (const candidate of [record(details.applicationError), details, value]) {
+    const data = record(candidate.data);
+    if (candidate.code === 'DUPLICATE_CONTACT_EXISTS' && typeof data.duplicateContactId === 'string' && data.duplicateContactId) return data.duplicateContactId;
+  }
+  return undefined;
+}
+
+/**
+ * Links a person to a site contact (Wix CRM Contacts SDK), creating the contact if needed.
+ * Reuses a contact whose primary email matches, or the one Wix reports as a duplicate
+ * (e.g. the email is a secondary address). If Wix rejects the phone, retries without it.
+ * Never throws: a quote request must not be lost because the contact couldn't be saved;
+ * `syncQuoteRequestContacts` links any request that's left without one.
+ */
+export async function upsertQuoteContact(details: { firstName: string; lastName: string; email: string; phone?: string; countryCode?: string }): Promise<string | undefined> {
   try {
     const existing = await auth.elevate(contacts.queryContacts)().eq('primaryInfo.email', details.email).limit(1).find();
     if (existing.items[0]?._id) return existing.items[0]._id;
-    const created = await auth.elevate(contacts.createContact)({
-      name: { first: details.firstName, last: details.lastName },
-      emails: { items: [{ email: details.email, primary: true }] },
-      phones: { items: [{ phone: details.phone, ...(details.countryCode ? { countryCode: details.countryCode } : {}), primary: true }] },
-    });
-    return created.contact?._id;
   } catch (error) {
-    console.error('Unable to save the quote requester as a contact.', error);
-    return undefined;
+    console.error('Unable to look up the quote requester\'s contact.', error);
   }
+  const base = {
+    name: { first: details.firstName, last: details.lastName },
+    emails: { items: [{ email: details.email, primary: true }] },
+  };
+  const attempts = details.phone
+    ? [{ ...base, phones: { items: [{ phone: details.phone, ...(details.countryCode ? { countryCode: details.countryCode } : {}), primary: true }] } }, base]
+    : [base];
+  for (const [index, info] of attempts.entries()) {
+    try {
+      const created = await auth.elevate(contacts.createContact)(info);
+      if (created.contact?._id) return created.contact._id;
+    } catch (error) {
+      const duplicate = duplicateContactId(error);
+      if (duplicate) return duplicate;
+      const retrying = index < attempts.length - 1;
+      console.error(retrying ? 'Unable to create the contact with a phone number; retrying without it.' : 'Unable to save the quote requester as a contact.', error);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Links quote requests that have no site contact yet (older requests, or ones whose
+ * contact couldn't be saved at the time). Processes up to `limit` per call, oldest first;
+ * pass `skip` = failures so far so requests that keep failing don't block the rest.
+ */
+export async function syncQuoteRequestContacts(limit = 25, skip = 0): Promise<{ linked: number; failed: number; remaining: number }> {
+  const missing = await auth.elevate(items.query)(QUOTE_REQUESTS_COLLECTION_ID).isEmpty('contactId').ascending('_createdDate').skip(Math.max(0, skip)).limit(limit).find({ returnTotalCount: true });
+  let linked = 0;
+  let failed = 0;
+  for (const item of missing.items) {
+    const request = normalizeQuoteRequest(item);
+    if (!email(request.email)) { failed += 1; continue; }
+    // Phones are stored in international format, so no country code is needed.
+    const contactId = await upsertQuoteContact({ firstName: request.firstName, lastName: request.lastName, email: request.email, phone: request.phone || undefined });
+    if (!contactId) { failed += 1; continue; }
+    try {
+      await auth.elevate(items.update)(QUOTE_REQUESTS_COLLECTION_ID, { ...item, contactId });
+      linked += 1;
+    } catch (error) {
+      console.error('Contact created, but the quote request could not be linked to it.', error);
+      failed += 1;
+    }
+  }
+  // Wix's totalCount counts every match (it ignores skip): requests still without a contact.
+  return { linked, failed, remaining: Math.max(0, (missing.totalCount ?? missing.items.length + skip) - linked) };
 }
 
 export function isRateLimited(key: string): boolean {

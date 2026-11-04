@@ -38,6 +38,7 @@ import { OverviewView } from "./overview-view";
 import { AnalyticsView } from "./analytics-view";
 import { SettingsView } from "./settings-view";
 import { RequestsView } from "./requests-view";
+import { InvoicesView } from "./invoices-view";
 import { AIWriterView } from "./ai-writer-view";
 import { GuideView } from "./guide-view";
 import { FaqView } from "./faq-view";
@@ -258,7 +259,9 @@ function DashboardAppInner({
       />
     );
   } else if (section === "requests") {
-    content = <RequestsView refreshToken={refreshToken} />;
+    content = <RequestsView refreshToken={refreshToken} onOpenInvoices={() => setSection("invoices")} />;
+  } else if (section === "invoices") {
+    content = <InvoicesView refreshToken={refreshToken} onOpenPricing={() => setSection("pricing")} />;
   } else if (section === "writer") {
     content = <AIWriterView onOpenPricing={() => setSection("pricing")} />;
   } else if (section === "guide") {

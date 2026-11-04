@@ -2,7 +2,6 @@ import { ComparisonScope } from '../../comparison/comparison-runtime';
 import { ComparisonButton, ComparisonSpace } from '../../comparison/comparison-button';
 import React, { useMemo, type FC } from 'react';
 import classNames from 'classnames';
-import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { DEFAULT_LISTING_WIDGET_CONFIG, normalizeListingWidgetConfig, formatListingPrice, getImageUrls, getListingLocation } from '../../../../lib/site-widget';
 import { PROPERTY_TYPES, TRANSACTION_TYPES } from '../../../../lib/listing-types';
 import { t } from '../../../../lib/widget-i18n';
@@ -12,6 +11,8 @@ import { propertyUrl, useDesignMode, accessibilityAttributes, useSafeSiteUrl } f
 import { navigateTo, onSiteLinkClick } from '../../../../lib/site-navigation';
 import type { PropertyListingsProps } from './property-listings.props';
 import styles from './property-listings.module.css';
+
+const BookmarkIcon: FC<{ saved: boolean }> = ({ saved }) => <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{saved ? <><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /><path d="m9 12 2 2 4-4" /></> : <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />}</svg>;
 
 const PropertyListings: FC<PropertyListingsProps> = (props) => {
   const { id, className, direction, a11y, elementProps, title, subtitle, detailPage } = props;
@@ -99,7 +100,7 @@ const PropertyListings: FC<PropertyListingsProps> = (props) => {
         }}>
         <Gallery className={classNames('property-listings-gallery', elementProps?.gallery?.className)} images={listing ? getImageUrls(listing) : []} title={listing?.title ?? ''} lang={lang} elementProps={{ image: elementProps?.image, control: elementProps?.imageControl, dots: elementProps?.imageDots }} />
         <button {...elementProps?.save} className={classNames('property-listings-save', styles.save, listing && savedIds.has(listing._id) && 'property-listings-save--saved', elementProps?.save?.className)} type="button" onClick={() => { if (listing) void onSave(listing._id); }} disabled={!listing || designMode} aria-label={t(lang, listing && savedIds.has(listing._id) ? 'removeProperty' : 'saveProperty')} aria-pressed={Boolean(listing && savedIds.has(listing._id))}>
-          {listing && savedIds.has(listing._id) ? <BookmarkCheck size={18} aria-hidden="true" /> : <Bookmark size={18} aria-hidden="true" />}
+          <BookmarkIcon saved={Boolean(listing && savedIds.has(listing._id))} />
         </button>
         <div className={styles.cardBody}>
           <strong {...elementProps?.cardPrice} className={classNames('property-listings-card-price', styles.cardPrice, elementProps?.cardPrice?.className)}>{listing ? formatListingPrice(listing, locale) : '\u00a0'}</strong>

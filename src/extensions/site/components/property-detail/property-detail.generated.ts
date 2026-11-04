@@ -282,11 +282,11 @@ export const editorElement = {
           "alignSelf": {}
         },
         "elements": {
-          "propertyGallery": {
+          "propertyDetailPrimaryGallery": {
             "elementType": "inlineElement",
             "inlineElement": {
-              "selector": ".property-gallery",
-              "displayName": "Property Gallery",
+              "selector": ".property-detail-primary-gallery",
+              "displayName": "Primary Gallery",
               "behaviors": {
                 "removable": true,
                 "selectable": false
@@ -352,10 +352,10 @@ export const editorElement = {
                 "alignItems": {}
               },
               "elements": {
-                "propertyGalleryImage": {
+                "propertyDetailPrimaryGalleryImage": {
                   "elementType": "inlineElement",
                   "inlineElement": {
-                    "selector": ".property-gallery-image",
+                    "selector": ".property-detail-primary-gallery-image",
                     "displayName": "Image",
                     "behaviors": {
                       "removable": true,
@@ -399,10 +399,10 @@ export const editorElement = {
                     }
                   }
                 },
-                "propertyGalleryControl": {
+                "propertyDetailPrimaryGalleryControl": {
                   "elementType": "inlineElement",
                   "inlineElement": {
-                    "selector": ".property-gallery-control",
+                    "selector": ".property-detail-primary-gallery-control",
                     "displayName": "Control",
                     "behaviors": {
                       "removable": true,
@@ -471,15 +471,6 @@ export const editorElement = {
                           ]
                         }
                       },
-                      "font": {
-                        "defaultValue": "inherit"
-                      },
-                      "lineHeight": {},
-                      "letterSpacing": {},
-                      "textDecorationLine": {},
-                      "textTransform": {},
-                      "textAlign": {},
-                      "textShadow": {},
                       "marginTop": {},
                       "marginBottom": {},
                       "marginInlineStart": {},
@@ -492,67 +483,21 @@ export const editorElement = {
                     "states": {
                       "hover": {
                         "displayName": "Hover",
-                        "className": "property-gallery-control--hover",
+                        "className": "property-detail-primary-gallery-control--hover",
                         "pseudoClass": "hover"
                       },
                       "disabled": {
                         "displayName": "Disabled",
-                        "className": "property-gallery-control--disabled",
+                        "className": "property-detail-primary-gallery-control--disabled",
                         "pseudoClass": "disabled"
-                      }
-                    },
-                    "elements": {
-                      "lucide": {
-                        "elementType": "inlineElement",
-                        "inlineElement": {
-                          "selector": ".lucide",
-                          "displayName": "Lucide",
-                          "behaviors": {
-                            "removable": true,
-                            "selectable": false
-                          },
-                          "cssProperties": {
-                            "background": {},
-                            "borderTop": {},
-                            "borderBottom": {},
-                            "borderInlineStart": {},
-                            "borderInlineEnd": {},
-                            "paddingTop": {},
-                            "paddingBottom": {},
-                            "paddingInlineStart": {},
-                            "paddingInlineEnd": {},
-                            "borderStartStartRadius": {},
-                            "borderStartEndRadius": {},
-                            "borderEndStartRadius": {},
-                            "borderEndEndRadius": {},
-                            "boxShadow": {},
-                            "width": {},
-                            "height": {},
-                            "overflow": {},
-                            "mixBlendMode": {},
-                            "marginTop": {},
-                            "marginBottom": {},
-                            "marginInlineStart": {},
-                            "marginInlineEnd": {},
-                            "display": {
-                              "display": {
-                                "displayValues": [
-                                  "none",
-                                  "block"
-                                ]
-                              }
-                            },
-                            "alignSelf": {}
-                          }
-                        }
                       }
                     }
                   }
                 },
-                "propertyGalleryDots": {
+                "propertyDetailPrimaryGalleryDots": {
                   "elementType": "inlineElement",
                   "inlineElement": {
-                    "selector": ".property-gallery-dots",
+                    "selector": ".property-detail-primary-gallery-dots",
                     "displayName": "Dots",
                     "behaviors": {
                       "removable": true,
@@ -869,11 +814,11 @@ export const editorElement = {
                     }
                   }
                 },
-                "propertyCompareButton": {
+                "propertyDetailPrimaryCompare": {
                   "elementType": "inlineElement",
                   "inlineElement": {
-                    "selector": ".property-compare-button",
-                    "displayName": "Property Compare Button",
+                    "selector": ".property-detail-primary-compare",
+                    "displayName": "Primary Compare",
                     "behaviors": {
                       "removable": true,
                       "selectable": false
@@ -959,17 +904,17 @@ export const editorElement = {
                       },
                       "hover": {
                         "displayName": "Hover",
-                        "className": "property-compare-button--hover",
+                        "className": "property-detail-primary-compare--hover",
                         "pseudoClass": "hover"
                       }
                     }
                   }
                 },
-                "propertyDetailSave": {
+                "propertyDetailPrimarySave": {
                   "elementType": "inlineElement",
                   "inlineElement": {
-                    "selector": ".property-detail-save",
-                    "displayName": "Save",
+                    "selector": ".property-detail-primary-save",
+                    "displayName": "Primary Save",
                     "behaviors": {
                       "removable": true,
                       "selectable": false
@@ -1038,13 +983,6 @@ export const editorElement = {
                           ]
                         }
                       },
-                      "font": {},
-                      "lineHeight": {},
-                      "letterSpacing": {},
-                      "textDecorationLine": {},
-                      "textTransform": {},
-                      "textAlign": {},
-                      "textShadow": {},
                       "marginTop": {},
                       "marginBottom": {},
                       "marginInlineStart": {},
@@ -1056,63 +994,17 @@ export const editorElement = {
                     "states": {
                       "saved": {
                         "displayName": "Saved",
-                        "className": "property-detail-save--saved"
+                        "className": "property-detail-related-save--saved"
                       },
                       "hover": {
                         "displayName": "Hover",
-                        "className": "property-detail-save--hover",
+                        "className": "property-detail-primary-save--hover",
                         "pseudoClass": "hover"
                       },
                       "disabled": {
                         "displayName": "Disabled",
-                        "className": "property-detail-save--disabled",
+                        "className": "property-detail-primary-save--disabled",
                         "pseudoClass": "disabled"
-                      }
-                    },
-                    "elements": {
-                      "lucide": {
-                        "elementType": "inlineElement",
-                        "inlineElement": {
-                          "selector": ".lucide",
-                          "displayName": "Lucide",
-                          "behaviors": {
-                            "removable": true,
-                            "selectable": false
-                          },
-                          "cssProperties": {
-                            "background": {},
-                            "borderTop": {},
-                            "borderBottom": {},
-                            "borderInlineStart": {},
-                            "borderInlineEnd": {},
-                            "paddingTop": {},
-                            "paddingBottom": {},
-                            "paddingInlineStart": {},
-                            "paddingInlineEnd": {},
-                            "borderStartStartRadius": {},
-                            "borderStartEndRadius": {},
-                            "borderEndStartRadius": {},
-                            "borderEndEndRadius": {},
-                            "boxShadow": {},
-                            "width": {},
-                            "height": {},
-                            "overflow": {},
-                            "mixBlendMode": {},
-                            "marginTop": {},
-                            "marginBottom": {},
-                            "marginInlineStart": {},
-                            "marginInlineEnd": {},
-                            "display": {
-                              "display": {
-                                "displayValues": [
-                                  "none",
-                                  "block"
-                                ]
-                              }
-                            },
-                            "alignSelf": {}
-                          }
-                        }
                       }
                     }
                   }
@@ -1282,53 +1174,6 @@ export const editorElement = {
                   "inlineElement": {
                     "selector": ".property-detail-tour",
                     "displayName": "Tour",
-                    "behaviors": {
-                      "removable": true,
-                      "selectable": false
-                    },
-                    "cssProperties": {
-                      "background": {},
-                      "borderTop": {},
-                      "borderBottom": {},
-                      "borderInlineStart": {},
-                      "borderInlineEnd": {},
-                      "paddingTop": {},
-                      "paddingBottom": {},
-                      "paddingInlineStart": {},
-                      "paddingInlineEnd": {},
-                      "borderStartStartRadius": {},
-                      "borderStartEndRadius": {},
-                      "borderEndStartRadius": {},
-                      "borderEndEndRadius": {},
-                      "boxShadow": {},
-                      "width": {},
-                      "height": {},
-                      "overflow": {},
-                      "mixBlendMode": {},
-                      "marginTop": {
-                        "defaultValue": "2rem"
-                      },
-                      "marginBottom": {
-                        "defaultValue": "1.5rem"
-                      },
-                      "marginInlineStart": {},
-                      "marginInlineEnd": {},
-                      "display": {
-                        "display": {
-                          "displayValues": [
-                            "none",
-                            "block"
-                          ]
-                        }
-                      }
-                    }
-                  }
-                },
-                "propertyDetailVideos": {
-                  "elementType": "inlineElement",
-                  "inlineElement": {
-                    "selector": ".property-detail-videos",
-                    "displayName": "Videos",
                     "behaviors": {
                       "removable": true,
                       "selectable": false
@@ -1962,13 +1807,6 @@ export const editorElement = {
                     ]
                   }
                 },
-                "font": {},
-                "lineHeight": {},
-                "letterSpacing": {},
-                "textDecorationLine": {},
-                "textTransform": {},
-                "textAlign": {},
-                "textShadow": {},
                 "marginTop": {},
                 "marginBottom": {},
                 "marginInlineStart": {},
@@ -1987,52 +1825,6 @@ export const editorElement = {
                   "displayName": "Disabled",
                   "className": "property-detail-related-control--disabled",
                   "pseudoClass": "disabled"
-                }
-              },
-              "elements": {
-                "lucide": {
-                  "elementType": "inlineElement",
-                  "inlineElement": {
-                    "selector": ".lucide",
-                    "displayName": "Lucide",
-                    "behaviors": {
-                      "removable": true,
-                      "selectable": false
-                    },
-                    "cssProperties": {
-                      "background": {},
-                      "borderTop": {},
-                      "borderBottom": {},
-                      "borderInlineStart": {},
-                      "borderInlineEnd": {},
-                      "paddingTop": {},
-                      "paddingBottom": {},
-                      "paddingInlineStart": {},
-                      "paddingInlineEnd": {},
-                      "borderStartStartRadius": {},
-                      "borderStartEndRadius": {},
-                      "borderEndStartRadius": {},
-                      "borderEndEndRadius": {},
-                      "boxShadow": {},
-                      "width": {},
-                      "height": {},
-                      "overflow": {},
-                      "mixBlendMode": {},
-                      "marginTop": {},
-                      "marginBottom": {},
-                      "marginInlineStart": {},
-                      "marginInlineEnd": {},
-                      "display": {
-                        "display": {
-                          "displayValues": [
-                            "none",
-                            "block"
-                          ]
-                        }
-                      },
-                      "alignSelf": {}
-                    }
-                  }
                 }
               }
             }
@@ -2150,11 +1942,11 @@ export const editorElement = {
                       "alignSelf": {}
                     },
                     "elements": {
-                      "propertyGallery": {
+                      "propertyDetailRelatedGallery": {
                         "elementType": "inlineElement",
                         "inlineElement": {
-                          "selector": ".property-gallery",
-                          "displayName": "Property Gallery",
+                          "selector": ".property-detail-related-gallery",
+                          "displayName": "Gallery",
                           "behaviors": {
                             "removable": true,
                             "selectable": false
@@ -2220,10 +2012,10 @@ export const editorElement = {
                             "alignItems": {}
                           },
                           "elements": {
-                            "propertyGalleryImage": {
+                            "propertyDetailRelatedGalleryImage": {
                               "elementType": "inlineElement",
                               "inlineElement": {
-                                "selector": ".property-gallery-image",
+                                "selector": ".property-detail-related-gallery-image",
                                 "displayName": "Image",
                                 "behaviors": {
                                   "removable": true,
@@ -2267,10 +2059,10 @@ export const editorElement = {
                                 }
                               }
                             },
-                            "propertyGalleryControl": {
+                            "propertyDetailRelatedGalleryControl": {
                               "elementType": "inlineElement",
                               "inlineElement": {
-                                "selector": ".property-gallery-control",
+                                "selector": ".property-detail-related-gallery-control",
                                 "displayName": "Control",
                                 "behaviors": {
                                   "removable": true,
@@ -2339,15 +2131,6 @@ export const editorElement = {
                                       ]
                                     }
                                   },
-                                  "font": {
-                                    "defaultValue": "inherit"
-                                  },
-                                  "lineHeight": {},
-                                  "letterSpacing": {},
-                                  "textDecorationLine": {},
-                                  "textTransform": {},
-                                  "textAlign": {},
-                                  "textShadow": {},
                                   "marginTop": {},
                                   "marginBottom": {},
                                   "marginInlineStart": {},
@@ -2360,67 +2143,21 @@ export const editorElement = {
                                 "states": {
                                   "hover": {
                                     "displayName": "Hover",
-                                    "className": "property-gallery-control--hover",
+                                    "className": "property-detail-related-gallery-control--hover",
                                     "pseudoClass": "hover"
                                   },
                                   "disabled": {
                                     "displayName": "Disabled",
-                                    "className": "property-gallery-control--disabled",
+                                    "className": "property-detail-related-gallery-control--disabled",
                                     "pseudoClass": "disabled"
-                                  }
-                                },
-                                "elements": {
-                                  "lucide": {
-                                    "elementType": "inlineElement",
-                                    "inlineElement": {
-                                      "selector": ".lucide",
-                                      "displayName": "Lucide",
-                                      "behaviors": {
-                                        "removable": true,
-                                        "selectable": false
-                                      },
-                                      "cssProperties": {
-                                        "background": {},
-                                        "borderTop": {},
-                                        "borderBottom": {},
-                                        "borderInlineStart": {},
-                                        "borderInlineEnd": {},
-                                        "paddingTop": {},
-                                        "paddingBottom": {},
-                                        "paddingInlineStart": {},
-                                        "paddingInlineEnd": {},
-                                        "borderStartStartRadius": {},
-                                        "borderStartEndRadius": {},
-                                        "borderEndStartRadius": {},
-                                        "borderEndEndRadius": {},
-                                        "boxShadow": {},
-                                        "width": {},
-                                        "height": {},
-                                        "overflow": {},
-                                        "mixBlendMode": {},
-                                        "marginTop": {},
-                                        "marginBottom": {},
-                                        "marginInlineStart": {},
-                                        "marginInlineEnd": {},
-                                        "display": {
-                                          "display": {
-                                            "displayValues": [
-                                              "none",
-                                              "block"
-                                            ]
-                                          }
-                                        },
-                                        "alignSelf": {}
-                                      }
-                                    }
                                   }
                                 }
                               }
                             },
-                            "propertyGalleryDots": {
+                            "propertyDetailRelatedGalleryDots": {
                               "elementType": "inlineElement",
                               "inlineElement": {
-                                "selector": ".property-gallery-dots",
+                                "selector": ".property-detail-related-gallery-dots",
                                 "displayName": "Dots",
                                 "behaviors": {
                                   "removable": true,
@@ -2536,11 +2273,11 @@ export const editorElement = {
                           }
                         }
                       },
-                      "propertyCompareButton": {
+                      "propertyDetailRelatedCompare": {
                         "elementType": "inlineElement",
                         "inlineElement": {
-                          "selector": ".property-compare-button",
-                          "displayName": "Property Compare Button",
+                          "selector": ".property-detail-related-compare",
+                          "displayName": "Compare",
                           "behaviors": {
                             "removable": true,
                             "selectable": false
@@ -2626,16 +2363,16 @@ export const editorElement = {
                             },
                             "hover": {
                               "displayName": "Hover",
-                              "className": "property-compare-button--hover",
+                              "className": "property-detail-related-compare--hover",
                               "pseudoClass": "hover"
                             }
                           }
                         }
                       },
-                      "propertyDetailSave": {
+                      "propertyDetailRelatedSave": {
                         "elementType": "inlineElement",
                         "inlineElement": {
-                          "selector": ".property-detail-save",
+                          "selector": ".property-detail-related-save",
                           "displayName": "Save",
                           "behaviors": {
                             "removable": true,
@@ -2705,13 +2442,6 @@ export const editorElement = {
                                 ]
                               }
                             },
-                            "font": {},
-                            "lineHeight": {},
-                            "letterSpacing": {},
-                            "textDecorationLine": {},
-                            "textTransform": {},
-                            "textAlign": {},
-                            "textShadow": {},
                             "marginTop": {},
                             "marginBottom": {},
                             "marginInlineStart": {},
@@ -2723,63 +2453,17 @@ export const editorElement = {
                           "states": {
                             "saved": {
                               "displayName": "Saved",
-                              "className": "property-detail-save--saved"
+                              "className": "property-detail-related-save--saved"
                             },
                             "hover": {
                               "displayName": "Hover",
-                              "className": "property-detail-save--hover",
+                              "className": "property-detail-related-save--hover",
                               "pseudoClass": "hover"
                             },
                             "disabled": {
                               "displayName": "Disabled",
-                              "className": "property-detail-save--disabled",
+                              "className": "property-detail-related-save--disabled",
                               "pseudoClass": "disabled"
-                            }
-                          },
-                          "elements": {
-                            "lucide": {
-                              "elementType": "inlineElement",
-                              "inlineElement": {
-                                "selector": ".lucide",
-                                "displayName": "Lucide",
-                                "behaviors": {
-                                  "removable": true,
-                                  "selectable": false
-                                },
-                                "cssProperties": {
-                                  "background": {},
-                                  "borderTop": {},
-                                  "borderBottom": {},
-                                  "borderInlineStart": {},
-                                  "borderInlineEnd": {},
-                                  "paddingTop": {},
-                                  "paddingBottom": {},
-                                  "paddingInlineStart": {},
-                                  "paddingInlineEnd": {},
-                                  "borderStartStartRadius": {},
-                                  "borderStartEndRadius": {},
-                                  "borderEndStartRadius": {},
-                                  "borderEndEndRadius": {},
-                                  "boxShadow": {},
-                                  "width": {},
-                                  "height": {},
-                                  "overflow": {},
-                                  "mixBlendMode": {},
-                                  "marginTop": {},
-                                  "marginBottom": {},
-                                  "marginInlineStart": {},
-                                  "marginInlineEnd": {},
-                                  "display": {
-                                    "display": {
-                                      "displayValues": [
-                                        "none",
-                                        "block"
-                                      ]
-                                    }
-                                  },
-                                  "alignSelf": {}
-                                }
-                              }
                             }
                           }
                         }

@@ -27,6 +27,7 @@
     "@wix/editor": "^1.356.0",
     "@wix/email-transmissions": "^1.0.13",
     "@wix/essentials": "^0.1.23",
+    "@wix/get-paid": "^1.0.647",
     "@wix/media": "^1.0.272",
     "@wix/notifications": "^1.0.70",
     "@wix/react-component-schema": "^1.10.0",

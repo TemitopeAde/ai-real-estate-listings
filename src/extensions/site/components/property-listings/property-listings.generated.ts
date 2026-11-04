@@ -1099,13 +1099,6 @@ export const editorElement = {
                                 ]
                               }
                             },
-                            "font": {},
-                            "lineHeight": {},
-                            "letterSpacing": {},
-                            "textDecorationLine": {},
-                            "textTransform": {},
-                            "textAlign": {},
-                            "textShadow": {},
                             "marginTop": {},
                             "marginBottom": {},
                             "marginInlineStart": {},
@@ -1125,52 +1118,6 @@ export const editorElement = {
                               "displayName": "Disabled",
                               "className": "property-gallery-control--disabled",
                               "pseudoClass": "disabled"
-                            }
-                          },
-                          "elements": {
-                            "lucide": {
-                              "elementType": "inlineElement",
-                              "inlineElement": {
-                                "selector": ".lucide",
-                                "displayName": "Lucide",
-                                "behaviors": {
-                                  "removable": true,
-                                  "selectable": false
-                                },
-                                "cssProperties": {
-                                  "background": {},
-                                  "borderTop": {},
-                                  "borderBottom": {},
-                                  "borderInlineStart": {},
-                                  "borderInlineEnd": {},
-                                  "paddingTop": {},
-                                  "paddingBottom": {},
-                                  "paddingInlineStart": {},
-                                  "paddingInlineEnd": {},
-                                  "borderStartStartRadius": {},
-                                  "borderStartEndRadius": {},
-                                  "borderEndStartRadius": {},
-                                  "borderEndEndRadius": {},
-                                  "boxShadow": {},
-                                  "width": {},
-                                  "height": {},
-                                  "overflow": {},
-                                  "mixBlendMode": {},
-                                  "marginTop": {},
-                                  "marginBottom": {},
-                                  "marginInlineStart": {},
-                                  "marginInlineEnd": {},
-                                  "display": {
-                                    "display": {
-                                      "displayValues": [
-                                        "none",
-                                        "block"
-                                      ]
-                                    }
-                                  },
-                                  "alignSelf": {}
-                                }
-                              }
                             }
                           }
                         }
@@ -1300,13 +1247,6 @@ export const editorElement = {
                           ]
                         }
                       },
-                      "font": {},
-                      "lineHeight": {},
-                      "letterSpacing": {},
-                      "textDecorationLine": {},
-                      "textTransform": {},
-                      "textAlign": {},
-                      "textShadow": {},
                       "marginTop": {},
                       "marginBottom": {},
                       "marginInlineStart": {},
@@ -1329,52 +1269,6 @@ export const editorElement = {
                         "displayName": "Disabled",
                         "className": "property-listings-save--disabled",
                         "pseudoClass": "disabled"
-                      }
-                    },
-                    "elements": {
-                      "lucide": {
-                        "elementType": "inlineElement",
-                        "inlineElement": {
-                          "selector": ".lucide",
-                          "displayName": "Lucide",
-                          "behaviors": {
-                            "removable": true,
-                            "selectable": false
-                          },
-                          "cssProperties": {
-                            "background": {},
-                            "borderTop": {},
-                            "borderBottom": {},
-                            "borderInlineStart": {},
-                            "borderInlineEnd": {},
-                            "paddingTop": {},
-                            "paddingBottom": {},
-                            "paddingInlineStart": {},
-                            "paddingInlineEnd": {},
-                            "borderStartStartRadius": {},
-                            "borderStartEndRadius": {},
-                            "borderEndStartRadius": {},
-                            "borderEndEndRadius": {},
-                            "boxShadow": {},
-                            "width": {},
-                            "height": {},
-                            "overflow": {},
-                            "mixBlendMode": {},
-                            "marginTop": {},
-                            "marginBottom": {},
-                            "marginInlineStart": {},
-                            "marginInlineEnd": {},
-                            "display": {
-                              "display": {
-                                "displayValues": [
-                                  "none",
-                                  "block"
-                                ]
-                              }
-                            },
-                            "alignSelf": {}
-                          }
-                        }
                       }
                     }
                   }

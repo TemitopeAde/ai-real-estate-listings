@@ -1,4 +1,5 @@
 import { getBillingAccess } from "./billing-access";
+import { isDevelopmentEnvironment } from "./environment";
 export { getBillingAccess } from "./billing-access";
 import { subscriptionError } from "../subscription-guard";
 export { subscriptionError } from "../subscription-guard";
@@ -46,7 +47,7 @@ async function countListings(status?: "active"): Promise<number> {
 
 export async function getAppEntitlement(): Promise<AppEntitlement> {
   const access = await getBillingAccess();
-  const fullAccess = access.isTrial;
+  const fullAccess = isDevelopmentEnvironment() || access.isTrial;
   const features = featuresForPlan(!access.hasAccess ? "basic" : fullAccess ? "business" : access.planId);
   const listingCap = access.hasAccess ? listingCapForPlan(access.planId, fullAccess) : 0;
   const [listingCount, activeListingCount] = access.hasAccess

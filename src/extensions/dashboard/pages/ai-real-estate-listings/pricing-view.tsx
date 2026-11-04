@@ -47,6 +47,7 @@ const FEATURE_NAME_KEYS: DashboardMessageKey[] = [
   "featAssistant",
   "featRelated",
   "featMultiScene",
+  "featInvoices",
   "featPriority",
 ];
 

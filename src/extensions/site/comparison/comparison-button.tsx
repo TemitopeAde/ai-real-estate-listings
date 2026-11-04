@@ -7,9 +7,9 @@ import { useComparisonSnapshot, useComparisonStore } from './comparison-runtime'
 import { comparisonLabels } from './comparison-i18n';
 import styles from './comparison.module.css';
 
-type Props = { listing: Listing | null; lang: WidgetLangCode; className?: string | undefined; disabled?: boolean; hidden?: boolean };
+type Props = { listing: Listing | null; lang: WidgetLangCode; className?: string | undefined; selector?: string; disabled?: boolean; hidden?: boolean };
 export const ComparisonButton: FC<Props> = (props) => {
-  const { listing, lang, className, disabled = false, hidden = false } = props;
+  const { listing, lang, className, selector = 'property-compare-button', disabled = false, hidden = false } = props;
   const store = useComparisonStore();
   const state = useComparisonSnapshot(store);
   const selected = Boolean(listing && state.items.some((item) => item.id === listing._id));
@@ -17,7 +17,7 @@ export const ComparisonButton: FC<Props> = (props) => {
   const unavailable = disabled || !listing || !store;
   // Keep clicks and keys from reaching card-level link handlers.
   return <label hidden={hidden} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}
-    className={classNames('property-compare-button', styles.compareButton, selected && 'property-compare-button--selected', unavailable && 'property-compare-button--disabled', className)}>
+    className={classNames(selector, styles.compareButton, selected && `${selector}--selected`, unavailable && `${selector}--disabled`, className)}>
     <input type="checkbox" className={styles.compareCheckbox} checked={selected} disabled={unavailable}
       aria-label={`${labels.checkbox}${listing ? `: ${listing.title}` : ''}`}
       onChange={() => {

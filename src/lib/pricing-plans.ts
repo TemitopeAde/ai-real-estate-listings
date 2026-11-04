@@ -51,7 +51,8 @@ export type PlanFeatureFlag =
   | "quoteEmail"
   | "assistant"
   | "relatedListings"
-  | "multiSceneTour";
+  | "multiSceneTour"
+  | "invoices";
 
 export type PlanFeatureFlags = Record<PlanFeatureFlag, boolean>;
 
@@ -74,6 +75,7 @@ export function featuresForPlan(planId: AppPlanId): PlanFeatureFlags {
     assistant: business,
     relatedListings: business,
     multiSceneTour: business,
+    invoices: business,
   };
 }
 
@@ -144,6 +146,10 @@ export const APP_PLAN_FEATURES: PlanFeatureRow[] = [
   },
   {
     name: "Multiple 360° tour scenes",
+    values: { basic: false, pro: false, business: true },
+  },
+  {
+    name: "Invoices with online payment",
     values: { basic: false, pro: false, business: true },
   },
   {

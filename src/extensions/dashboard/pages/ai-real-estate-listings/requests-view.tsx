@@ -11,6 +11,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Receipt,
   RefreshCw,
   Save,
   Search,
@@ -30,6 +31,7 @@ import {
   QUOTE_REQUEST_STATUSES,
   queryQuoteRequests,
   sendQuoteReply,
+  syncQuoteRequestContacts,
   updateQuoteRequest,
   type QuoteRequest,
   type QuoteRequestCounts,
@@ -37,10 +39,37 @@ import {
 } from '@/lib/quote-requests';
 import { cn } from '@/lib/utils';
 import { QuoteEmailEditor } from './quote-email-editor';
+import { InvoiceComposer } from './invoice-composer';
+import { InvoiceStatusPill, copyText } from './invoice-ui';
+import { getInvoicePaymentLink, queryInvoices, type InvoiceRecord } from '@/lib/invoices';
 import { useEntitlement } from './entitlement-context';
 import { QUOTE_TEMPLATE_BODY_MAX, QUOTE_TEMPLATE_PLACEHOLDERS, QUOTE_TEMPLATE_SUBJECT_MAX, validateQuoteConfirmationTemplate } from '@/lib/quote-email-template';
 
 const PAGE_SIZE = 20;
+
+/**
+ * Links every quote request to a site contact (older requests, or ones whose contact
+ * couldn't be saved when submitted). Runs once per dashboard session, in batches.
+ */
+let contactSync: Promise<number> | null = null;
+function syncContactsOnce(): Promise<number> {
+  contactSync ??= (async () => {
+    let skip = 0;
+    let linked = 0;
+    for (let batch = 0; batch < 40; batch += 1) {
+      const result = await syncQuoteRequestContacts(skip);
+      linked += result.linked;
+      skip += result.failed;
+      if (result.linked + result.failed === 0 || skip >= result.remaining) break;
+    }
+    return linked;
+  })().catch((error) => {
+    console.error('Unable to sync quote request contacts.', error);
+    contactSync = null;
+    return 0;
+  });
+  return contactSync;
+}
 
 type Tab = 'active' | QuoteRequestStatus | 'archived';
 
@@ -99,7 +128,7 @@ function StatusPill({ status }: { status: QuoteRequestStatus }) {
   );
 }
 
-export function RequestsView({ refreshToken }: { refreshToken: number }) {
+export function RequestsView({ refreshToken, onOpenInvoices }: { refreshToken: number; onOpenInvoices?: () => void }) {
   const t = useDt();
   const { locale } = useDashboardI18n();
   const wide = useWideLayout();
@@ -143,6 +172,13 @@ export function RequestsView({ refreshToken }: { refreshToken: number }) {
     const timer = window.setTimeout(() => void load(), 250);
     return () => window.clearTimeout(timer);
   }, [load, refreshToken]);
+
+  // Make sure every requester is a site contact; reload if any were just linked.
+  useEffect(() => {
+    let cancelled = false;
+    void syncContactsOnce().then((linked) => { if (linked > 0 && !cancelled) void load(); });
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // On wide screens keep a request open in the detail panel.
   useEffect(() => {
@@ -201,6 +237,7 @@ export function RequestsView({ refreshToken }: { refreshToken: number }) {
       saving={savingId === selected._id}
       locale={locale}
       onSave={save}
+      onOpenInvoices={onOpenInvoices}
       onReplaced={(saved) => {
         setRequests((items) => items.map((item) => (item._id === saved._id ? saved : item)));
         void refreshCounts();
@@ -359,16 +396,21 @@ function RequestDetail({
   locale,
   onSave,
   onReplaced,
+  onOpenInvoices,
 }: {
   request: QuoteRequest;
   saving: boolean;
   locale: string;
+  onOpenInvoices?: () => void;
   onReplaced: (request: QuoteRequest) => void;
   onSave: (request: QuoteRequest, update: { status?: QuoteRequestStatus; notes?: string; archived?: boolean }, successMessage?: string) => Promise<void>;
 }) {
   const t = useDt();
   const [notes, setNotes] = useState(request.notes ?? '');
   const [composing, setComposing] = useState(false);
+  const [invoicing, setInvoicing] = useState(false);
+  const [invoiceVersion, setInvoiceVersion] = useState(0);
+  const canInvoice = useEntitlement().features.invoices;
   const notesDirty = notes !== (request.notes ?? '');
   const name = `${request.firstName} ${request.lastName}`.trim();
   const phone = request.phone?.replace(/[^\d+]/g, '') ?? '';
@@ -398,7 +440,20 @@ function RequestDetail({
         <Button size="sm" onClick={() => setComposing(true)} disabled={composing}><Send className="size-4" aria-hidden="true" /> {t('quoteSendEmail')}</Button>
         {phone ? <Button asChild size="sm" variant="outline"><a href={`tel:${phone}`}><Phone className="size-4" aria-hidden="true" /> {t('quoteCallAction')}</a></Button> : null}
         <Button size="sm" variant="outline" onClick={() => void copyEmail()}><Copy className="size-4" aria-hidden="true" /> {t('quoteCopyEmail')}</Button>
+        {canInvoice ? <Button size="sm" variant="outline" onClick={() => setInvoicing(true)}><Receipt className="size-4" aria-hidden="true" /> {t('quoteCreateInvoice')}</Button> : null}
       </div>
+
+      {canInvoice ? (
+        <InvoiceComposer
+          open={invoicing}
+          onOpenChange={setInvoicing}
+          quoteRequestId={request._id}
+          onCreated={() => {
+            setInvoiceVersion((value) => value + 1);
+            onReplaced({ ...request, status: request.status === 'new' || request.status === 'contacted' ? 'quoted' : request.status });
+          }}
+        />
+      ) : null}
 
       {composing ? (
         <ReplyComposer request={request} onCancel={() => setComposing(false)} onSent={(saved) => { setComposing(false); onReplaced(saved); }} />
@@ -452,6 +507,10 @@ function RequestDetail({
             ))}
           </ul>
         </section>
+      ) : null}
+
+      {canInvoice ? (
+        <RequestInvoices key={invoiceVersion} request={request} locale={locale} onOpenInvoices={onOpenInvoices} />
       ) : null}
 
       <section className="space-y-2">
@@ -567,6 +626,55 @@ function ReplyComposer({ request, onCancel, onSent }: { request: QuoteRequest; o
           {sending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />} {t('quoteComposeSend')}
         </Button>
       </div>
+    </section>
+  );
+}
+
+/** Invoices created from this quote request, newest first (read live from Wix). Hidden when there are none. */
+function RequestInvoices({ request, locale, onOpenInvoices }: { request: QuoteRequest; locale: string; onOpenInvoices?: () => void }) {
+  const t = useDt();
+  const [invoices, setInvoices] = useState<InvoiceRecord[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    queryInvoices({ pageSize: 10, quoteRequestId: request._id })
+      .then((result) => { if (!cancelled) setInvoices(result.items); })
+      .catch(() => { if (!cancelled) setInvoices([]); });
+    return () => { cancelled = true; };
+  }, [request._id]);
+
+  const copyLink = async (invoice: InvoiceRecord) => {
+    try {
+      const { checkoutUrl } = await getInvoicePaymentLink(invoice._id);
+      await copyText(checkoutUrl, t('invoiceLinkCopied'));
+    } catch (error) {
+      dashboard.showToast({ type: 'error', message: error instanceof Error ? error.message : t('invoiceActionError') });
+    }
+  };
+
+  if (invoices !== null && invoices.length === 0) return null;
+  return (
+    <section className="space-y-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('quoteInvoices')}</h4>
+        {onOpenInvoices ? <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onOpenInvoices}>{t('navInvoices')}</Button> : null}
+      </div>
+      {invoices === null ? (
+        <Skeleton className="h-12 w-full" />
+      ) : (
+        <ul className="space-y-1.5">
+          {invoices.map((invoice) => (
+            <li key={invoice._id} className="flex items-center gap-2 rounded-lg border border-border/70 px-3 py-2 text-sm">
+              <Receipt className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate">{invoice.number || t('invoiceUnnumbered')} · <span className="tabular-nums">{formatPrice(invoice.total, invoice.currency, locale)}</span></span>
+              <InvoiceStatusPill invoice={invoice} />
+              {invoice.status !== 'PAID' && invoice.status !== 'VOIDED' ? (
+                <Button variant="ghost" size="icon-sm" aria-label={t('invoiceCopyLink')} onClick={() => void copyLink(invoice)}><Copy /></Button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

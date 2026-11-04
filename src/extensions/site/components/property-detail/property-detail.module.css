@@ -16,7 +16,8 @@
 .save { box-sizing: border-box; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: #e7eeeb; color: #0c3b2e; cursor: pointer; }
 .save:global(.property-detail-save--hover), .save:hover { background: #d9e9df; }
 .save:global(.property-detail-save--disabled), .save:disabled { opacity: .5; cursor: default; }
-.save:global(.property-detail-save--saved) { background: #c9e2d3; }
+.save:global(.property-detail-primary-save--saved) { background: #c9e2d3; }
+.save:global(.property-detail-related-save--saved) { background: #c9e2d3; }
 .save:focus-visible { outline: 3px solid #0c3b2e; outline-offset: 2px; }
 .views { box-sizing: border-box; margin: 16px 0 0; color: #68736c; font-size: 12px; }
 .section { box-sizing: border-box; min-width: 0; margin-block-start: 32px; }

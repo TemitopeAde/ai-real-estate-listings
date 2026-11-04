@@ -1,6 +1,7 @@
 import { appInstances } from "@wix/app-management";
 import { auth } from "@wix/essentials";
 import { resolveBillingAccess } from "../billing-access";
+import { isDevelopmentEnvironment } from "./environment";
 
 const FULL_ACCESS_EMAIL_DOMAIN = "@wix.com";
 
@@ -12,6 +13,17 @@ function hasFullAccessOwner(site: unknown): boolean {
 
 export async function getBillingAccess() {
   let access = resolveBillingAccess();
+  if (isDevelopmentEnvironment()) {
+    return {
+      ...access,
+      planId: "business" as const,
+      accessStatus: "paid" as const,
+      hasAccess: true,
+      isTrial: false,
+      canStartTrial: false,
+    };
+  }
+
   try {
     const response = await auth.elevate(appInstances.getAppInstance)();
     access = resolveBillingAccess(response.instance);

@@ -4,7 +4,6 @@ import { ComparisonButton, ComparisonSpace } from '../../comparison/comparison-b
 import React, { lazy, Suspense, useMemo, useRef, type FC } from 'react';
 import classNames from 'classnames';
 import { useReducedMotion, useLanguageDirection } from '@wix/react-component-utils';
-import { Bookmark, BookmarkCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DEFAULT_DETAIL_WIDGET_CONFIG, formatListingPrice, getImageUrls, getListingLocation } from '../../../../lib/site-widget';
 import { optimizeDescriptionImages } from '../../../../lib/description-images';
 import { getPanoramaImages } from '../../../../lib/listing-types';
@@ -23,6 +22,10 @@ import styles from './property-detail.module.css';
 import richContentStyles from '../../widgets/property-detail-widget/property-detail-widget.module.css';
 
 const PropertyMap = lazy(() => import('../../widgets/property-detail-widget/property-map').then((module) => ({ default: module.PropertyMap })));
+
+const BookmarkIcon: FC<{ saved: boolean }> = ({ saved }) => <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{saved ? <><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /><path d="m9 12 2 2 4-4" /></> : <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />}</svg>;
+const ChevronLeftIcon: FC = () => <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>;
+const ChevronRightIcon: FC = () => <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>;
 
 const PropertyDetail: FC<PropertyDetailProps> = (props) => {
   const { id, className, direction, a11y, elementProps, detailPage } = props;
@@ -60,7 +63,7 @@ const PropertyDetail: FC<PropertyDetailProps> = (props) => {
     className={classNames('property-detail', styles.root, styles.fallbackDirection, className)}>
     <output {...elementProps?.message} className={classNames('property-detail-message', styles.message, elementProps?.message?.className)} hidden={!message} role={state === 'error' ? 'alert' : undefined}>{message}</output>
     <div {...elementProps?.card} className={classNames('property-detail-card', styles.card, elementProps?.card?.className)} hidden={!busy && !listing}>
-      <Gallery className={classNames('property-detail-gallery', styles.gallery, elementProps?.gallery?.className)} images={listing ? getImageUrls(listing) : []} title={listing?.title ?? ''} lang={lang} elementProps={{ image: elementProps?.image, control: elementProps?.imageControl, dots: elementProps?.imageDots }} />
+      <Gallery selectorPrefix="property-detail-primary-gallery" className={classNames('property-detail-gallery', styles.gallery, elementProps?.gallery?.className)} images={listing ? getImageUrls(listing) : []} title={listing?.title ?? ''} lang={lang} elementProps={{ image: elementProps?.image, control: elementProps?.imageControl, dots: elementProps?.imageDots }} />
       <div {...elementProps?.content} className={classNames('property-detail-content', styles.content, elementProps?.content?.className)}>
         <a {...elementProps?.backLink} className={classNames('property-detail-back-link', styles.backLink, elementProps?.backLink?.className)} href={propertyUrl(siteUrl, PROPERTIES_PAGE_PATH)} onClick={(event) => {
           if (designMode) { event.preventDefault(); return; }
@@ -74,9 +77,9 @@ const PropertyDetail: FC<PropertyDetailProps> = (props) => {
           </div>
           <div className={styles.priceRow}>
             <strong {...elementProps?.price} className={classNames('property-detail-price', styles.price, elementProps?.price?.className)}>{listing ? formatListingPrice(listing, locale) : '\u00a0'}</strong>
-            <ComparisonButton {...elementProps?.compare} className={classNames('property-detail-compare', styles.compare, elementProps?.compare?.className)} listing={listing} lang={lang} disabled={designMode || !allowed} hidden={!props.enableComparison} />
-            <button {...elementProps?.save} className={classNames('property-detail-save', styles.save, saved && 'property-detail-save--saved', elementProps?.save?.className)} type="button" onClick={() => void handleSave()} disabled={designMode || !listing || saving} aria-busy={saving} aria-pressed={saved} aria-label={t(lang, saved ? 'removeProperty' : 'saveProperty')}>
-              {saved ? <BookmarkCheck size={18} aria-hidden="true" /> : <Bookmark size={18} aria-hidden="true" />}
+            <ComparisonButton {...elementProps?.compare} selector="property-detail-primary-compare" className={classNames('property-detail-compare', styles.compare, elementProps?.compare?.className)} listing={listing} lang={lang} disabled={designMode || !allowed} hidden={!props.enableComparison} />
+            <button {...elementProps?.save} className={classNames('property-detail-primary-save', styles.save, saved && 'property-detail-primary-save--saved', elementProps?.save?.className)} type="button" onClick={() => void handleSave()} disabled={designMode || !listing || saving} aria-busy={saving} aria-pressed={saved} aria-label={t(lang, saved ? 'removeProperty' : 'saveProperty')}>
+              <BookmarkIcon saved={saved} />
             </button>
           </div>
         </div>
@@ -125,13 +128,13 @@ const PropertyDetail: FC<PropertyDetailProps> = (props) => {
           <p {...elementProps?.relatedSubtitle} className={classNames('property-detail-related-subtitle', styles.relatedSubtitle, elementProps?.relatedSubtitle?.className)}>{props.relatedSubtitle}</p>
         </div>
         <div className={styles.relatedControls}>
-          <button {...elementProps?.relatedControl} className={classNames('property-detail-related-control', styles.relatedControl, elementProps?.relatedControl?.className)} type="button" onClick={() => scrollRelated(-320)} disabled={busy} aria-label={t(lang, 'previousRelated')}><ChevronLeft size={16} aria-hidden="true" /></button>
-          <button {...elementProps?.relatedControl} className={classNames('property-detail-related-control', styles.relatedControl, elementProps?.relatedControl?.className)} type="button" onClick={() => scrollRelated(320)} disabled={busy} aria-label={t(lang, 'nextRelated')}><ChevronRight size={16} aria-hidden="true" /></button>
+          <button {...elementProps?.relatedControl} className={classNames('property-detail-related-control', styles.relatedControl, elementProps?.relatedControl?.className)} type="button" onClick={() => scrollRelated(-320)} disabled={busy} aria-label={t(lang, 'previousRelated')}><ChevronLeftIcon /></button>
+          <button {...elementProps?.relatedControl} className={classNames('property-detail-related-control', styles.relatedControl, elementProps?.relatedControl?.className)} type="button" onClick={() => scrollRelated(320)} disabled={busy} aria-label={t(lang, 'nextRelated')}><ChevronRightIcon /></button>
         </div>
       </header>
       <div ref={relatedRef} {...elementProps?.relatedList} className={classNames('property-detail-related-list', styles.relatedList, elementProps?.relatedList?.className)}>
         {(busy ? Array.from({ length: config.featuredCount }, () => null) : featuredListings).map((item, index) => <article key={item?._id ?? `loading-${index}`} {...elementProps?.relatedCard} className={classNames('property-detail-related-card', styles.relatedCard, elementProps?.relatedCard?.className)} aria-hidden={!item || undefined}>
-          <Gallery images={item ? getImageUrls(item) : []} title={item?.title ?? ''} lang={lang} />
+          <Gallery selectorPrefix="property-detail-related-gallery" images={item ? getImageUrls(item) : []} title={item?.title ?? ''} lang={lang} />
           <div className={styles.relatedBody}>
             <a {...elementProps?.relatedLink} className={classNames('property-detail-related-link', styles.relatedLink, elementProps?.relatedLink?.className)} href={item ? propertyUrl(siteUrl, detailPage.href ?? '/property-details', item._id) : undefined} target={detailPage.target} rel={detailPage.rel} onClick={(event) => {
               if (designMode || !item) { event.preventDefault(); return; }
@@ -141,9 +144,9 @@ const PropertyDetail: FC<PropertyDetailProps> = (props) => {
             <p className={styles.price}>{item ? formatListingPrice(item, locale) : '\u00a0'}</p>
             <p className={styles.location}>{item ? getListingLocation(item, t(lang, 'locationNotSet')) : '\u00a0'}</p>
             <p className={styles.metadata}>{item ? [item.bedrooms === undefined ? '' : t(lang, 'bedroomsShort', { count: item.bedrooms }), item.bathrooms === undefined ? '' : t(lang, 'bathroomsShort', { count: item.bathrooms }), `${item.area.toLocaleString(locale)} ${item.areaUnit}`].filter(Boolean).join(' · ') : '\u00a0'}</p>
-            <ComparisonButton {...elementProps?.compare} className={classNames('property-detail-compare', styles.compare, elementProps?.compare?.className)} listing={item} lang={lang} disabled={designMode || !allowed} hidden={!props.enableComparison} />
-            <button {...elementProps?.save} className={classNames('property-detail-save', styles.save, elementProps?.save?.className)} type="button" onClick={() => { if (item) handleFeaturedSave(item._id); }} disabled={designMode || !item} aria-pressed={Boolean(item && featuredSavedIds.has(item._id))} aria-label={t(lang, item && featuredSavedIds.has(item._id) ? 'removeProperty' : 'saveProperty')}>
-              {item && featuredSavedIds.has(item._id) ? <BookmarkCheck size={18} aria-hidden="true" /> : <Bookmark size={18} aria-hidden="true" />}
+            <ComparisonButton {...elementProps?.compare} selector="property-detail-related-compare" className={classNames('property-detail-compare', styles.compare, elementProps?.compare?.className)} listing={item} lang={lang} disabled={designMode || !allowed} hidden={!props.enableComparison} />
+            <button {...elementProps?.save} className={classNames('property-detail-related-save', styles.save, item && featuredSavedIds.has(item._id) && 'property-detail-related-save--saved', elementProps?.save?.className)} type="button" onClick={() => { if (item) handleFeaturedSave(item._id); }} disabled={designMode || !item} aria-pressed={Boolean(item && featuredSavedIds.has(item._id))} aria-label={t(lang, item && featuredSavedIds.has(item._id) ? 'removeProperty' : 'saveProperty')}>
+              <BookmarkIcon saved={Boolean(item && featuredSavedIds.has(item._id))} />
             </button>
           </div>
         </article>)}

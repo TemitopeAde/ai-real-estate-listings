@@ -14,3 +14,5 @@ export async function updateQuoteRequest(id: string, update: { status?: QuoteReq
 export async function getQuoteConfirmationTemplate() { return request<QuoteConfirmationTemplate>('/api/quote-requests/email-template', { cache: 'no-store' }); }
 export async function saveQuoteConfirmationTemplate(template: QuoteConfirmationTemplate) { return request<QuoteConfirmationTemplate>('/api/quote-requests/email-template', { method: 'PUT', body: JSON.stringify(template) }); }
 export async function sendQuoteReply(id: string, email: { subject: string; body: string; idempotencyKey: string }) { return request<QuoteRequest>(`/api/quote-requests/${encodeURIComponent(id)}/email`, { method: 'POST', body: JSON.stringify(email) }); }
+/** Creates site contacts for quote requests that have none, one batch per call. Pass `skip` = failures so far. */
+export async function syncQuoteRequestContacts(skip = 0) { return request<{ linked: number; failed: number; remaining: number }>('/api/quote-requests/contacts/sync', { method: 'POST', body: JSON.stringify({ skip }) }); }

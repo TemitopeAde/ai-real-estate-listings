@@ -1,6 +1,9 @@
 import { auth } from '@wix/essentials';
+import { isDevelopmentEnvironment } from './environment';
 
 export async function requireDashboardAccess(): Promise<Response | null> {
+  if (isDevelopmentEnvironment()) return null;
+
   try {
     const tokenInfo = await auth.getTokenInfo();
     const allowed = tokenInfo.active && (tokenInfo.subjectType === 'USER' || tokenInfo.subjectType === 'APP');

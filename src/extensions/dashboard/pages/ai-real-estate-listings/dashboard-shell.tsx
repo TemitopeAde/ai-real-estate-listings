@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Lock,
   Mail,
+  Receipt,
   Settings2,
   Sparkles,
   WandSparkles,
@@ -55,7 +56,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEntitlement, useEntitlementPending } from './entitlement-context';
 
-export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'analytics' | 'guide' | 'faq' | 'pricing' | 'settings';
+export type DashboardSection = 'overview' | 'listings' | 'writer' | 'requests' | 'invoices' | 'analytics' | 'guide' | 'faq' | 'pricing' | 'settings';
 
 interface DashboardShellProps {
   section: DashboardSection;
@@ -75,6 +76,7 @@ const navigation: Array<{
   { id: 'writer', labelKey: 'navWriter', icon: WandSparkles },
   { id: 'analytics', labelKey: 'navAnalytics', icon: BarChart3 },
   { id: 'requests', labelKey: 'navRequests', icon: Inbox },
+  { id: 'invoices', labelKey: 'navInvoices', icon: Receipt },
   { id: 'guide', labelKey: 'navGuide', icon: BookOpen },
   { id: 'faq', labelKey: 'navFaq', icon: CircleHelp },
   { id: 'pricing', labelKey: 'navPricing', icon: BadgeDollarSign },
@@ -89,6 +91,7 @@ const sectionCopy: Record<
   listings: { titleKey: 'navListings', eyebrowKey: 'eyebrowInventory' },
   writer: { titleKey: 'navWriter', eyebrowKey: 'eyebrowStudio' },
   requests: { titleKey: 'navRequests', eyebrowKey: 'eyebrowLeads' },
+  invoices: { titleKey: 'navInvoices', eyebrowKey: 'eyebrowBilling' },
   analytics: { titleKey: 'analyticsTitle', eyebrowKey: 'eyebrowAnalytics' },
   guide: { titleKey: 'navGuide', eyebrowKey: 'eyebrowGuide' },
   faq: { titleKey: 'navFaq', eyebrowKey: 'eyebrowFaq' },
@@ -111,6 +114,7 @@ export function DashboardShell({
   const lockedSections: Partial<Record<DashboardSection, boolean>> = pending ? {} : {
     writer: !entitlement.features.aiWriter,
     analytics: !entitlement.features.analytics,
+    invoices: !entitlement.features.invoices,
   };
 
   return (
