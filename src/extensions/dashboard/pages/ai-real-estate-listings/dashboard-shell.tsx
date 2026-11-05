@@ -14,7 +14,6 @@ import {
   Receipt,
   Settings2,
   Sparkles,
-  WandSparkles,
 } from 'lucide-react';
 
 import {
@@ -73,7 +72,6 @@ const navigation: Array<{
 }> = [
   { id: 'overview', labelKey: 'navOverview', icon: LayoutDashboard },
   { id: 'listings', labelKey: 'navListings', icon: Building2 },
-  { id: 'writer', labelKey: 'navWriter', icon: WandSparkles },
   { id: 'analytics', labelKey: 'navAnalytics', icon: BarChart3 },
   { id: 'requests', labelKey: 'navRequests', icon: Inbox },
   { id: 'invoices', labelKey: 'navInvoices', icon: Receipt },

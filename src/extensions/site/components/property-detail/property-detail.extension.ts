@@ -24,6 +24,13 @@ export default extensions.editorReactComponent({
         resizeDirection: LAYOUT.RESIZE_DIRECTION.horizontal,
         contentResizeDirection: LAYOUT.CONTENT_RESIZE_DIRECTION.vertical,
       },
+      presets: {
+        default: {
+          displayName: 'Property Detail',
+          // Harmony-branded thumbnail shown in the editor's Add panel (public/).
+          thumbnailUrl: '{{BASE_URL}}/property-detail-harmony-thumbnail.png',
+        },
+      },
     }
   ),
   installation: {

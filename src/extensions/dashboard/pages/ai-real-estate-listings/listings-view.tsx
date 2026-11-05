@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import {
   Archive,
   Building2,
+  Copy,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -80,6 +81,7 @@ import {
   isListingStatus,
   isPropertyType,
   exportAllListings,
+  duplicateListing,
   queryListings,
   type Listing,
   type ListingStatus,
@@ -178,6 +180,7 @@ export function ListingsView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
+  const [duplicating, setDuplicating] = useState<Listing | null>(null);
   const [archiveCandidate, setArchiveCandidate] = useState<Listing | null>(
     null,
   );
@@ -243,15 +246,33 @@ export function ListingsView({
     setPage(0);
   };
 
-  const handleArchive = async (id: string) => {
+  /** Resolves `true` once the listing is deleted and the table has reloaded. */
+  const handleArchive = async (id: string): Promise<boolean> => {
     setArchivingId(id);
     try {
       await onArchiveListing(id);
       await load();
+      return true;
     } catch {
       // The parent owns user-facing error feedback for mutations.
+      return false;
     } finally {
       setArchivingId(null);
+    }
+  };
+
+  const handleDuplicate = async (listing: Listing) => {
+    if (duplicating) return;
+    setDuplicating(listing);
+    try {
+      await duplicateListing(listing._id);
+      dashboard.showToast({ type: "success", message: t("listingDuplicated", { title: listing.title }) });
+      await load();
+    } catch (duplicateError) {
+      console.error("Unable to duplicate listing.", duplicateError);
+      dashboard.showToast({ type: "error", message: t("listingDuplicateFailed") });
+    } finally {
+      setDuplicating(null);
     }
   };
 
@@ -318,7 +339,22 @@ export function ListingsView({
           </div>
         </div>
 
-        <Card className="border-border/70 bg-card/90 shadow-sm">
+        <Card
+          className="relative border-border/70 bg-card/90 shadow-sm"
+          aria-busy={duplicating !== null}
+        >
+          {duplicating ? (
+            <div
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-[inherit] bg-background/75 px-6 text-center backdrop-blur-[2px]"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
+              <p className="max-w-sm text-sm font-medium">
+                {t("listingDuplicating", { title: duplicating.title })}
+              </p>
+            </div>
+          ) : null}
           <CardHeader className="gap-4 border-b border-border/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>{t("propertyInventory")}</CardTitle>
@@ -521,8 +557,9 @@ export function ListingsView({
                             <ListingActionsMenu
                               listing={listing}
                               archiving={archivingId === listing._id}
+                              duplicating={duplicating?._id === listing._id}
                               canEdit={entitlement.features.editListings}
-                              disabled={pending}
+                              disabled={pending || duplicating !== null}
                               onEdit={() => {
                                 onEditListing(listing._id);
                               }}
@@ -537,6 +574,7 @@ export function ListingsView({
                                 }
                                 void openUniqueViewers(listing);
                               }}
+                              onDuplicate={() => void handleDuplicate(listing)}
                               onDelete={() => {
                                 setArchiveCandidate(listing);
                               }}
@@ -610,7 +648,8 @@ export function ListingsView({
       <AlertDialog
         open={archiveCandidate !== null}
         onOpenChange={(open) => {
-          if (!open) setArchiveCandidate(null);
+          // Keep the dialog open until an in-flight delete has finished.
+          if (!open && archivingId === null) setArchiveCandidate(null);
         }}
       >
         <AlertDialogContent>
@@ -621,15 +660,29 @@ export function ListingsView({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogCancel disabled={archivingId !== null}>
+              {t("cancel")}
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (archiveCandidate) void handleArchive(archiveCandidate._id);
-                setArchiveCandidate(null);
+              disabled={archivingId !== null}
+              aria-busy={archivingId !== null}
+              onClick={async (event) => {
+                // Radix closes the dialog on click by default; close it ourselves once the delete completes.
+                event.preventDefault();
+                if (!archiveCandidate || archivingId !== null) return;
+                const deleted = await handleArchive(archiveCandidate._id);
+                if (deleted) setArchiveCandidate(null);
               }}
             >
-              {t("deleteListing")}
+              {archivingId !== null ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  {t("deletingListing")}
+                </>
+              ) : (
+                t("deleteListing")
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -646,18 +699,22 @@ export function ListingsView({
 function ListingActionsMenu({
   listing,
   archiving,
+  duplicating,
   canEdit,
   disabled = false,
   onEdit,
   onViewers,
+  onDuplicate,
   onDelete,
 }: {
   listing: Listing;
   archiving: boolean;
+  duplicating: boolean;
   canEdit: boolean;
   disabled?: boolean;
   onEdit: () => void;
   onViewers: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }) {
   const t = useDt();
@@ -741,6 +798,18 @@ function ListingActionsMenu({
           <button
             type="button"
             role="menuitem"
+            disabled={disabled || duplicating}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-50"
+            onClick={() => {
+              close();
+              onDuplicate();
+            }}
+          >
+            <Copy className="size-4" aria-hidden="true" /> {t("duplicate")}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
             className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
             onClick={() => {
               close();
@@ -780,7 +849,11 @@ function ListingActionsMenu({
         disabled={disabled}
         onClick={toggle}
       >
-        <MoreHorizontal className="size-4" aria-hidden="true" />
+        {duplicating ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <MoreHorizontal className="size-4" aria-hidden="true" />
+        )}
       </Button>
       {menu}
     </div>

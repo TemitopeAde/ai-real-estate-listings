@@ -114,6 +114,7 @@ const EN = {
   lastName: "Last name",
   email: "Email",
   phone: "Phone",
+  preferredViewingDate: "Preferred viewing date",
   message: "Message",
   loadingEditor: "Loading editor…",
   sending: "Sending…",

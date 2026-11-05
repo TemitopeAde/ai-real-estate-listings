@@ -16,7 +16,7 @@ function plainFromHtml(value: string): string {
 }
 
 export const QuoteRequestModal: FC<{ listing: Listing; lang: WidgetLangCode; onClose: () => void }> = ({ listing, lang, onClose }) => {
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", message: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", preferredViewingDate: "", message: "" });
   const [phoneCountry, setPhoneCountry] = useState<CountryCode>("US");
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -139,6 +139,11 @@ export const QuoteRequestModal: FC<{ listing: Listing; lang: WidgetLangCode; onC
                     update("phone", phone);
                   }}
                 />
+                {field("preferredViewingDate", t(lang, "preferredViewingDate"), {
+                  name: "preferredViewingDate",
+                  type: "date",
+                  min: new Date().toISOString().slice(0, 10),
+                })}
                 <label className={styles.quoteMessage}>
                   {t(lang, "message")}
                   <div

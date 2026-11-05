@@ -462,6 +462,7 @@ function RequestDetail({
       <dl className="grid gap-3 rounded-xl border border-border/70 p-4 text-sm sm:grid-cols-2">
         <div className="min-w-0"><dt className="text-xs text-muted-foreground">{t('quoteContactEmail')}</dt><dd className="truncate font-medium"><a className="text-primary underline-offset-4 hover:underline" href={mailto}>{request.email}</a></dd></div>
         <div className="min-w-0"><dt className="text-xs text-muted-foreground">{t('quoteContactPhone')}</dt><dd className="truncate font-medium">{request.phone || '—'}</dd></div>
+        {request.preferredViewingDate ? <div className="min-w-0"><dt className="text-xs text-muted-foreground">{t('quotePreferredViewingDate')}</dt><dd className="font-medium">{new Date(`${request.preferredViewingDate}T00:00:00`).toLocaleDateString(locale)}</dd></div> : null}
       </dl>
 
       <section className="space-y-2">

@@ -30,6 +30,8 @@ export interface QuoteRequest {
   email: string;
   phone?: string;
   message?: string;
+  /** A visitor's requested property-viewing date, in YYYY-MM-DD format. */
+  preferredViewingDate?: string;
   memberId?: string;
   contactId?: string;
   status: QuoteRequestStatus;

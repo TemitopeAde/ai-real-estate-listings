@@ -25,6 +25,7 @@ export default {
     { type: 'TEXT', displayName: 'Last Name', key: 'lastName' },
     { type: 'TEXT', displayName: 'Email', key: 'email' },
     { type: 'TEXT', displayName: 'Phone', key: 'phone' },
+    { type: 'TEXT', displayName: 'Preferred Viewing Date', key: 'preferredViewingDate' },
     { type: 'RICH_TEXT', displayName: 'Message', key: 'message' },
     { type: 'TEXT', displayName: 'Member ID', key: 'memberId' },
     { type: 'TEXT', displayName: 'Contact ID', key: 'contactId' },

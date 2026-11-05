@@ -97,6 +97,7 @@ export function buildQuoteRequestEmail(
       ${row("Name", escapeHtml(name))}
       ${row("Email", `<a href="mailto:${escapeHtml(encodeURIComponent(request.email).replace(/%40/g, "@"))}" style="color:#0c3b2e">${escapeHtml(request.email)}</a>`)}
       ${request.phone ? row("Phone", `<a href="tel:${escapeHtml(request.phone.replace(/[^\d+]/g, ""))}" style="color:#0c3b2e">${escapeHtml(request.phone)}</a>`) : ""}
+      ${request.preferredViewingDate ? row("Preferred viewing date", escapeHtml(request.preferredViewingDate)) : ""}
     </table>
   </td></tr>
   ${message ? `<tr><td style="padding:16px 24px 0">

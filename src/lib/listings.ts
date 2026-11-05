@@ -197,6 +197,14 @@ export async function archiveListing(id: string): Promise<Listing> {
   return deserializeListing(response);
 }
 
+export async function duplicateListing(id: string): Promise<Listing> {
+  return deserializeListing(
+    await request<Listing>(`/api/listings/${encodeURIComponent(id)}/duplicate`, {
+      method: "POST",
+    }),
+  );
+}
+
 /** Fetches every listing (archived included) page by page, for CSV export. */
 export async function exportAllListings(): Promise<Listing[]> {
   const listings: Listing[] = [];

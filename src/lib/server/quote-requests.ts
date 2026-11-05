@@ -29,6 +29,12 @@ function richMessage(value: unknown): string {
 }
 function email(value: string): boolean { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }
 function phone(value: string): boolean { return /^[+()\d\s.-]{7,30}$/.test(value); }
+function preferredViewingDate(value: unknown): string {
+  const result = text(value, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(result)) return '';
+  const parsed = new Date(`${result}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === result ? result : '';
+}
 function status(value: unknown): QuoteRequestStatus { return QUOTE_REQUEST_STATUSES.some((item) => item.value === value) ? value as QuoteRequestStatus : 'new'; }
 function emailLog(value: unknown): QuoteRequestEmail[] {
   if (!Array.isArray(value)) return [];
@@ -217,12 +223,15 @@ export async function createQuoteRequest(input: Record<string, unknown>, rateKey
   if (countryCode && !isPhoneCountry(countryCode)) throw new Error('A valid phone country code is required.');
   const normalizedPhone = normalizeQuotePhone(requesterPhone, isPhoneCountry(countryCode) ? countryCode : undefined);
   const message = richMessage(input.message);
+  const rawViewingDate = text(input.preferredViewingDate, 10);
+  const viewingDate = preferredViewingDate(input.preferredViewingDate);
   if (!listingId) throw new Error('A listing is required.');
   if (!firstName) throw new Error('First name is required.');
   if (!lastName) throw new Error('Last name is required.');
   if (!email(requesterEmail)) throw new Error('A valid email is required.');
   if (!requesterPhone || !phone(requesterPhone)) throw new Error('A valid phone number is required.');
   if (countryCode && !normalizedPhone) throw new Error('A valid phone number is required.');
+  if (rawViewingDate && !viewingDate) throw new Error('A valid preferred viewing date is required.');
   if (plainFromHtml(message).length > 2000) throw new Error('Keep the message under 2,000 characters.');
   const listing = await getPublicListing(listingId);
   if (!listing) throw new Error('This property is no longer available.');
@@ -244,6 +253,7 @@ export async function createQuoteRequest(input: Record<string, unknown>, rateKey
     lastName,
     email: requesterEmail,
     phone: normalizedPhone?.phone ?? requesterPhone,
+    preferredViewingDate: viewingDate,
     message,
     memberId: await getMemberId(),
     contactId: await upsertQuoteContact({ firstName, lastName, email: requesterEmail, phone: normalizedPhone?.phone ?? requesterPhone, countryCode: normalizedPhone?.countryCode }),
@@ -262,7 +272,7 @@ export function normalizeQuoteRequest(value: unknown): QuoteRequest {
     _id: text(item._id, 100), listingId: text(item.listingId, 100), listingTitle: text(item.listingTitle, 200),
     listingPrice: typeof item.listingPrice === 'number' ? item.listingPrice : 0, listingCurrency: text(item.listingCurrency, 10),
     listingCity: text(item.listingCity, 120), listingAddress: text(item.listingAddress, 300), listingPrimaryImage: text(item.listingPrimaryImage, 500),
-    firstName: text(item.firstName, 80), lastName: text(item.lastName, 80), email: text(item.email, 160), phone: text(item.phone, 40), message: richMessage(item.message), memberId: text(item.memberId, 100), contactId: text(item.contactId, 100),
+    firstName: text(item.firstName, 80), lastName: text(item.lastName, 80), email: text(item.email, 160), phone: text(item.phone, 40), preferredViewingDate: preferredViewingDate(item.preferredViewingDate) || undefined, message: richMessage(item.message), memberId: text(item.memberId, 100), contactId: text(item.contactId, 100),
     status: status(item.status), notes: text(item.notes, 4000), archived: item.archived === true, emailLog: emailLog(item.emailLog), _createdDate: date(item._createdDate), _updatedDate: date(item._updatedDate),
   };
 }

@@ -436,6 +436,21 @@ export async function updateListing(
   return saveListing({ ...listingToInput(listing), ...patch }, id, listing._revision);
 }
 
+/** Creates an editable draft from an existing listing without carrying over traffic data. */
+export async function duplicateListing(id: string): Promise<Listing | null> {
+  const listing = await getListing(id);
+  if (!listing) return null;
+
+  const copy = listingToInput(listing);
+  return saveListing({
+    ...copy,
+    title: `Copy of ${listing.title}`.slice(0, 200),
+    status: 'draft',
+    viewCount: 0,
+    viewEvents: [],
+  });
+}
+
 async function newestActiveListings(limit: number): Promise<Listing[]> {
   const result = await auth
     .elevate(items.query)(LISTINGS_COLLECTION_ID)
